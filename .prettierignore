@@ -1,0 +1,9 @@
+node_modules
+.next
+pnpm-lock.yaml
+.agents
+skills-lock.json
+docs
+CLAUDE.md
+README.md
+
