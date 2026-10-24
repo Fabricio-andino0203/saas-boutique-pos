@@ -7,3 +7,6 @@ docs
 CLAUDE.md
 README.md
 
+src/generated
+prisma/migrations
+docker

@@ -1,0 +1,913 @@
+// Esquema de datos de Boutique POS. Fuente: docs/DATA_MODEL.md
+//
+// Convenciones:
+//  - Todo dinero es Int en centavos (sufijo `Cents`).
+//  - Nada con historial se borra: se archiva (`archivedAt`).
+//  - Las restricciones que Prisma no puede expresar (CHECK, índices parciales,
+//    tablas de solo inserción) viven en la migración `constraints`.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ───────────────────────────── Enums ─────────────────────────────
+
+enum Role {
+  OWNER
+  MANAGER
+  CASHIER
+  WAREHOUSE
+}
+
+enum LocationType {
+  STORE
+  WAREHOUSE
+}
+
+enum FiscalDocumentType {
+  INVOICE
+  CREDIT_NOTE
+}
+
+enum TaxCategory {
+  STANDARD
+  EXEMPT
+}
+
+enum StockMovementType {
+  PURCHASE_IN
+  SALE_OUT
+  RETURN_IN
+  RETURN_SCRAP
+  ADJUSTMENT_IN
+  ADJUSTMENT_OUT
+  COUNT_ADJUSTMENT
+  TRANSFER_OUT
+  TRANSFER_IN
+  LAYAWAY_RESERVE
+  LAYAWAY_RELEASE
+  INITIAL
+}
+
+enum StockCountStatus {
+  OPEN
+  IN_REVIEW
+  APPLIED
+  CANCELLED
+}
+
+enum StockCountScope {
+  ALL
+  CATEGORY
+  ZONE
+}
+
+enum PurchaseOrderStatus {
+  DRAFT
+  ORDERED
+  PARTIALLY_RECEIVED
+  RECEIVED
+  CANCELLED
+}
+
+enum CashSessionStatus {
+  OPEN
+  CLOSED_PENDING_APPROVAL
+  CLOSED
+}
+
+enum CashMovementType {
+  IN
+  OUT
+}
+
+enum SaleStatus {
+  COMPLETED
+  VOIDED
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
+  TRANSFER
+  STORE_CREDIT
+  OTHER
+}
+
+enum ReturnType {
+  RETURN
+  EXCHANGE
+}
+
+enum RefundMethod {
+  ORIGINAL
+  CASH
+  STORE_CREDIT
+  NONE
+}
+
+enum ReturnItemCondition {
+  RESELLABLE
+  DAMAGED
+}
+
+enum LayawayStatus {
+  ACTIVE
+  COMPLETED
+  CANCELLED
+  EXPIRED
+}
+
+enum StoreCreditReason {
+  RETURN
+  LAYAWAY_CANCEL
+  MANUAL
+  USED_IN_SALE
+}
+
+// ─────────────────── Acceso y configuración ───────────────────
+
+model User {
+  id           String    @id @default(cuid())
+  name         String
+  username     String    @unique
+  email        String?   @unique
+  passwordHash String
+  pinHash      String?
+  role         Role
+  isActive     Boolean   @default(true)
+  failedLogins Int       @default(0)
+  lockedUntil  DateTime?
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  sessions             Session[]
+  salesMade            Sale[]             @relation("SaleSeller")
+  salesVoided          Sale[]             @relation("SaleVoidedBy")
+  cashSessions         CashSession[]      @relation("CashSessionUser")
+  cashSessionsApproved CashSession[]      @relation("CashSessionApprover")
+  cashMovements        CashMovement[]
+  stockMovements       StockMovement[]
+  stockCountsStarted   StockCount[]       @relation("StockCountStarter")
+  stockCountsApproved  StockCount[]       @relation("StockCountApprover")
+  purchaseOrders       PurchaseOrder[]
+  goodsReceipts        GoodsReceipt[]
+  priceChanges         PriceHistory[]
+  returnsProcessed     ReturnDoc[]        @relation("ReturnProcessor")
+  returnsAuthorized    ReturnDoc[]        @relation("ReturnAuthorizer")
+  layawaysCreated      Layaway[]
+  storeCreditEntries   StoreCreditEntry[]
+  parkedSales          ParkedSale[]
+  auditLogs            AuditLog[]
+}
+
+/// Sesiones en BD (revocables). Forma compatible con el adaptador de Auth.js.
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  ip           String?
+  userAgent    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expires])
+}
+
+model Location {
+  id        String       @id @default(cuid())
+  name      String
+  code      String       @unique
+  address   String?
+  isDefault Boolean      @default(false)
+  type      LocationType @default(STORE)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  terminals      Terminal[]
+  stockLevels    StockLevel[]
+  stockMovements StockMovement[]
+  stockCounts    StockCount[]
+  purchaseOrders PurchaseOrder[]
+  goodsReceipts  GoodsReceipt[]
+  sales          Sale[]
+}
+
+model Terminal {
+  id         String   @id @default(cuid())
+  name       String
+  locationId String
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  location     Location      @relation(fields: [locationId], references: [id])
+  cashSessions CashSession[]
+  fiscalRanges FiscalRange[]
+  sales        Sale[]
+  parkedSales  ParkedSale[]
+
+  @@index([locationId])
+}
+
+/// Clave/valor tipado. Acceso mediante src/lib/settings.ts.
+model Setting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  valueJson Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model BusinessProfile {
+  id        String   @id @default(cuid())
+  legalName String
+  tradeName String?
+  taxId     String? // RTN
+  address   String?
+  phone     String?
+  logoUrl   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+/// Rango de facturación autorizado (CAI).
+/// `nextNumber` solo se incrementa dentro de la transacción de venta, con lock de fila.
+model FiscalRange {
+  id           String             @id @default(cuid())
+  documentType FiscalDocumentType
+  terminalId   String?
+  cai          String
+  prefix       String
+  rangeStart   Int
+  rangeEnd     Int
+  nextNumber   Int
+  expiresAt    DateTime
+  isActive     Boolean            @default(true)
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  terminal Terminal?   @relation(fields: [terminalId], references: [id])
+  sales    Sale[]
+  returns  ReturnDoc[]
+
+  @@index([documentType, isActive])
+}
+
+/// Numeración correlativa interna sin saltos (ticket, devolución, apartado…).
+/// Se incrementa con lock de fila dentro de la transacción del documento.
+model DocumentCounter {
+  key       String   @id // p. ej. "SALE", "RETURN", "LAYAWAY", "PURCHASE_ORDER"
+  nextValue Int      @default(1)
+  updatedAt DateTime @updatedAt
+}
+
+/// Solo inserción: nunca update ni delete (reforzado por trigger en la migración `constraints`).
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  action     String
+  entityType String
+  entityId   String
+  before     Json?
+  after      Json?
+  reason     String?
+  ip         String?
+  createdAt  DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([entityType, entityId])
+  @@index([userId, createdAt])
+  @@index([action, createdAt])
+}
+
+// ───────────────────────── Catálogo ─────────────────────────
+
+model Category {
+  id            String    @id @default(cuid())
+  name          String
+  slug          String    @unique
+  parentId      String?
+  sortOrder     Int       @default(0)
+  allowsReturns Boolean   @default(true)
+  archivedAt    DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  parent   Category?  @relation("CategoryTree", fields: [parentId], references: [id])
+  children Category[] @relation("CategoryTree")
+  products Product[]
+
+  @@index([parentId])
+}
+
+model Brand {
+  id         String    @id @default(cuid())
+  name       String    @unique
+  archivedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  products Product[]
+}
+
+model Season {
+  id         String    @id @default(cuid())
+  name       String    @unique
+  startsAt   DateTime?
+  endsAt     DateTime?
+  archivedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  products Product[]
+}
+
+model Size {
+  id         String    @id @default(cuid())
+  name       String    @unique
+  sortOrder  Int       @default(0)
+  group      String?
+  archivedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  variants Variant[]
+}
+
+model Color {
+  id         String    @id @default(cuid())
+  name       String    @unique
+  hex        String?
+  sortOrder  Int       @default(0)
+  archivedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  variants Variant[]
+}
+
+model Supplier {
+  id           String    @id @default(cuid())
+  name         String
+  taxId        String?
+  contactName  String?
+  phone        String?
+  email        String?
+  address      String?
+  paymentTerms String?
+  notes        String?
+  archivedAt   DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  products       Product[]
+  purchaseOrders PurchaseOrder[]
+  goodsReceipts  GoodsReceipt[]
+}
+
+model Product {
+  id                String      @id @default(cuid())
+  code              String      @unique // base del SKU de sus variantes
+  name              String
+  description       String?
+  categoryId        String
+  brandId           String?
+  seasonId          String?
+  defaultSupplierId String?
+  basePriceCents    Int
+  baseCostCents     Int         @default(0)
+  taxCategory       TaxCategory @default(STANDARD)
+  imageUrl          String?
+  archivedAt        DateTime?
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  category        Category       @relation(fields: [categoryId], references: [id])
+  brand           Brand?         @relation(fields: [brandId], references: [id])
+  season          Season?        @relation(fields: [seasonId], references: [id])
+  defaultSupplier Supplier?      @relation(fields: [defaultSupplierId], references: [id])
+  variants        Variant[]
+  priceHistory    PriceHistory[]
+
+  @@index([categoryId])
+  @@index([brandId])
+  @@index([seasonId])
+}
+
+/// La unidad que se vende y se cuenta.
+/// La unicidad (productId, sizeId, colorId) con NULLs se define en la migración `constraints`
+/// (NULLS NOT DISTINCT), porque Prisma no puede expresarla.
+model Variant {
+  id           String    @id @default(cuid())
+  productId    String
+  sizeId       String?
+  colorId      String?
+  sku          String    @unique
+  barcode      String    @unique
+  priceCents   Int? // null = hereda Product.basePriceCents
+  costCents    Int? // null = hereda Product.baseCostCents
+  avgCostCents Int       @default(0)
+  reorderPoint Int?
+  archivedAt   DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  product            Product             @relation(fields: [productId], references: [id])
+  size               Size?               @relation(fields: [sizeId], references: [id])
+  color              Color?              @relation(fields: [colorId], references: [id])
+  stockLevels        StockLevel[]
+  stockMovements     StockMovement[]
+  stockCountItems    StockCountItem[]
+  purchaseOrderItems PurchaseOrderItem[]
+  goodsReceiptItems  GoodsReceiptItem[]
+  saleItems          SaleItem[]
+  layawayItems       LayawayItem[]
+  priceHistory       PriceHistory[]
+
+  @@index([productId])
+  @@index([sizeId])
+  @@index([colorId])
+}
+
+model PriceHistory {
+  id            String   @id @default(cuid())
+  productId     String?
+  variantId     String?
+  oldPriceCents Int
+  newPriceCents Int
+  oldCostCents  Int
+  newCostCents  Int
+  changedById   String
+  reason        String?
+  changedAt     DateTime @default(now())
+
+  product   Product? @relation(fields: [productId], references: [id])
+  variant   Variant? @relation(fields: [variantId], references: [id])
+  changedBy User     @relation(fields: [changedById], references: [id])
+
+  @@index([productId, changedAt])
+  @@index([variantId, changedAt])
+}
+
+// ───────────────────────── Inventario ─────────────────────────
+
+/// Acumulado. NO se edita directamente: solo vía inventory.recordMovement.
+model StockLevel {
+  id         String   @id @default(cuid())
+  variantId  String
+  locationId String
+  onHand     Int      @default(0)
+  reserved   Int      @default(0) // apartados; available = onHand - reserved
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  variant  Variant  @relation(fields: [variantId], references: [id])
+  location Location @relation(fields: [locationId], references: [id])
+
+  @@unique([variantId, locationId])
+  @@index([locationId])
+}
+
+/// Kardex. Fuente de verdad del stock. Solo inserción (trigger en la migración `constraints`).
+model StockMovement {
+  id            String            @id @default(cuid())
+  variantId     String
+  locationId    String
+  type          StockMovementType
+  quantity      Int // con signo: + entra, − sale
+  unitCostCents Int               @default(0)
+  refType       String?
+  refId         String?
+  reason        String?
+  userId        String
+  createdAt     DateTime          @default(now())
+
+  variant  Variant  @relation(fields: [variantId], references: [id])
+  location Location @relation(fields: [locationId], references: [id])
+  user     User     @relation(fields: [userId], references: [id])
+
+  @@index([variantId, locationId, createdAt])
+  @@index([refType, refId])
+  @@index([userId, createdAt])
+}
+
+model StockCount {
+  id           String           @id @default(cuid())
+  locationId   String
+  status       StockCountStatus @default(OPEN)
+  scope        StockCountScope  @default(ALL)
+  scopeRef     String? // id de categoría o nombre de zona, según `scope`
+  startedById  String
+  approvedById String?
+  appliedAt    DateTime?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  location   Location         @relation(fields: [locationId], references: [id])
+  startedBy  User             @relation("StockCountStarter", fields: [startedById], references: [id])
+  approvedBy User?            @relation("StockCountApprover", fields: [approvedById], references: [id])
+  items      StockCountItem[]
+
+  @@index([locationId, status])
+}
+
+model StockCountItem {
+  id           String   @id @default(cuid())
+  stockCountId String
+  variantId    String
+  expectedQty  Int // congelado al abrir el conteo
+  countedQty   Int      @default(0)
+  note         String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  stockCount StockCount @relation(fields: [stockCountId], references: [id], onDelete: Cascade)
+  variant    Variant    @relation(fields: [variantId], references: [id])
+
+  @@unique([stockCountId, variantId])
+  @@index([variantId])
+}
+
+// ───────────────────────── Compras ─────────────────────────
+
+model PurchaseOrder {
+  id          String              @id @default(cuid())
+  number      String              @unique
+  supplierId  String
+  locationId  String
+  status      PurchaseOrderStatus @default(DRAFT)
+  expectedAt  DateTime?
+  notes       String?
+  createdById String
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  supplier  Supplier            @relation(fields: [supplierId], references: [id])
+  location  Location            @relation(fields: [locationId], references: [id])
+  createdBy User                @relation(fields: [createdById], references: [id])
+  items     PurchaseOrderItem[]
+  receipts  GoodsReceipt[]
+
+  @@index([supplierId])
+  @@index([status])
+}
+
+model PurchaseOrderItem {
+  id              String   @id @default(cuid())
+  purchaseOrderId String
+  variantId       String
+  orderedQty      Int
+  receivedQty     Int      @default(0)
+  unitCostCents   Int
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  purchaseOrder PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  variant       Variant       @relation(fields: [variantId], references: [id])
+
+  @@unique([purchaseOrderId, variantId])
+  @@index([variantId])
+}
+
+model GoodsReceipt {
+  id                 String   @id @default(cuid())
+  number             String   @unique
+  supplierId         String
+  locationId         String
+  purchaseOrderId    String?
+  supplierInvoiceRef String?
+  receivedById       String
+  receivedAt         DateTime @default(now())
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  supplier      Supplier           @relation(fields: [supplierId], references: [id])
+  location      Location           @relation(fields: [locationId], references: [id])
+  purchaseOrder PurchaseOrder?     @relation(fields: [purchaseOrderId], references: [id])
+  receivedBy    User               @relation(fields: [receivedById], references: [id])
+  items         GoodsReceiptItem[]
+
+  @@index([supplierId])
+  @@index([purchaseOrderId])
+}
+
+model GoodsReceiptItem {
+  id             String   @id @default(cuid())
+  goodsReceiptId String
+  variantId      String
+  quantity       Int
+  unitCostCents  Int
+  createdAt      DateTime @default(now())
+
+  goodsReceipt GoodsReceipt @relation(fields: [goodsReceiptId], references: [id], onDelete: Cascade)
+  variant      Variant      @relation(fields: [variantId], references: [id])
+
+  @@index([goodsReceiptId])
+  @@index([variantId])
+}
+
+// ───────────────────────── Clientes y caja ─────────────────────────
+
+model Customer {
+  id               String    @id @default(cuid())
+  name             String
+  phone            String?   @unique
+  email            String?
+  taxId            String?
+  notes            String?
+  preferredSizes   String?
+  storeCreditCents Int       @default(0) // cache de Σ StoreCreditEntry, mismo tx
+  archivedAt       DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  sales              Sale[]
+  layaways           Layaway[]
+  storeCreditEntries StoreCreditEntry[]
+
+  @@index([name])
+}
+
+/// Turno de caja. Máximo una sesión OPEN por usuario y por terminal
+/// (índices parciales en la migración `constraints`).
+model CashSession {
+  id                String            @id @default(cuid())
+  terminalId        String
+  userId            String
+  status            CashSessionStatus @default(OPEN)
+  openedAt          DateTime          @default(now())
+  openingFloatCents Int
+  closedAt          DateTime?
+  expectedCashCents Int?
+  countedCashCents  Int?
+  differenceCents   Int?
+  approvedById      String?
+  notes             String?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  terminal        Terminal         @relation(fields: [terminalId], references: [id])
+  user            User             @relation("CashSessionUser", fields: [userId], references: [id])
+  approvedBy      User?            @relation("CashSessionApprover", fields: [approvedById], references: [id])
+  movements       CashMovement[]
+  sales           Sale[]
+  payments        Payment[]
+  returns         ReturnDoc[]
+  layawayPayments LayawayPayment[]
+
+  @@index([terminalId, status])
+  @@index([userId, status])
+}
+
+model CashMovement {
+  id            String           @id @default(cuid())
+  cashSessionId String
+  type          CashMovementType
+  amountCents   Int
+  reason        String
+  userId        String
+  createdAt     DateTime         @default(now())
+
+  cashSession CashSession @relation(fields: [cashSessionId], references: [id])
+  user        User        @relation(fields: [userId], references: [id])
+
+  @@index([cashSessionId])
+}
+
+// ───────────────────────── Ventas ─────────────────────────
+
+/// Inmutable una vez COMPLETED: se corrige con devolución, cambio o anulación.
+model Sale {
+  id                    String              @id @default(cuid())
+  number                String              @unique // correlativo interno sin saltos
+  clientRequestId       String              @unique // idempotencia
+  status                SaleStatus          @default(COMPLETED)
+  locationId            String
+  terminalId            String
+  cashSessionId         String
+  sellerId              String
+  customerId            String?
+  subtotalCents         Int // suma de líneas antes del descuento global
+  discountCents         Int                 @default(0) // descuento global
+  taxCents              Int // ISV incluido en el total (informativo)
+  totalCents            Int
+  paidCents             Int
+  changeCents           Int                 @default(0)
+  fiscalDocType         FiscalDocumentType?
+  fiscalNumber          Int?
+  fiscalRangeId         String?
+  customerTaxId         String?
+  customerNameOnInvoice String?
+  voidedAt              DateTime?
+  voidedById            String?
+  voidReason            String?
+  createdAt             DateTime            @default(now())
+
+  location    Location     @relation(fields: [locationId], references: [id])
+  terminal    Terminal     @relation(fields: [terminalId], references: [id])
+  cashSession CashSession  @relation(fields: [cashSessionId], references: [id])
+  seller      User         @relation("SaleSeller", fields: [sellerId], references: [id])
+  voidedBy    User?        @relation("SaleVoidedBy", fields: [voidedById], references: [id])
+  customer    Customer?    @relation(fields: [customerId], references: [id])
+  fiscalRange FiscalRange? @relation(fields: [fiscalRangeId], references: [id])
+  items       SaleItem[]
+  payments    Payment[]
+  returns     ReturnDoc[]  @relation("ReturnOriginalSale")
+  exchangeFor ReturnDoc[]  @relation("ReturnExchangeSale")
+  layaway     Layaway?
+
+  @@unique([fiscalRangeId, fiscalNumber])
+  @@index([createdAt])
+  @@index([sellerId, createdAt])
+  @@index([cashSessionId])
+  @@index([customerId])
+}
+
+/// Snapshot: precio, costo, impuesto y textos se copian al vender.
+model SaleItem {
+  id                String  @id @default(cuid())
+  saleId            String
+  variantId         String
+  quantity          Int
+  unitPriceCents    Int
+  unitCostCents     Int
+  lineDiscountCents Int     @default(0)
+  taxRate           Int // puntos base, p. ej. 1500 = 15 %
+  taxCents          Int
+  lineTotalCents    Int
+  productName       String
+  sizeName          String?
+  colorName         String?
+  sku               String
+
+  sale        Sale         @relation(fields: [saleId], references: [id])
+  variant     Variant      @relation(fields: [variantId], references: [id])
+  returnItems ReturnItem[]
+
+  @@index([saleId])
+  @@index([variantId])
+}
+
+/// Nunca se guardan datos de tarjeta: solo monto y referencia.
+model Payment {
+  id            String        @id @default(cuid())
+  saleId        String
+  method        PaymentMethod
+  amountCents   Int
+  reference     String?
+  cashSessionId String
+  createdAt     DateTime      @default(now())
+
+  sale        Sale        @relation(fields: [saleId], references: [id])
+  cashSession CashSession @relation(fields: [cashSessionId], references: [id])
+
+  @@index([saleId])
+  @@index([cashSessionId, method])
+}
+
+/// Venta en espera guardada en servidor (opcional; el MVP la guarda en el cliente).
+model ParkedSale {
+  id          String   @id @default(cuid())
+  userId      String
+  terminalId  String
+  payloadJson Json
+  createdAt   DateTime @default(now())
+
+  user     User     @relation(fields: [userId], references: [id])
+  terminal Terminal @relation(fields: [terminalId], references: [id])
+
+  @@index([userId, terminalId])
+}
+
+// ─────────────── Devoluciones, apartados y crédito ───────────────
+
+model ReturnDoc {
+  id             String       @id @default(cuid())
+  number         String       @unique
+  saleId         String
+  type           ReturnType
+  exchangeSaleId String?
+  reason         String
+  refundMethod   RefundMethod
+  refundCents    Int
+  cashSessionId  String
+  processedById  String
+  authorizedById String?
+  fiscalNumber   Int? // nota de crédito, si aplica
+  fiscalRangeId  String?
+  createdAt      DateTime     @default(now())
+
+  sale         Sale         @relation("ReturnOriginalSale", fields: [saleId], references: [id])
+  exchangeSale Sale?        @relation("ReturnExchangeSale", fields: [exchangeSaleId], references: [id])
+  cashSession  CashSession  @relation(fields: [cashSessionId], references: [id])
+  processedBy  User         @relation("ReturnProcessor", fields: [processedById], references: [id])
+  authorizedBy User?        @relation("ReturnAuthorizer", fields: [authorizedById], references: [id])
+  fiscalRange  FiscalRange? @relation(fields: [fiscalRangeId], references: [id])
+  items        ReturnItem[]
+
+  @@unique([fiscalRangeId, fiscalNumber])
+  @@index([saleId])
+  @@index([cashSessionId])
+}
+
+model ReturnItem {
+  id          String              @id @default(cuid())
+  returnId    String
+  saleItemId  String
+  quantity    Int
+  condition   ReturnItemCondition
+  refundCents Int
+  reason      String?
+
+  returnDoc ReturnDoc @relation(fields: [returnId], references: [id])
+  saleItem  SaleItem  @relation(fields: [saleItemId], references: [id])
+
+  @@index([returnId])
+  @@index([saleItemId])
+}
+
+model Layaway {
+  id          String        @id @default(cuid())
+  number      String        @unique
+  customerId  String
+  status      LayawayStatus @default(ACTIVE)
+  totalCents  Int
+  paidCents   Int           @default(0)
+  expiresAt   DateTime
+  saleId      String?       @unique // al saldar
+  createdById String
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  customer  Customer         @relation(fields: [customerId], references: [id])
+  sale      Sale?            @relation(fields: [saleId], references: [id])
+  createdBy User             @relation(fields: [createdById], references: [id])
+  items     LayawayItem[]
+  payments  LayawayPayment[]
+
+  @@index([customerId])
+  @@index([status, expiresAt])
+}
+
+model LayawayItem {
+  id             String  @id @default(cuid())
+  layawayId      String
+  variantId      String
+  quantity       Int
+  unitPriceCents Int
+  productName    String
+  sizeName       String?
+  colorName      String?
+  sku            String
+
+  layaway Layaway @relation(fields: [layawayId], references: [id], onDelete: Cascade)
+  variant Variant @relation(fields: [variantId], references: [id])
+
+  @@index([layawayId])
+  @@index([variantId])
+}
+
+model LayawayPayment {
+  id            String        @id @default(cuid())
+  layawayId     String
+  method        PaymentMethod
+  amountCents   Int
+  cashSessionId String
+  createdAt     DateTime      @default(now())
+
+  layaway     Layaway     @relation(fields: [layawayId], references: [id])
+  cashSession CashSession @relation(fields: [cashSessionId], references: [id])
+
+  @@index([layawayId])
+  @@index([cashSessionId])
+}
+
+/// Libro del crédito de tienda. Solo inserción (trigger en la migración `constraints`).
+model StoreCreditEntry {
+  id          String            @id @default(cuid())
+  customerId  String
+  amountCents Int // + abona, − consume
+  reason      StoreCreditReason
+  refType     String?
+  refId       String?
+  userId      String
+  createdAt   DateTime          @default(now())
+
+  customer Customer @relation(fields: [customerId], references: [id])
+  user     User     @relation(fields: [userId], references: [id])
+
+  @@index([customerId, createdAt])
+  @@index([refType, refId])
+}
