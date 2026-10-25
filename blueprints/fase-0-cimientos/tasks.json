@@ -89,7 +89,7 @@
     ],
     "checkpoint": "step-03-dates",
     "files": ["src/lib/dates.ts", "tests/unit/dates.test.ts"],
-    "status": "pending"
+    "status": "done"
   },
   {
     "id": "E1-T4",
