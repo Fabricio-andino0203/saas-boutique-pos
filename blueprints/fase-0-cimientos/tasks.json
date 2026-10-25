@@ -353,7 +353,7 @@
     ],
     "checkpoint": "step-11-design-tokens",
     "files": ["src/app/globals.css", "src/app/layout.tsx"],
-    "status": "pending"
+    "status": "done"
   },
   {
     "id": "E2-T5",
