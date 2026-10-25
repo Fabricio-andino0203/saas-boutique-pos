@@ -98,7 +98,7 @@ El esquema y las migraciones están congelados: no los modifiques.
 
 - **Dinero = enteros de centavos** (`Cents`). Nunca `parseFloat`, `toFixed` ni decimales. **Redondeo: mitad hacia afuera del cero, una sola vez por valor calculado.** `money.ts` no formatea; `format.ts` no calcula.
 - Los tests importan con el alias `@/…` y de forma explícita desde `vitest` (`describe`, `expect`, `it`; no hay globals). Entre archivos de pruebas, rutas relativas. Nunca `.only` ni `.skip` (salvo `it.todo`).
-- Vitest 5: `clearMocks` es `true` por defecto, la opción `sequential` no existe (el proyecto `integration` ya usa `fileParallelism: false`), Vitest no busca config en directorios padre y los reporters `json` y `junit` escriben archivos (no los uses).
+- Vitest 5: `clearMocks` es `true` por defecto, la opción `sequential` no existe (el proyecto `integration` ya usa `fileParallelism: false`), Vitest no busca config en directorios padre y los reporters `json` y `junit` escriben archivos (no los uses; la cobertura usa `["text", "json-summary"]`, ver el pitfall de la cobertura).
 - Cada archivo de integración cierra su cliente en `afterAll`: `closeDatabase()` si usa `testDb`, `db.$disconnect()` si usa `db` de `@/lib/db` (el proyecto `integration` fija `DATABASE_URL`). La integración usa únicamente la base `_test`.
 - `tsconfig` tiene `noImplicitOverride` y `isolatedModules`: no uses `const enum` ambientales de paquetes; pasa valores numéricos.
 - Antes de cada `Verify` corre `pnpm format`. Nunca `export const dynamic`, `revalidate` ni `fetchCache`.
@@ -388,7 +388,7 @@ Copied from this task's `acceptance` array in `tasks.json` — identical after t
 
 ```bash
 pnpm test:unit
-out=$(mktemp) && pnpm test:coverage > "$out" && grep -q 'money.ts' "$out"
+pnpm test:coverage > /dev/null && grep -q 'money.ts' coverage/coverage-summary.json
 pnpm lint
 pnpm exec eslint --max-warnings 0
 pnpm typecheck
@@ -398,7 +398,7 @@ status=0; grep -qF '159.78' docs/UX.md || status=$?; test "$status" -eq 1
 status=0; grep -rnE '\.(skip|only)\(' tests/unit || status=$?; test "$status" -eq 1
 ```
 
-These lines are this task's `verify` **array** in `tasks.json`, one per line, copied with any exit-code wrapping intact. La segunda línea exige que `money.ts` aparezca en la tabla de cobertura: un umbral que no apunta a ningún archivo no mediría nada.
+These lines are this task's `verify` **array** in `tasks.json`, one per line, copied with any exit-code wrapping intact. La segunda línea exige que `money.ts` figure en `coverage/coverage-summary.json` (lo escribe el reporter `json-summary` de `vitest.config.ts`): un umbral que no apunta a ningún archivo no mediría nada, y con 100 % de cobertura Vitest 5 no imprime tabla por archivo, solo "No files with missing coverage"; el `&&` hace que el `grep` lea un resumen recién escrito por una corrida que pasó.
 
 **Checkpoint**
 
@@ -443,7 +443,7 @@ Copied from this task's `acceptance` array in `tasks.json` — identical after t
 
 ```bash
 pnpm test:unit
-out=$(mktemp) && pnpm test:coverage > "$out" && grep -q 'money.ts' "$out"
+pnpm test:coverage > /dev/null && grep -q 'money.ts' coverage/coverage-summary.json
 pnpm lint
 pnpm exec eslint --max-warnings 0
 pnpm typecheck
@@ -594,14 +594,15 @@ The epic is done when every task is `done` **and**:
 
 ```bash
 pnpm lint && pnpm exec eslint --max-warnings 0 && pnpm exec next typegen && pnpm typecheck && pnpm format:check && pnpm test
-out=$(mktemp) && pnpm test:coverage > "$out" && grep -q 'money.ts' "$out"
+pnpm test:coverage > /dev/null && grep -q 'money.ts' coverage/coverage-summary.json
 ```
 
 Run from the project root. Both criteria must be decidable by these commands.
 
 ## Pitfalls
 
-- **El umbral de cobertura que no mide nada** — si `money.ts` no aparece en la tabla de `test:coverage`, el umbral no apunta a ningún archivo. La verificación lo detecta con `grep -q 'money.ts'`; no la quites.
+- **El umbral de cobertura que no mide nada** — si `money.ts` no figura en el resumen de cobertura, el umbral no apunta a ningún archivo. La verificación lo detecta con `grep -q 'money.ts' coverage/coverage-summary.json`; no la quites.
+- **No busques `money.ts` en la salida de `pnpm test:coverage` (E1-T4 y E1-T5)** — con 100 % de cobertura Vitest 5 imprime solo "No files with missing coverage" y los totales, sin tabla por archivo (`--coverage.skipFull=false` no lo cambia), así que un `grep` sobre esa salida falla aunque todo esté bien. Por eso `vitest.config.ts` añade el reporter `json-summary`, que escribe `coverage/coverage-summary.json` con una clave por archivo medido (ruta absoluta; en Windows lleva `\\` escapadas, de ahí que el `grep` use solo `money.ts` y no `src/lib/money.ts`). `coverage/` ya está ignorado por git, ESLint y Prettier.
 - **`@/lib/env` falla al importarse sin variables** — en el proyecto `unit` lo evitan los valores de relleno de `vitest.config.ts`; no pongas valores reales en las pruebas ni crees un `.env` de pruebas.
 - **`TRUNCATE` sobre la base equivocada** — nunca lo ejecutes contra `DATABASE_URL`. Los helpers lo impiden con el sufijo `_test`; no los saltes.
 - **Redondear dos veces** — `extractTax` redondea una sola vez (`netCents`) y obtiene el impuesto por resta; no redondees `taxCents` por separado.

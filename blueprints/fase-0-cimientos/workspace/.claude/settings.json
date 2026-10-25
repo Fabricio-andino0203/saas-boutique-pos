@@ -42,7 +42,6 @@
       "Bash(git var GIT_AUTHOR_IDENT:*)",
       "Bash(git var GIT_COMMITTER_IDENT:*)",
       "Bash(test:*)",
-      "Bash(mktemp)",
       "Bash(cp blueprints/fase-0-cimientos/workspace/playwright.config.ts playwright.config.ts)"
     ],
     "deny": [

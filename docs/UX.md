@@ -42,7 +42,7 @@ El menú muestra solo lo que el rol puede usar. El **Cajero** ve un menú reduci
 │ │L 650   │ │L 320   │ │L 780   │      │                                  │
 │ └────────┘ └────────┘ └────────┘      │  Subtotal              L 1,290.00│
 │  (rejilla de resultados / favoritos)  │  Descuento            −L    64.00│
-│                                       │  ISV incluido (15%)    L   159.78│
+│                                       │  ISV incluido (15%)    L   159.91│
 │                                       │  ┌──────────────────────────────┐│
 │                                       │  │  TOTAL        L 1,226.00     ││
 │                                       │  └──────────────────────────────┘│

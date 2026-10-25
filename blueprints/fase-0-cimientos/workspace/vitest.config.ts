@@ -15,7 +15,7 @@ export default defineConfig({
     exclude,
     coverage: {
       provider: "v8",
-      reporter: ["text"],
+      reporter: ["text", "json-summary"],
       include: ["src/lib/money.ts"],
       thresholds: {
         "src/lib/money.ts": {

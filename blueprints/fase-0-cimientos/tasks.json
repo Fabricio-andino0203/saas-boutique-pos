@@ -107,7 +107,7 @@
     ],
     "verify": [
       "pnpm test:unit",
-      "out=$(mktemp) && pnpm test:coverage > \"$out\" && grep -q 'money.ts' \"$out\"",
+      "pnpm test:coverage > /dev/null && grep -q 'money.ts' coverage/coverage-summary.json",
       "pnpm lint",
       "pnpm exec eslint --max-warnings 0",
       "pnpm typecheck",
@@ -118,7 +118,7 @@
     ],
     "checkpoint": "step-04-money-core",
     "files": ["src/lib/money.ts", "tests/unit/money.test.ts", "docs/UX.md"],
-    "status": "pending"
+    "status": "done"
   },
   {
     "id": "E1-T5",
@@ -136,7 +136,7 @@
     ],
     "verify": [
       "pnpm test:unit",
-      "out=$(mktemp) && pnpm test:coverage > \"$out\" && grep -q 'money.ts' \"$out\"",
+      "pnpm test:coverage > /dev/null && grep -q 'money.ts' coverage/coverage-summary.json",
       "pnpm lint",
       "pnpm exec eslint --max-warnings 0",
       "pnpm typecheck",
