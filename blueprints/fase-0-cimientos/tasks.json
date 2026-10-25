@@ -280,7 +280,7 @@
       "src/app/api/health/route.ts",
       "tests/integration/health.test.ts"
     ],
-    "status": "pending"
+    "status": "done"
   },
   {
     "id": "E2-T3",
