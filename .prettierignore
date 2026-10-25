@@ -10,3 +10,6 @@ README.md
 src/generated
 prisma/migrations
 docker
+blueprints
+.claude
+AGENTS.md

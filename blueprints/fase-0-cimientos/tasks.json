@@ -1,0 +1,570 @@
+[
+  {
+    "id": "E1-T1",
+    "title": "Instalar Vitest 5 y probar parseEnv",
+    "epic": "01-nucleo-de-dominio-y-pruebas",
+    "dependencies": [],
+    "priority": "p0",
+    "acceptance": [
+      "WHEN `pnpm install --frozen-lockfile` corre después del paso THE SYSTEM SHALL terminar con código 0 sin modificar el lockfile.",
+      "WHEN `pnpm test:unit` corre THE SYSTEM SHALL terminar con código 0 ejecutando `tests/unit/env.test.ts` sin pruebas fallidas ni omitidas.",
+      "WHEN `parseEnv` recibe un origen válido THE SYSTEM SHALL devolver `TZ` igual a `America/Tegucigalpa` y `NODE_ENV` igual a `development` por defecto.",
+      "WHEN `parseEnv` recibe un origen sin `AUTH_SECRET`, con `AUTH_SECRET` de 31 caracteres, con `DATABASE_URL` que no es de PostgreSQL o con `APP_URL` inválida THE SYSTEM SHALL lanzar un error cuyo mensaje contiene el nombre de esa variable.",
+      "WHEN `pnpm lint`, `pnpm typecheck` y `pnpm format:check` corren con los archivos del workspace ya copiados THE SYSTEM SHALL terminar con código 0 en los tres.",
+      "WHEN `package.json` se lee THE SYSTEM SHALL declarar `vitest`, `@vitest/coverage-v8`, `vite` y `@types/node` con las versiones exactas de §11 y los scripts `test`, `test:unit`, `test:integration` y `test:coverage`."
+    ],
+    "verify": [
+      "pnpm install --frozen-lockfile",
+      "pnpm test:unit",
+      "pnpm lint",
+      "pnpm exec eslint --max-warnings 0",
+      "pnpm exec next typegen",
+      "pnpm typecheck",
+      "pnpm format:check",
+      "grep -qF '\"vitest\": \"5.0.5\"' package.json",
+      "grep -qF '\"@vitest/coverage-v8\": \"5.0.5\"' package.json",
+      "grep -qF '\"vite\": \"8.3.5\"' package.json",
+      "grep -qF '\"@types/node\": \"24.19.2\"' package.json",
+      "grep -qF '\"test:integration\": \"vitest run --project integration\"' package.json",
+      "test -f vitest.config.ts",
+      "status=0; grep -rnE '\\.(skip|only)\\(' tests/unit || status=$?; test \"$status\" -eq 1"
+    ],
+    "checkpoint": "step-01-vitest",
+    "files": ["package.json", "tests/unit/env.test.ts"],
+    "status": "pending"
+  },
+  {
+    "id": "E1-T2",
+    "title": "Errores tipados, ActionResult y mensajes es-HN",
+    "epic": "01-nucleo-de-dominio-y-pruebas",
+    "dependencies": ["E1-T1"],
+    "priority": "p0",
+    "acceptance": [
+      "WHEN cada clase de la tabla del paso se instancia THE SYSTEM SHALL cumplir `instanceof AppError` e `instanceof Error` y exponer el `code` y el `status` de la tabla.",
+      "WHEN `toActionResult` ejecuta una función que lanza un `AppError` THE SYSTEM SHALL devolver `{ ok: false, error: { code, message } }` con `message` tomado del diccionario inyectado para ese `code`.",
+      "WHEN `toActionResult` ejecuta una función que lanza un `Error` que no es `AppError` THE SYSTEM SHALL devolver el código `UNEXPECTED` con el mensaje del diccionario y SHALL NOT incluir el texto del error original.",
+      "WHEN `pnpm test:unit` corre THE SYSTEM SHALL probar que `messages.errors` tiene exactamente las claves de `APP_ERROR_CODES` más `UNEXPECTED`, todas con texto no vacío.",
+      "WHEN `pnpm lint`, `pnpm typecheck` y `pnpm format:check` corren al cerrar el paso THE SYSTEM SHALL terminar con código 0 en los tres."
+    ],
+    "verify": [
+      "pnpm test:unit",
+      "pnpm lint",
+      "pnpm exec eslint --max-warnings 0",
+      "pnpm typecheck",
+      "pnpm format:check",
+      "grep -qF 'export const APP_ERROR_CODES' src/lib/errors.ts",
+      "status=0; grep -rnE '\\.(skip|only)\\(' tests/unit || status=$?; test \"$status\" -eq 1"
+    ],
+    "checkpoint": "step-02-errors-messages",
+    "files": [
+      "src/lib/errors.ts",
+      "src/lib/action-result.ts",
+      "src/config/messages.es.ts",
+      "tests/unit/errors.test.ts",
+      "tests/unit/messages.test.ts"
+    ],
+    "status": "pending"
+  },
+  {
+    "id": "E1-T3",
+    "title": "Helpers de fechas en America/Tegucigalpa",
+    "epic": "01-nucleo-de-dominio-y-pruebas",
+    "dependencies": ["E1-T2"],
+    "priority": "p0",
+    "acceptance": [
+      "WHEN `localDateKey` recibe `2026-10-23T05:30:00.000Z` THE SYSTEM SHALL devolver `2026-10-22` y para `2026-10-23T06:00:00.000Z` devolver `2026-10-23`.",
+      "WHEN `startOfLocalDay` y `endOfLocalDay` reciben `2026-10-23T05:30:00.000Z` THE SYSTEM SHALL devolver `2026-10-22T06:00:00.000Z` y `2026-10-23T05:59:59.999Z`.",
+      "WHEN `addLocalDays` recibe `2026-10-22T20:15:00.000Z` con 30 y con -1 THE SYSTEM SHALL devolver `2026-11-21T20:15:00.000Z` y `2026-10-21T20:15:00.000Z`.",
+      "WHEN `formatLocalDateTime` recibe `2026-10-23T06:00:00.000Z`, `2026-10-23T18:05:00.000Z` y `2026-01-01T00:00:00.000Z` THE SYSTEM SHALL devolver `23/10/2026 00:00`, `23/10/2026 12:05` y `31/12/2025 18:00`.",
+      "WHEN cualquier helper recibe un `Date` inválido THE SYSTEM SHALL lanzar `ValidationError`.",
+      "WHEN `pnpm lint`, `pnpm typecheck` y `pnpm format:check` corren al cerrar el paso THE SYSTEM SHALL terminar con código 0 en los tres."
+    ],
+    "verify": [
+      "pnpm test:unit",
+      "pnpm lint",
+      "pnpm exec eslint --max-warnings 0",
+      "pnpm typecheck",
+      "pnpm format:check",
+      "status=0; grep -rnE '\\.(skip|only)\\(' tests/unit || status=$?; test \"$status\" -eq 1"
+    ],
+    "checkpoint": "step-03-dates",
+    "files": ["src/lib/dates.ts", "tests/unit/dates.test.ts"],
+    "status": "pending"
+  },
+  {
+    "id": "E1-T4",
+    "title": "Núcleo de dinero: centavos, porcentaje e ISV",
+    "epic": "01-nucleo-de-dominio-y-pruebas",
+    "dependencies": ["E1-T1", "E1-T2"],
+    "priority": "p0",
+    "acceptance": [
+      "WHEN `percentOf(25, 1000)` y `percentOf(-25, 1000)` se llaman THE SYSTEM SHALL devolver `3` y `-3` (redondeo a la mitad alejándose de cero, aplicado una sola vez).",
+      "WHEN `extractTax(122600, 1500)` se llama THE SYSTEM SHALL devolver `{ netCents: 106609, taxCents: 15991 }`.",
+      "WHEN `extractTax(11500, 1500)` y `extractTax(100, 1500)` se llaman THE SYSTEM SHALL devolver `{ netCents: 10000, taxCents: 1500 }` y `{ netCents: 87, taxCents: 13 }`.",
+      "WHEN cualquier función de `src/lib/money.ts` recibe un valor que no es entero seguro (decimal, NaN, Infinity) THE SYSTEM SHALL lanzar `ValidationError`.",
+      "WHEN `pnpm test:coverage` corre THE SYSTEM SHALL terminar con código 0 cumpliendo por archivo para `src/lib/money.ts` 100 % de líneas, 100 % de sentencias, 100 % de funciones y 95 % de ramas.",
+      "WHEN `docs/UX.md` se lee THE SYSTEM SHALL mostrar el ISV del ejemplo del ticket como `159.91` y no `159.78`."
+    ],
+    "verify": [
+      "pnpm test:unit",
+      "out=$(mktemp) && pnpm test:coverage > \"$out\" && grep -q 'money.ts' \"$out\"",
+      "pnpm lint",
+      "pnpm exec eslint --max-warnings 0",
+      "pnpm typecheck",
+      "pnpm format:check",
+      "grep -qF '159.91' docs/UX.md",
+      "status=0; grep -qF '159.78' docs/UX.md || status=$?; test \"$status\" -eq 1",
+      "status=0; grep -rnE '\\.(skip|only)\\(' tests/unit || status=$?; test \"$status\" -eq 1"
+    ],
+    "checkpoint": "step-04-money-core",
+    "files": ["src/lib/money.ts", "tests/unit/money.test.ts", "docs/UX.md"],
+    "status": "pending"
+  },
+  {
+    "id": "E1-T5",
+    "title": "Prorrateo, formato y lectura de dinero",
+    "epic": "01-nucleo-de-dominio-y-pruebas",
+    "dependencies": ["E1-T4"],
+    "priority": "p0",
+    "acceptance": [
+      "WHEN `allocate(100, [1, 1, 1])`, `allocate(10, [1, 2, 3])` y `allocate(1, [1, 1, 1])` se llaman THE SYSTEM SHALL devolver `[34, 33, 33]`, `[2, 3, 5]` y `[1, 0, 0]`.",
+      "WHEN `prorateDiscount([65000, 64000], 6400)` se llama THE SYSTEM SHALL devolver `[3225, 3175]`.",
+      "WHEN las pruebas de propiedades corren con 1000 casos generados por mulberry32 con semilla fija THE SYSTEM SHALL cumplir en cada caso que la suma de las partes es igual al total, que ninguna parte es negativa, que cada parte de `prorateDiscount` no supera su línea y que `parseMoney(formatMoney(x))` devuelve `x`.",
+      "WHEN `parseMoney` recibe `1,234.50`, `L 1,234.5` y `1234` THE SYSTEM SHALL devolver `123450`, `123450` y `123400`, y WHEN recibe `12.345`, `abc` o una cadena vacía THE SYSTEM SHALL devolver `null`.",
+      "WHEN `formatMoney` recibe `123450`, `0`, `5` y `-6400` THE SYSTEM SHALL devolver `L 1,234.50`, `L 0.00`, `L 0.05` y `−L 64.00` (con U+2212), y `formatMoneyPlain(123450)` SHALL devolver `1234.50`.",
+      "WHEN `allocate` recibe pesos que suman cero con total mayor que cero, o `prorateDiscount` recibe un descuento mayor que la suma de líneas THE SYSTEM SHALL lanzar `ValidationError`, y WHEN `pnpm test:coverage` corre THE SYSTEM SHALL terminar con código 0 con los umbrales por archivo de `src/lib/money.ts` del paso 4."
+    ],
+    "verify": [
+      "pnpm test:unit",
+      "out=$(mktemp) && pnpm test:coverage > \"$out\" && grep -q 'money.ts' \"$out\"",
+      "pnpm lint",
+      "pnpm exec eslint --max-warnings 0",
+      "pnpm typecheck",
+      "pnpm format:check",
+      "status=0; grep -rnE '\\.(skip|only)\\(' tests/unit || status=$?; test \"$status\" -eq 1"
+    ],
+    "checkpoint": "step-05-money-allocate-format",
+    "files": [
+      "src/lib/money.ts",
+      "src/lib/format.ts",
+      "tests/unit/helpers/prng.ts",
+      "tests/unit/money-allocate.test.ts",
+      "tests/unit/format.test.ts"
+    ],
+    "status": "pending"
+  },
+  {
+    "id": "E1-T6",
+    "title": "Permisos por capacidades y hash de contraseñas",
+    "epic": "01-nucleo-de-dominio-y-pruebas",
+    "dependencies": ["E1-T2"],
+    "priority": "p0",
+    "acceptance": [
+      "WHEN `hasCapability(rol, capacidad)` se evalúa para cada celda de la matriz del paso THE SYSTEM SHALL devolver exactamente el valor de la tabla.",
+      "WHEN `requireCapability({ role: 'CASHIER' }, 'product.viewCost')` se llama THE SYSTEM SHALL lanzar `ForbiddenError`, y WHEN se llama con `{ role: 'OWNER' }` y `'user.manage'` THE SYSTEM SHALL no lanzar.",
+      "WHEN `MANAGER_PIN_OVERRIDES` se evalúa THE SYSTEM SHALL contener `discount.applyBeyondLimit` y `sale.void`, y cada una SHALL estar en los conjuntos de `MANAGER` y `OWNER` y ausente del de `CASHIER`.",
+      "WHEN `pnpm typecheck` corre THE SYSTEM SHALL terminar con código 0 gracias a que `hasCapability('OWNER', 'capacidad.inexistente')` produce un error de tipos marcado con `@ts-expect-error`.",
+      "WHEN `hashSecret('Demo-Cajero-2026')` se llama THE SYSTEM SHALL devolver un hash distinto del texto plano que empieza con `$argon2id$`, que `verifySecret` acepta con el texto correcto y rechaza con otro, y WHEN `verifySecret` recibe un hash malformado THE SYSTEM SHALL devolver `false`.",
+      "WHEN `pnpm test:unit` corre THE SYSTEM SHALL comprobar que `ROLES` es igual al conjunto de valores del enum `Role` generado por Prisma."
+    ],
+    "verify": [
+      "pnpm install --frozen-lockfile",
+      "pnpm test:unit",
+      "pnpm lint",
+      "pnpm exec eslint --max-warnings 0",
+      "pnpm typecheck",
+      "pnpm format:check",
+      "grep -qF '\"@node-rs/argon2\": \"2.2.2\"' package.json",
+      "status=0; grep -rnE '\\.(skip|only)\\(' tests/unit || status=$?; test \"$status\" -eq 1"
+    ],
+    "checkpoint": "step-06-permissions-password",
+    "files": [
+      "package.json",
+      "src/lib/permissions.ts",
+      "src/lib/password.ts",
+      "tests/unit/permissions.test.ts",
+      "tests/unit/password.test.ts"
+    ],
+    "status": "pending"
+  },
+  {
+    "id": "E1-T7",
+    "title": "Auditoría y pruebas de integración con Postgres",
+    "epic": "01-nucleo-de-dominio-y-pruebas",
+    "dependencies": ["E1-T1"],
+    "priority": "p0",
+    "acceptance": [
+      "WHEN `audit.log(tx, entry)` corre dentro de `testDb.$transaction` y la transacción confirma THE SYSTEM SHALL persistir una fila de `AuditLog` con los mismos `userId`, `action`, `entityType`, `entityId`, `reason`, `before` y `after`.",
+      "WHEN la transacción lanza un error después de `audit.log` THE SYSTEM SHALL dejar cero filas de `AuditLog` para ese `entityId`.",
+      "WHEN un `UPDATE` o un `DELETE` crudo se ejecuta sobre `AuditLog` THE SYSTEM SHALL rechazarlo con un error cuyo texto coincide con `solo inserción` o con el código `23001` y dejar la fila intacta.",
+      "WHEN `resetDatabase()` corre THE SYSTEM SHALL vaciar todas las tablas de la aplicación sin tocar `_prisma_migrations`, y `assertTestDatabaseUrl` SHALL lanzar un error cuando el nombre de la base no termina en `_test`.",
+      "WHEN `pnpm typecheck` corre THE SYSTEM SHALL terminar con código 0 gracias a que una acción fuera de `AuditAction` en `tests/integration/audit.test.ts` produce un error de tipos marcado con `@ts-expect-error`.",
+      "WHEN `pnpm test:integration` corre contra `DATABASE_URL_TEST` THE SYSTEM SHALL aplicar las migraciones con `globalSetup` y terminar con código 0."
+    ],
+    "verify": [
+      "pnpm test:integration",
+      "pnpm test:unit",
+      "pnpm lint",
+      "pnpm exec eslint --max-warnings 0",
+      "pnpm typecheck",
+      "pnpm format:check",
+      "status=0; grep -rnE '\\.(skip|only)\\(' tests/integration || status=$?; test \"$status\" -eq 1"
+    ],
+    "checkpoint": "step-07-audit-integration",
+    "files": ["src/lib/audit.ts", "tests/integration/audit.test.ts"],
+    "status": "pending"
+  },
+  {
+    "id": "E2-T1",
+    "title": "Semilla mínima idempotente",
+    "epic": "02-datos-interfaz-y-entrega",
+    "dependencies": ["E1-T6", "E1-T7"],
+    "priority": "p0",
+    "acceptance": [
+      "WHEN `runSeed(testDb)` corre dos veces seguidas THE SYSTEM SHALL terminar sin error ambas veces y dejar los usuarios `owner`, `manager`, `cashier` y `warehouse` con los roles `OWNER`, `MANAGER`, `CASHIER` y `WAREHOUSE`.",
+      "WHEN el seed termina THE SYSTEM SHALL tener la ubicación `MAIN` con `isDefault` verdadero, la terminal `Caja 1` en ella, las tallas `XS`, `XXL`, `34` y `42`, el color `Negro` con `hex`, y la categoría `mujer-vestidos` con padre `mujer`.",
+      "WHEN el seed termina THE SYSTEM SHALL tener los ajustes `tax.rate` igual a `1500`, `tax.pricesIncludeTax` verdadero, `sales.allowNegativeStock` falso, `discount.maxPercent.CASHIER` igual a `10`, `returns.maxDays` igual a `8` y `layaway.expiryDays` igual a `30`, y los contadores `SALE`, `RETURN`, `LAYAWAY`, `PURCHASE_ORDER` y `GOODS_RECEIPT`.",
+      "WHEN el contador `SALE` vale 5 y el seed corre de nuevo THE SYSTEM SHALL conservar `5` y conservar sin cambios los `passwordHash` y `pinHash` ya existentes.",
+      "WHEN `NODE_ENV` es `production` THE SYSTEM SHALL rechazar `runSeed` con un error que menciona `production` sin escribir filas.",
+      "WHEN `pnpm db:seed` corre dos veces sobre la base de desarrollo THE SYSTEM SHALL terminar con código 0 ambas veces, y `package.json` SHALL definir `db:reset` como `prisma migrate reset --force && pnpm db:seed`."
+    ],
+    "verify": [
+      "pnpm test:integration",
+      "pnpm db:seed",
+      "pnpm db:seed",
+      "grep -qF '\"db:reset\": \"prisma migrate reset --force && pnpm db:seed\"' package.json",
+      "pnpm test:unit",
+      "pnpm lint",
+      "pnpm exec eslint --max-warnings 0",
+      "pnpm typecheck",
+      "pnpm format:check",
+      "status=0; grep -rnE '\\.(skip|only)\\(' tests/integration || status=$?; test \"$status\" -eq 1"
+    ],
+    "checkpoint": "step-08-seed",
+    "files": [
+      "package.json",
+      "prisma/seed.ts",
+      "prisma/seed/run-seed.ts",
+      "tests/integration/seed.test.ts"
+    ],
+    "status": "pending"
+  },
+  {
+    "id": "E2-T2",
+    "title": "Servir y probar /api/health",
+    "epic": "02-datos-interfaz-y-entrega",
+    "dependencies": ["E1-T7"],
+    "priority": "p0",
+    "acceptance": [
+      "WHEN el handler creado con `pingDatabase` se invoca contra la base de pruebas THE SYSTEM SHALL responder 200 con el JSON `{ status: 'ok' }`.",
+      "WHEN la comprobación de base de datos falla THE SYSTEM SHALL responder 503 con el JSON `{ status: 'error' }` y SHALL NOT incluir el texto del error original en el cuerpo.",
+      "WHEN `checkDatabase` recibe una consulta que rechaza THE SYSTEM SHALL devolver `false` sin propagar el error, y WHEN recibe una que resuelve THE SYSTEM SHALL devolver `true`.",
+      "WHEN `pnpm build` termina y `scripts/smoke-server.ts` arranca `next start` en el puerto 3190 THE SYSTEM SHALL recibir 200 con un cuerpo que contiene `ok` en `/api/health`, y WHEN arranca `next dev` en el puerto 3191 THE SYSTEM SHALL recibir 200 con un cuerpo que contiene `ok` en `/api/health`.",
+      "WHEN se buscan segment configs en `src/app` THE SYSTEM SHALL no encontrar `export const dynamic`, `revalidate` ni `fetchCache`.",
+      "WHEN `pnpm lint`, `pnpm typecheck` y `pnpm format:check` corren al cerrar el paso THE SYSTEM SHALL terminar con código 0 en los tres."
+    ],
+    "verify": [
+      "pnpm test:integration",
+      "pnpm lint",
+      "pnpm exec eslint --max-warnings 0",
+      "pnpm typecheck",
+      "pnpm format:check",
+      "pnpm build",
+      "pnpm exec tsx scripts/smoke-server.ts start 3190 /api/health=200:ok",
+      "pnpm exec tsx scripts/smoke-server.ts dev 3191 /api/health=200:ok",
+      "status=0; grep -rnE 'export const (dynamic|revalidate|fetchCache)' src/app || status=$?; test \"$status\" -eq 1"
+    ],
+    "checkpoint": "step-09-health",
+    "files": [
+      "src/lib/health.ts",
+      "src/app/api/health/route.ts",
+      "tests/integration/health.test.ts"
+    ],
+    "status": "pending"
+  },
+  {
+    "id": "E2-T3",
+    "title": "Primitivas de UI: shadcn y TanStack Table",
+    "epic": "02-datos-interfaz-y-entrega",
+    "dependencies": ["E1-T1", "E1-T2"],
+    "priority": "p1",
+    "acceptance": [
+      "WHEN el CLI de shadcn termina y se aplican los ajustes del paso THE SYSTEM SHALL haber creado `sidebar`, `table`, `alert-dialog`, `dialog`, `skeleton`, `input`, `tooltip`, `separator` y `sheet` en `src/components/ui/`, con `separator` y `table` usando el token `divider` y sin los textos sr-only en inglés `Toggle Sidebar` ni `Close`.",
+      "WHEN `package.json` se lee THE SYSTEM SHALL declarar `@tanstack/react-table` con la versión exacta `8.21.3`.",
+      "WHEN `pnpm build` corre con `cacheComponents` activo THE SYSTEM SHALL terminar con código 0.",
+      "WHEN se buscan segment configs en `src` THE SYSTEM SHALL no encontrar `export const dynamic`, `revalidate` ni `fetchCache`.",
+      "WHEN `pnpm lint`, `pnpm typecheck` y `pnpm format:check` corren al cerrar el paso THE SYSTEM SHALL terminar con código 0 en los tres."
+    ],
+    "verify": [
+      "pnpm install --frozen-lockfile",
+      "test -f src/components/ui/sidebar.tsx && test -f src/components/ui/table.tsx && test -f src/components/ui/alert-dialog.tsx && test -f src/components/ui/dialog.tsx && test -f src/components/ui/skeleton.tsx && test -f src/components/ui/input.tsx && test -f src/components/ui/tooltip.tsx && test -f src/components/ui/separator.tsx && test -f src/components/ui/sheet.tsx",
+      "grep -qF 'bg-divider' src/components/ui/separator.tsx",
+      "grep -qF 'border-divider' src/components/ui/table.tsx",
+      "status=0; grep -rnF 'Toggle Sidebar' src/components/ui || status=$?; test \"$status\" -eq 1",
+      "status=0; grep -rnE '(^|[>\"])[[:space:]]*Close[[:space:]]*($|[<\"])' src/components/ui || status=$?; test \"$status\" -eq 1",
+      "grep -qF '\"@tanstack/react-table\": \"8.21.3\"' package.json",
+      "status=0; grep -rnE 'export const (dynamic|revalidate|fetchCache)' src || status=$?; test \"$status\" -eq 1",
+      "pnpm build",
+      "pnpm lint",
+      "pnpm exec eslint --max-warnings 0",
+      "pnpm typecheck",
+      "pnpm format:check"
+    ],
+    "checkpoint": "step-10-ui-primitives",
+    "files": ["package.json", "src/components/ui/**", "src/hooks/use-mobile.ts"],
+    "status": "pending"
+  },
+  {
+    "id": "E2-T4",
+    "title": "Tokens de diseño e Inter",
+    "epic": "02-datos-interfaz-y-entrega",
+    "dependencies": ["E1-T2"],
+    "priority": "p1",
+    "acceptance": [
+      "WHEN `src/app/globals.css` se lee THE SYSTEM SHALL definir los tokens claros `--background: #FAF8F5`, `--primary: #3F6350` y `--destructive: #B42318` y los oscuros `--background: #16140F` y `--primary: #8DB59F`, además de `--success`, `--warning`, `--info` y `--divider`.",
+      "WHEN `src/app/layout.tsx` se lee THE SYSTEM SHALL cargar `Inter` con `next/font/google`, `display` igual a `swap` y la variable `--font-sans`, sin referencias a `Geist`, y SHALL conservar `lang` igual a `es-HN`.",
+      "WHEN `src/app/globals.css` se lee THE SYSTEM SHALL conservar la exclusión `@source not` del bundle de blueprints y definir la clase `.money` y la regla `prefers-reduced-motion`.",
+      "WHEN `pnpm build` corre con `cacheComponents` activo THE SYSTEM SHALL terminar con código 0.",
+      "WHEN `pnpm lint`, `pnpm typecheck` y `pnpm format:check` corren al cerrar el paso THE SYSTEM SHALL terminar con código 0 en los tres."
+    ],
+    "verify": [
+      "grep -qiF -- '--background: #faf8f5;' src/app/globals.css",
+      "grep -qiF -- '--primary: #3f6350;' src/app/globals.css",
+      "grep -qiF -- '--destructive: #b42318;' src/app/globals.css",
+      "grep -qiF -- '--background: #16140f;' src/app/globals.css",
+      "grep -qiF -- '--primary: #8db59f;' src/app/globals.css",
+      "grep -qF -- '--divider:' src/app/globals.css",
+      "grep -qF -- '--success:' src/app/globals.css",
+      "grep -qF -- '--warning:' src/app/globals.css",
+      "grep -qF -- '--info:' src/app/globals.css",
+      "grep -qF '@source not \"../../blueprints\";' src/app/globals.css",
+      "grep -qF '.money' src/app/globals.css",
+      "grep -qF 'prefers-reduced-motion' src/app/globals.css",
+      "grep -qE '\\bInter\\(' src/app/layout.tsx",
+      "grep -qF 'display: \"swap\"' src/app/layout.tsx",
+      "grep -qF 'variable: \"--font-sans\"' src/app/layout.tsx",
+      "grep -qF 'lang=\"es-HN\"' src/app/layout.tsx",
+      "status=0; grep -q 'Geist' src/app/layout.tsx || status=$?; test \"$status\" -eq 1",
+      "pnpm build",
+      "pnpm lint",
+      "pnpm exec eslint --max-warnings 0",
+      "pnpm typecheck",
+      "pnpm format:check"
+    ],
+    "checkpoint": "step-11-design-tokens",
+    "files": ["src/app/globals.css", "src/app/layout.tsx"],
+    "status": "pending"
+  },
+  {
+    "id": "E2-T5",
+    "title": "Shell de aplicación y estados de ruta",
+    "epic": "02-datos-interfaz-y-entrega",
+    "dependencies": ["E1-T2", "E2-T2", "E2-T3", "E2-T4"],
+    "priority": "p0",
+    "acceptance": [
+      "WHEN la página `/` se pide al servidor de producción y al servidor de desarrollo THE SYSTEM SHALL responder 200 con HTML que contiene `Inicio`.",
+      "WHEN una ruta inexistente se pide THE SYSTEM SHALL responder 404 con HTML que contiene `No encontramos`.",
+      "WHEN el árbol de `src/app` se inspecciona THE SYSTEM SHALL no contener `src/app/page.tsx` y SHALL contener `src/app/(app)/page.tsx`, `src/app/loading.tsx`, `src/app/error.tsx` y `src/app/not-found.tsx`.",
+      "WHEN `src/app/error.tsx` se lee THE SYSTEM SHALL empezar con la directiva `use client` y recibir las props `error` y `retry`.",
+      "WHEN se buscan segment configs en `src` THE SYSTEM SHALL no encontrar `export const dynamic`, `revalidate` ni `fetchCache`.",
+      "WHEN `pnpm lint`, `pnpm typecheck`, `pnpm format:check` y `pnpm build` corren THE SYSTEM SHALL terminar con código 0 en los cuatro."
+    ],
+    "verify": [
+      "pnpm build",
+      "pnpm exec tsx scripts/smoke-server.ts start 3190 /=200:Inicio '/ruta-que-no-existe=404:No encontramos' /api/health=200:ok",
+      "pnpm exec tsx scripts/smoke-server.ts dev 3191 /=200:Inicio",
+      "test ! -e src/app/page.tsx",
+      "test -f \"src/app/(app)/page.tsx\" && test -f src/app/loading.tsx && test -f src/app/error.tsx && test -f src/app/not-found.tsx && test -f \"src/app/(app)/layout.tsx\"",
+      "head -n 1 src/app/error.tsx | grep -qx '\"use client\";'",
+      "grep -qE '[{ ,]retry[:,]' src/app/error.tsx",
+      "grep -qE '[{ ,]error[:,]' src/app/error.tsx",
+      "grep -qF 'lang=\"es-HN\"' src/app/layout.tsx",
+      "status=0; grep -rnE 'export const (dynamic|revalidate|fetchCache)' src || status=$?; test \"$status\" -eq 1",
+      "pnpm lint",
+      "pnpm exec eslint --max-warnings 0",
+      "pnpm typecheck",
+      "pnpm format:check"
+    ],
+    "checkpoint": "step-12-app-shell",
+    "files": [
+      "src/app/(app)/layout.tsx",
+      "src/app/(app)/page.tsx",
+      "src/app/loading.tsx",
+      "src/app/error.tsx",
+      "src/app/not-found.tsx"
+    ],
+    "status": "pending"
+  },
+  {
+    "id": "E2-T6",
+    "title": "Componentes compartidos de interfaz",
+    "epic": "02-datos-interfaz-y-entrega",
+    "dependencies": ["E1-T2", "E1-T5", "E2-T3"],
+    "priority": "p1",
+    "acceptance": [
+      "WHEN `pnpm typecheck` corre THE SYSTEM SHALL terminar con código 0 con `MoneyInput` tipado como `valueCents: number | null` y `onValueChange: (cents: number | null) => void`.",
+      "WHEN `src/components/shared/money-input.tsx` se lee THE SYSTEM SHALL usar `parseMoney` y `formatMoney` de `@/lib/format`, `inputMode` igual a `decimal` y la clase `tabular-nums`.",
+      "WHEN `src/components/shared/data-table.tsx` se lee THE SYSTEM SHALL importar `useReactTable` de `@tanstack/react-table` y exponer las props `isLoading`, `error` y `empty`.",
+      "WHEN `src/components/shared/confirm-dialog.tsx` se lee THE SYSTEM SHALL componer `alert-dialog` de `@/components/ui/alert-dialog`.",
+      "WHEN se leen los archivos de `src/components/shared` THE SYSTEM SHALL tener la directiva `use client` solo en `money-input.tsx`, `confirm-dialog.tsx` y `data-table.tsx`, y no en `page-header.tsx` ni `empty-state.tsx`.",
+      "WHEN `pnpm lint`, `pnpm typecheck`, `pnpm format:check` y `pnpm build` corren THE SYSTEM SHALL terminar con código 0 en los cuatro."
+    ],
+    "verify": [
+      "pnpm typecheck",
+      "pnpm lint",
+      "pnpm exec eslint --max-warnings 0",
+      "pnpm format:check",
+      "pnpm build",
+      "grep -qF 'valueCents: number | null' src/components/shared/money-input.tsx",
+      "grep -qF 'onValueChange: (cents: number | null) => void' src/components/shared/money-input.tsx",
+      "grep -qE '\\bparseMoney\\(' src/components/shared/money-input.tsx",
+      "grep -qE '\\bformatMoney\\(' src/components/shared/money-input.tsx",
+      "grep -qF 'inputMode=\"decimal\"' src/components/shared/money-input.tsx",
+      "grep -qF 'tabular-nums' src/components/shared/money-input.tsx",
+      "grep -qE '\\buseReactTable\\(' src/components/shared/data-table.tsx",
+      "grep -qF 'from \"@tanstack/react-table\"' src/components/shared/data-table.tsx",
+      "grep -qF 'isLoading?:' src/components/shared/data-table.tsx",
+      "grep -qF 'error?:' src/components/shared/data-table.tsx",
+      "grep -qF 'empty?:' src/components/shared/data-table.tsx",
+      "grep -qF '@/components/ui/alert-dialog' src/components/shared/confirm-dialog.tsx",
+      "head -n 1 src/components/shared/money-input.tsx | grep -qx '\"use client\";'",
+      "head -n 1 src/components/shared/confirm-dialog.tsx | grep -qx '\"use client\";'",
+      "head -n 1 src/components/shared/data-table.tsx | grep -qx '\"use client\";'",
+      "status=0; grep -qF 'use client' src/components/shared/page-header.tsx || status=$?; test \"$status\" -eq 1",
+      "status=0; grep -qF 'use client' src/components/shared/empty-state.tsx || status=$?; test \"$status\" -eq 1"
+    ],
+    "checkpoint": "step-13-shared-components",
+    "files": [
+      "src/components/shared/page-header.tsx",
+      "src/components/shared/empty-state.tsx",
+      "src/components/shared/confirm-dialog.tsx",
+      "src/components/shared/money-input.tsx",
+      "src/components/shared/data-table.tsx"
+    ],
+    "status": "pending"
+  },
+  {
+    "id": "E2-T7",
+    "title": "Playwright y galería de componentes",
+    "epic": "02-datos-interfaz-y-entrega",
+    "dependencies": ["E2-T2", "E2-T5", "E2-T6"],
+    "priority": "p1",
+    "acceptance": [
+      "WHEN `pnpm test:e2e` corre THE SYSTEM SHALL construir la app de producción, arrancarla en el puerto 3100 y terminar con código 0 sin pruebas fallidas.",
+      "WHEN `shell.spec.ts` corre THE SYSTEM SHALL comprobar el enlace `Inicio` en la barra lateral, `/api/health` con 200 y `{ status: 'ok' }`, y una ruta inexistente con 404 y el título de no encontrada.",
+      "WHEN `components.spec.ts` escribe `1234.5` en el campo `Monto` y lo abandona THE SYSTEM SHALL mostrar `L 1,234.50`, y con `12.345` SHALL marcarlo con `aria-invalid` igual a `true`.",
+      "WHEN `components.spec.ts` abre el diálogo de confirmación y pulsa `Escape` THE SYSTEM SHALL cerrarlo.",
+      "WHEN `components.spec.ts` recorre las cuatro tablas THE SYSTEM SHALL mostrar el estado cargando con `role=status`, el vacío con su acción, el error con `role=alert` y botón `Reintentar`, y las filas con `Vestido floral`.",
+      "WHEN la galería se pide a un build de producción sin `NEXT_PUBLIC_COMPONENT_GALLERY` THE SYSTEM SHALL responder 404."
+    ],
+    "verify": [
+      "pnpm install --frozen-lockfile",
+      "pnpm build",
+      "pnpm exec tsx scripts/smoke-server.ts start 3190 /dev/componentes=404 /api/health=200:ok",
+      "pnpm test:e2e",
+      "pnpm lint",
+      "pnpm exec eslint --max-warnings 0",
+      "pnpm typecheck",
+      "pnpm format:check",
+      "grep -qF '\"@playwright/test\": \"1.64.1\"' package.json",
+      "grep -qF '\"test:e2e\": \"playwright test\"' package.json",
+      "test -f playwright.config.ts && test -f tests/e2e/shell.spec.ts && test -f tests/e2e/components.spec.ts && test -f \"src/app/(app)/dev/componentes/page.tsx\"",
+      "status=0; grep -rnE 'waitForTimeout|\\.(skip|only)\\(' tests/e2e || status=$?; test \"$status\" -eq 1"
+    ],
+    "checkpoint": "step-14-playwright",
+    "files": [
+      "package.json",
+      "playwright.config.ts",
+      "tests/e2e/shell.spec.ts",
+      "tests/e2e/components.spec.ts",
+      "src/app/(app)/dev/componentes/page.tsx"
+    ],
+    "status": "pending"
+  },
+  {
+    "id": "E2-T8",
+    "title": "Invariante de stock, guardia y documentos",
+    "epic": "02-datos-interfaz-y-entrega",
+    "dependencies": ["E1-T7"],
+    "priority": "p1",
+    "acceptance": [
+      "WHEN `findStockDiscrepancies` corre sobre una base vacía THE SYSTEM SHALL devolver una lista vacía.",
+      "WHEN dentro de una transacción se inserta un `StockMovement` `ADJUSTMENT_IN` de cantidad 5 sin fila de `StockLevel` THE SYSTEM SHALL reportar exactamente esa variante y ubicación con `movementSum` 5 y `onHand` 0, y tras revertir la transacción THE SYSTEM SHALL devolver una lista vacía.",
+      "WHEN el `StockLevel` coincide con la suma de movimientos THE SYSTEM SHALL no reportar discrepancias.",
+      "WHEN `pnpm test:integration` corre THE SYSTEM SHALL terminar con código 0 con los invariantes 2 a 7 de `docs/DATA_MODEL.md` como `it.todo` (pendientes, no fallidos).",
+      "WHEN `tests/unit/architecture.test.ts` corre THE SYSTEM SHALL fallar si `src` o `prisma/seed*` escriben `stockLevel` fuera de `src/modules/inventory/service.ts`, y pasar mientras ese archivo no exista.",
+      "WHEN `docs/DATA_MODEL.md` y `docs/ARCHITECTURE.md` se leen THE SYSTEM SHALL contener las adiciones nombradas por el paso (`Session`, `DocumentCounter`, `scopeRef`, `NULLS NOT DISTINCT`, `prevent_row_mutation`, TanStack Table v8, `@node-rs/argon2`, Inter, `@prisma/adapter-pg`) y no la frase obsoleta `Check de BD`."
+    ],
+    "verify": [
+      "pnpm test:integration",
+      "pnpm test:unit",
+      "pnpm lint",
+      "pnpm exec eslint --max-warnings 0",
+      "pnpm typecheck",
+      "pnpm format:check",
+      "grep -qF 'it.todo(' tests/integration/invariants.test.ts",
+      "grep -qF 'Sale.total' tests/integration/invariants.test.ts",
+      "grep -qF 'storeCreditCents' tests/integration/invariants.test.ts",
+      "grep -qF '### Session' docs/DATA_MODEL.md",
+      "grep -qF '### DocumentCounter' docs/DATA_MODEL.md",
+      "grep -qF 'scopeRef' docs/DATA_MODEL.md",
+      "grep -qF 'NULLS NOT DISTINCT' docs/DATA_MODEL.md",
+      "grep -qF 'prevent_row_mutation' docs/DATA_MODEL.md",
+      "status=0; grep -qF 'Check de BD' docs/DATA_MODEL.md || status=$?; test \"$status\" -eq 1",
+      "grep -qF 'TanStack Table v8' docs/ARCHITECTURE.md",
+      "grep -qF '@node-rs/argon2' docs/ARCHITECTURE.md",
+      "grep -qF '@prisma/adapter-pg' docs/ARCHITECTURE.md",
+      "grep -qE '\\bInter\\b' docs/ARCHITECTURE.md",
+      "grep -qF '2026-10-23' docs/ARCHITECTURE.md",
+      "status=0; grep -rnE '\\.(skip|only)\\(' tests/integration tests/unit || status=$?; test \"$status\" -eq 1"
+    ],
+    "checkpoint": "step-15-invariants-docs",
+    "files": [
+      "tests/integration/invariants.test.ts",
+      "tests/integration/helpers/invariants.ts",
+      "tests/unit/architecture.test.ts",
+      "docs/DATA_MODEL.md",
+      "docs/ARCHITECTURE.md"
+    ],
+    "status": "pending"
+  },
+  {
+    "id": "E2-T9",
+    "title": "CI, README y cierre de la Fase 0",
+    "epic": "02-datos-interfaz-y-entrega",
+    "dependencies": ["E2-T1", "E2-T7", "E2-T8"],
+    "priority": "p1",
+    "acceptance": [
+      "WHEN `tests/unit/ci-workflow.test.ts` corre THE SYSTEM SHALL comprobar en `.github/workflows/ci.yml` el runner `ubuntu-24.04`, los pines `actions/checkout@v7`, `actions/setup-node@v7` y `pnpm/action-setup@v6`, y los comandos de la puerta.",
+      "WHEN `ci.yml` se lee THE SYSTEM SHALL declarar el servicio `postgres:16-alpine` con chequeo de salud y las variables `DATABASE_URL`, `DATABASE_URL_TEST`, `AUTH_SECRET` y `APP_URL`.",
+      "WHEN `ci.yml` se lee THE SYSTEM SHALL ejecutar el trabajo `e2e` solo en `main` con `pnpm exec playwright install --with-deps chromium` y `pnpm test:e2e`.",
+      "WHEN `README.md` se lee THE SYSTEM SHALL empezar con la sección `Desarrollo local` con los comandos de clonado a `pnpm dev` y la tabla de usuarios demo, conservando el contenido previo debajo.",
+      "WHEN `CLAUDE.md` se lee THE SYSTEM SHALL marcar `- [x] Fase 0 — Cimientos` con la fecha de hoy en formato `YYYY-MM-DD` y conservar la marca `fase-0-blueprint`.",
+      "WHEN `pnpm lint`, `pnpm typecheck`, `pnpm format:check`, `pnpm test` y `pnpm build` corren THE SYSTEM SHALL terminar con código 0 en los cinco."
+    ],
+    "verify": [
+      "pnpm test:unit",
+      "grep -Eq '^- \\[x\\] Fase 0 .{1,3} Cimientos \\([0-9]{4}-[0-9]{2}-[0-9]{2}\\)$' CLAUDE.md",
+      "grep -q 'fase-0-blueprint' CLAUDE.md",
+      "head -n 1 README.md | grep -qF 'Desarrollo local'",
+      "grep -qF 'pnpm db:generate' README.md",
+      "grep -qF 'Demo-Cajero-2026' README.md",
+      "grep -qF 'Paquete de contexto' README.md",
+      "test -f .github/workflows/ci.yml",
+      "pnpm lint",
+      "pnpm exec eslint --max-warnings 0",
+      "pnpm typecheck",
+      "pnpm format:check",
+      "pnpm test",
+      "pnpm build"
+    ],
+    "checkpoint": "step-16-ci-readme-close",
+    "files": [
+      ".github/workflows/ci.yml",
+      "tests/unit/ci-workflow.test.ts",
+      "README.md",
+      "CLAUDE.md"
+    ],
+    "status": "pending"
+  }
+]
