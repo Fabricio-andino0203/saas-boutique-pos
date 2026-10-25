@@ -312,7 +312,7 @@
     ],
     "checkpoint": "step-10-ui-primitives",
     "files": ["package.json", "src/components/ui/**", "src/hooks/use-mobile.ts"],
-    "status": "pending"
+    "status": "done"
   },
   {
     "id": "E2-T4",
