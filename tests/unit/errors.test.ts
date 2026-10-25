@@ -1,0 +1,89 @@
+import { describe, expect, it, vi } from "vitest";
+
+import { messages } from "@/config/messages.es";
+import { ok, toActionResult } from "@/lib/action-result";
+import {
+  APP_ERROR_CODES,
+  AppError,
+  CashSessionClosedError,
+  ConflictError,
+  FiscalRangeExhaustedError,
+  ForbiddenError,
+  InsufficientStockError,
+  NotFoundError,
+  UnauthorizedError,
+  ValidationError,
+} from "@/lib/errors";
+
+const table = [
+  { create: () => new ValidationError(), code: "VALIDATION", status: 422 },
+  { create: () => new NotFoundError(), code: "NOT_FOUND", status: 404 },
+  { create: () => new UnauthorizedError(), code: "UNAUTHORIZED", status: 401 },
+  { create: () => new ForbiddenError(), code: "FORBIDDEN", status: 403 },
+  { create: () => new ConflictError(), code: "CONFLICT", status: 409 },
+  { create: () => new InsufficientStockError(), code: "INSUFFICIENT_STOCK", status: 409 },
+  { create: () => new CashSessionClosedError(), code: "CASH_SESSION_CLOSED", status: 409 },
+  { create: () => new FiscalRangeExhaustedError(), code: "FISCAL_RANGE_EXHAUSTED", status: 409 },
+] as const;
+
+describe("AppError subclasses", () => {
+  it.each(table)("$code carries its code and status", ({ create, code, status }) => {
+    const error = create();
+    expect(error).toBeInstanceOf(AppError);
+    expect(error).toBeInstanceOf(Error);
+    expect(error.code).toBe(code);
+    expect(error.status).toBe(status);
+    expect(error.name).toBe(error.constructor.name);
+  });
+
+  it("covers every code exactly once", () => {
+    expect(new Set(APP_ERROR_CODES).size).toBe(APP_ERROR_CODES.length);
+    expect(table.map((row) => row.code)).toEqual([...APP_ERROR_CODES]);
+  });
+
+  it("keeps the cause passed in the options", () => {
+    const cause = new Error("root");
+    expect(new ConflictError("x", { cause }).cause).toBe(cause);
+  });
+});
+
+describe("ActionResult", () => {
+  it("ok wraps the data", () => {
+    expect(ok(5)).toEqual({ ok: true, data: 5 });
+  });
+
+  it("maps an AppError to its dictionary message", async () => {
+    const result = await toActionResult(() => {
+      throw new ForbiddenError();
+    }, messages.errors);
+    expect(result).toEqual({
+      ok: false,
+      error: { code: "FORBIDDEN", message: messages.errors.FORBIDDEN },
+    });
+  });
+
+  it("returns the data when the function succeeds, sync or async", async () => {
+    expect(await toActionResult(() => 7, messages.errors)).toEqual({ ok: true, data: 7 });
+    expect(await toActionResult(async () => "a", messages.errors)).toEqual({
+      ok: true,
+      data: "a",
+    });
+  });
+
+  it("hides the text of an unexpected error and reports it", async () => {
+    const onUnexpected = vi.fn();
+    const result = await toActionResult(
+      () => {
+        throw new Error("secreto-interno");
+      },
+      messages.errors,
+      onUnexpected,
+    );
+    expect(result).toEqual({
+      ok: false,
+      error: { code: "UNEXPECTED", message: messages.errors.UNEXPECTED },
+    });
+    expect(JSON.stringify(result)).not.toContain("secreto-interno");
+    expect(onUnexpected).toHaveBeenCalledTimes(1);
+  });
+});

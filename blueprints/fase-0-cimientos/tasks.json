@@ -63,7 +63,7 @@
       "tests/unit/errors.test.ts",
       "tests/unit/messages.test.ts"
     ],
-    "status": "pending"
+    "status": "done"
   },
   {
     "id": "E1-T3",
