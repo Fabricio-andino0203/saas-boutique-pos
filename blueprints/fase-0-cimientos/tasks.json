@@ -185,7 +185,7 @@
       "tests/unit/permissions.test.ts",
       "tests/unit/password.test.ts"
     ],
-    "status": "pending"
+    "status": "done"
   },
   {
     "id": "E1-T7",
