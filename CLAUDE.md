@@ -3,6 +3,8 @@
 > Este archivo lo lee Claude Code al iniciar cada sesión. Mantenlo corto y actualizado.
 > Detalle completo en `docs/`. Si algo aquí contradice a `docs/`, gana este archivo y hay que corregir el otro.
 
+<!-- fase-0-blueprint -->
+
 ## 1. Qué es este proyecto
 
 Sistema de **inventario + punto de venta (POS)** para una **boutique de ropa** (una tienda hoy, preparado para varias sucursales mañana).
@@ -129,3 +131,15 @@ Estas reglas existen porque un error aquí descuadra caja o inventario. Si una t
 | `docs/UX.md` | Cómo debe sentirse: pantallas, atajos, copy, accesibilidad |
 | `docs/ROADMAP.md` | En qué orden: fases, entregables, criterios de aceptación, prompts |
 | `docs/DECISIONS_PENDING.md` | Preguntas abiertas y el valor por defecto asumido |
+
+## 11. Build de la Fase 0
+
+La Fase 0 se construye con el bundle `blueprints/fase-0-cimientos/` (16 pasos en 2 épicas). Fuente de verdad: `blueprints/fase-0-cimientos/blueprint.md`. Para retomar o avanzar, ejecuta `/architect-next` desde la raíz del repo.
+
+- Durante la Fase 0 el plan aprobado es `blueprint.md`; no esperes confirmación entre pasos ni abras plan mode: ejecuta los pasos en orden.
+- Cada paso termina con `git add -A && git commit` y una etiqueta `step-NN-<slug>`; el rollback es `git reset --hard <etiqueta del paso anterior>`.
+- Antes de cada Checkpoint corre `pnpm format` y luego `pnpm lint`, `pnpm typecheck` y `pnpm format:check`.
+- Las pruebas de integración usan solo la base `boutique_pos_test` (`DATABASE_URL_TEST`); nunca la de desarrollo.
+- `pnpm test` corre los proyectos `unit` e `integration` de Vitest; `pnpm test:e2e` corre Playwright.
+- Comandos que añade o usa la Fase 0: `pnpm test:unit`, `pnpm test:integration`, `pnpm test:coverage`, `pnpm format`, `pnpm format:check`, `pnpm db:generate`, `pnpm exec next typegen` (genera los tipos de rutas de Next, ausentes en un clon limpio, antes de `pnpm typecheck`), `pnpm db:deploy`, `pnpm db:down`.
+- La Fase 0 no agrega pantallas de negocio, no cambia el esquema Prisma ni las migraciones, y no sube versiones de `next`, `react`, `prisma` ni `zod`.

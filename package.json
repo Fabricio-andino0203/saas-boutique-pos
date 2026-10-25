@@ -16,7 +16,11 @@
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "db:seed": "prisma db seed",
-    "db:reset": "prisma migrate reset --force"
+    "db:reset": "prisma migrate reset --force",
+    "test": "vitest run",
+    "test:unit": "vitest run --project unit",
+    "test:integration": "vitest run --project integration",
+    "test:coverage": "vitest run --project unit --coverage"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",
@@ -35,9 +39,10 @@
   },
   "devDependencies": {
     "@tailwindcss/turbopack": "^4",
-    "@types/node": "^20",
+    "@types/node": "24.19.2",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitest/coverage-v8": "5.0.5",
     "dotenv": "^18.0.9",
     "eslint": "^9",
     "eslint-config-next": "16.4.2",
@@ -46,7 +51,9 @@
     "prisma": "7.10.1",
     "tailwindcss": "^4",
     "tsx": "^4.23.15",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vite": "8.3.5",
+    "vitest": "5.0.5"
   },
   "packageManager": "pnpm@12.15.0"
 }

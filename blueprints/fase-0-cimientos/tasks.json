@@ -31,7 +31,7 @@
     ],
     "checkpoint": "step-01-vitest",
     "files": ["package.json", "tests/unit/env.test.ts"],
-    "status": "pending"
+    "status": "done"
   },
   {
     "id": "E1-T2",

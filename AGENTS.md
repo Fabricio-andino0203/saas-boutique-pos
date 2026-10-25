@@ -7,3 +7,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
 
 <!-- END:nextjs-agent-rules -->
+
+<!-- fase-0-blueprint -->
+
+Fase 0 en curso: sigue `blueprints/fase-0-cimientos/blueprint.md` y las reglas de `CLAUDE.md`, que es la fuente de verdad del proyecto (comandos, reglas de dominio y estructura).
