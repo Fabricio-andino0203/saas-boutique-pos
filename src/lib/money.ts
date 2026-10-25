@@ -74,3 +74,61 @@ export function extractTax(
   const netCents = roundHalfAwayFromZero(totalCents * 10000, 10000 + rateBps);
   return { netCents, taxCents: subCents(totalCents, netCents) };
 }
+
+/**
+ * Reparte `totalCents` en partes enteras proporcionales a `weights` (método del mayor residuo).
+ * El sobrante va de a 1 centavo a los mayores restos; en empate, al índice más bajo.
+ * La suma de las partes es siempre igual al total.
+ */
+export function allocate(totalCents: Cents, weights: readonly number[]): Cents[] {
+  assertCents(totalCents, "totalCents");
+  if (totalCents < 0) {
+    throw new ValidationError("totalCents must not be negative");
+  }
+  if (weights.length === 0) {
+    throw new ValidationError("weights must not be empty");
+  }
+  weights.forEach((weight, index) => {
+    assertCents(weight, `weights[${index}]`);
+    if (weight < 0) {
+      throw new ValidationError(`weights[${index}] must not be negative`);
+    }
+  });
+  if (totalCents === 0) {
+    return weights.map(() => 0);
+  }
+
+  // BigInt por llamada (no literales `1n`): tsconfig apunta a ES2017 y el producto puede desbordar.
+  const zero = BigInt(0);
+  const sum = weights.reduce((acc, weight) => acc + BigInt(weight), zero);
+  if (sum === zero) {
+    throw new ValidationError("weights must not sum to zero");
+  }
+  const total = BigInt(totalCents);
+  const parts = weights.map((weight, index) => {
+    const product = total * BigInt(weight);
+    return { index, base: Number(product / sum), remainder: product % sum };
+  });
+  const leftover = totalCents - parts.reduce((acc, part) => acc + part.base, 0);
+  const winners = new Set(
+    [...parts]
+      .sort((a, b) => {
+        if (a.remainder === b.remainder) {
+          return a.index - b.index;
+        }
+        return a.remainder > b.remainder ? -1 : 1;
+      })
+      .slice(0, leftover)
+      .map((part) => part.index),
+  );
+  return parts.map((part) => (winners.has(part.index) ? part.base + 1 : part.base));
+}
+
+/** Reparte un descuento global entre las líneas sin perder centavos; ninguna parte supera su línea. */
+export function prorateDiscount(lineTotals: readonly Cents[], discountCents: Cents): Cents[] {
+  assertCents(discountCents, "discountCents");
+  if (discountCents > sumCents(lineTotals)) {
+    throw new ValidationError("discountCents must not exceed the sum of the lines");
+  }
+  return allocate(discountCents, lineTotals);
+}

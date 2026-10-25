@@ -151,7 +151,7 @@
       "tests/unit/money-allocate.test.ts",
       "tests/unit/format.test.ts"
     ],
-    "status": "pending"
+    "status": "done"
   },
   {
     "id": "E1-T6",
