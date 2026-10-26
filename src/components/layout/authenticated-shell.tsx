@@ -1,4 +1,5 @@
 import {
+  Boxes,
   CalendarRange,
   House,
   LogOut,
@@ -79,6 +80,17 @@ const navGroups: readonly NavGroup[] = [
         label: messages.catalog.entities.colors.plural,
         icon: Palette,
         capability: "product.write",
+      },
+    ],
+  },
+  {
+    label: messages.nav.groups.inventory,
+    items: [
+      {
+        href: "/inventario",
+        label: messages.nav.stock,
+        icon: Boxes,
+        capability: "stock.adjust",
       },
     ],
   },

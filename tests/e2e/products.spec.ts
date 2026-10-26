@@ -1,35 +1,11 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 
 import { messages } from "../../src/config/messages.es";
 
 import { loginAs } from "./helpers/login";
+import { createSimpleProduct, fillMoney } from "./helpers/products";
 
 const copy = messages.products;
-
-async function fillMoney(page: Page, label: string, amount: string, shown: string) {
-  // El campo se hidrata después de cargar: reintenta hasta que tome el valor.
-  await expect(async () => {
-    const field = page.getByLabel(label, { exact: true });
-    // Al enfocar, el campo cambia "L 250.00" por "250.00": se selecciona todo después de ese cambio.
-    await field.click();
-    await field.press("ControlOrMeta+a");
-    await field.pressSequentially(amount);
-    await field.blur();
-    await expect(field).toHaveValue(shown);
-  }).toPass();
-}
-
-/** Crea un producto sin tallas ni colores con el asistente y espera a estar en su ficha. */
-async function createSimpleProduct(page: Page, name: string, price: string, shown: string) {
-  await page.goto("/productos/nuevo");
-  await page.getByLabel(copy.fields.name, { exact: true }).fill(name);
-  await page.getByLabel(copy.fields.category, { exact: true }).selectOption({ label: "Mujer" });
-  await fillMoney(page, copy.fields.price, price, shown);
-  await page.getByRole("button", { name: copy.wizard.next }).click();
-  await page.getByRole("button", { name: copy.wizard.next }).click();
-  await page.getByRole("button", { name: copy.wizard.save }).click();
-  await expect(page.getByRole("heading", { level: 1, name })).toBeVisible();
-}
 
 test("the cashier has no products menu and cannot open the screens", async ({ page }) => {
   await loginAs(page, "cashier");

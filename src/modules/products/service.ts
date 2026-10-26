@@ -751,7 +751,7 @@ function escapeLike(text: string): string {
  * Búsqueda tolerante a mayúsculas, tildes y errores leves (RF-CAT-6): coincidencia exacta de código
  * o código de barras, nombre/marca/categoría que contienen el texto, y similitud de trigramas.
  */
-async function searchProductIds(client: PrismaClient, query: string): Promise<string[]> {
+export async function searchProductIds(client: PrismaClient, query: string): Promise<string[]> {
   const term = query.trim().slice(0, 100);
   if (term === "") {
     return [];

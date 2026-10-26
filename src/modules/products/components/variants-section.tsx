@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
@@ -146,6 +147,13 @@ function VariantRowView({
         </TableCell>
         <TableCell>
           <div className="flex gap-3">
+            <Link
+              href={`/inventario/kardex/${variant.id}`}
+              aria-label={`${messages.inventory.kardex.link} ${label}`}
+              className="text-primary underline underline-offset-4"
+            >
+              {messages.inventory.kardex.link}
+            </Link>
             {variant.archived || disabled ? null : (
               <button
                 type="button"
