@@ -6,6 +6,7 @@ import {
   APP_ERROR_CODES,
   AppError,
   CashSessionClosedError,
+  ActiveRangeExistsError,
   CodeTakenError,
   ConflictError,
   AccountLockedError,
@@ -17,6 +18,7 @@ import {
   ItemInUseError,
   LastOwnerError,
   NameTakenError,
+  RangeOverlapError,
   SelfActionError,
   UsernameTakenError,
   NotFoundError,
@@ -42,6 +44,8 @@ const table = [
   { create: () => new ItemInUseError(), code: "ITEM_IN_USE", status: 409 },
   { create: () => new CodeTakenError(), code: "CODE_TAKEN", status: 409 },
   { create: () => new HasStockError(), code: "HAS_STOCK", status: 409 },
+  { create: () => new RangeOverlapError(), code: "RANGE_OVERLAP", status: 409 },
+  { create: () => new ActiveRangeExistsError(), code: "ACTIVE_RANGE_EXISTS", status: 409 },
 ] as const;
 
 describe("AppError subclasses", () => {

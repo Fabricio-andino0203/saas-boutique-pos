@@ -2,14 +2,9 @@ import { expect, test } from "@playwright/test";
 
 import { messages } from "../../src/config/messages.es";
 
-import { deleteE2eData } from "./helpers/cleanup";
 import { loginAs } from "./helpers/login";
 
 const catalog = messages.catalog;
-
-test.afterAll(() => {
-  deleteE2eData();
-});
 
 test("the cashier has no catalog menu and cannot open the screens", async ({ page }) => {
   await loginAs(page, "cashier");

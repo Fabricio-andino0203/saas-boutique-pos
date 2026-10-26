@@ -1,7 +1,13 @@
 import { describe, expect, it } from "vitest";
 
 import { ValidationError } from "@/lib/errors";
-import { formatMoney, formatMoneyPlain, parseMoney, parsePercentBps } from "@/lib/format";
+import {
+  formatMoney,
+  formatMoneyPlain,
+  formatPercentBps,
+  parseMoney,
+  parsePercentBps,
+} from "@/lib/format";
 
 import { mulberry32 } from "./helpers/prng";
 
@@ -83,5 +89,27 @@ describe("parsePercentBps", () => {
     for (const text of ["", "abc", "10.555", "1,5", "1000", "--5", "5 5", "%"]) {
       expect(parsePercentBps(text), text).toBeNull();
     }
+  });
+});
+
+describe("formatPercentBps", () => {
+  it("writes basis points as an editable percentage", () => {
+    expect(formatPercentBps(1500)).toBe("15");
+    expect(formatPercentBps(1550)).toBe("15.5");
+    expect(formatPercentBps(75)).toBe("0.75");
+    expect(formatPercentBps(5)).toBe("0.05");
+    expect(formatPercentBps(0)).toBe("0");
+    expect(formatPercentBps(-1500)).toBe("-15");
+    expect(formatPercentBps(-50)).toBe("-0.5");
+  });
+
+  it("reads back what it writes", () => {
+    for (const bps of [0, 5, 50, 75, 1500, 1550, 10000, -2000, -5]) {
+      expect(parsePercentBps(formatPercentBps(bps)), String(bps)).toBe(bps);
+    }
+  });
+
+  it("rejects unsafe numbers", () => {
+    expect(() => formatPercentBps(1.5)).toThrow(ValidationError);
   });
 });

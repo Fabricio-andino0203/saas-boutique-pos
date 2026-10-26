@@ -6,6 +6,7 @@ import {
   Ruler,
   ScrollText,
   Shapes,
+  Settings,
   Shirt,
   Tag,
   Truck,
@@ -97,6 +98,12 @@ const navGroups: readonly NavGroup[] = [
     items: [
       { href: "/usuarios", label: messages.nav.users, icon: Users, capability: "user.manage" },
       { href: "/auditoria", label: messages.nav.audit, icon: ScrollText, capability: "audit.view" },
+      {
+        href: "/configuracion",
+        label: messages.nav.settings,
+        icon: Settings,
+        capability: "settings.manage",
+      },
     ],
   },
 ];

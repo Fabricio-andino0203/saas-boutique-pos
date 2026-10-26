@@ -16,6 +16,8 @@ export const APP_ERROR_CODES = [
   "ITEM_IN_USE",
   "CODE_TAKEN",
   "HAS_STOCK",
+  "RANGE_OVERLAP",
+  "ACTIVE_RANGE_EXISTS",
 ] as const;
 
 export type ErrorCode = (typeof APP_ERROR_CODES)[number];
@@ -133,5 +135,17 @@ export class CodeTakenError extends AppError {
 export class HasStockError extends AppError {
   constructor(message = "Item still has stock", options?: AppErrorOptions) {
     super("HAS_STOCK", 409, message, options);
+  }
+}
+
+export class RangeOverlapError extends AppError {
+  constructor(message = "Fiscal range overlaps another one", options?: AppErrorOptions) {
+    super("RANGE_OVERLAP", 409, message, options);
+  }
+}
+
+export class ActiveRangeExistsError extends AppError {
+  constructor(message = "An active fiscal range already exists", options?: AppErrorOptions) {
+    super("ACTIVE_RANGE_EXISTS", 409, message, options);
   }
 }

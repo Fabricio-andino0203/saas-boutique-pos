@@ -2,16 +2,11 @@ import { expect, test } from "@playwright/test";
 
 import { messages } from "../../src/config/messages.es";
 
-import { deleteE2eData } from "./helpers/cleanup";
 import { loginAs } from "./helpers/login";
 
 const copy = messages.products.import;
 
 const HEADER = "Producto,Categoría,Precio,Costo,Marca,Código,Talla,Color,Cantidad,Código de barras";
-
-test.afterAll(() => {
-  deleteE2eData();
-});
 
 test("the cashier cannot reach the import screen or the templates", async ({ page }) => {
   await loginAs(page, "cashier");

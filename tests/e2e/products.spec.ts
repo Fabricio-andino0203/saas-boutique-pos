@@ -2,14 +2,9 @@ import { expect, test, type Page } from "@playwright/test";
 
 import { messages } from "../../src/config/messages.es";
 
-import { deleteE2eData } from "./helpers/cleanup";
 import { loginAs } from "./helpers/login";
 
 const copy = messages.products;
-
-test.afterAll(() => {
-  deleteE2eData();
-});
 
 async function fillMoney(page: Page, label: string, amount: string, shown: string) {
   // El campo se hidrata después de cargar: reintenta hasta que tome el valor.

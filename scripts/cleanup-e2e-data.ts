@@ -30,6 +30,7 @@ async function main(): Promise<void> {
     await client.variant.deleteMany({ where: ofProducts });
     await client.product.deleteMany({ where: { id: { in: productIds } } });
 
+    await client.fiscalRange.deleteMany({ where: { prefix: { startsWith: "E2E-" } } });
     await client.brand.deleteMany({ where: named });
     await client.season.deleteMany({ where: named });
     await client.size.deleteMany({ where: named });

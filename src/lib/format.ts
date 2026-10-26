@@ -52,3 +52,14 @@ export function parsePercentBps(text: string): number | null {
   const bps = Number(wholeText) * 100 + Number(fractionText.padEnd(2, "0"));
   return bps !== 0 && (sign === "-" || sign === "−") ? -bps : bps;
 }
+
+/** Puntos base a texto editable: 1500 → "15", 1550 → "15.5", 75 → "0.75". */
+export function formatPercentBps(bps: number): string {
+  assertCents(bps, "bps");
+  const whole = Math.trunc(bps / 100);
+  const fraction = Math.abs(bps % 100);
+  if (fraction === 0) {
+    return String(whole);
+  }
+  return `${bps < 0 && whole === 0 ? "-" : ""}${whole}.${pad2(fraction).replace(/0$/, "")}`;
+}

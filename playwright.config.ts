@@ -7,6 +7,7 @@ const isCI = Boolean(process.env.CI);
 export default defineConfig({
   testDir: "tests/e2e",
   testIgnore: ["**/blueprints/**"],
+  globalTeardown: "./tests/e2e/global-teardown.ts",
   fullyParallel: true,
   // Las acciones del servidor tardan más cuando varios navegadores comparten servidor y base de datos.
   expect: { timeout: 15_000 },

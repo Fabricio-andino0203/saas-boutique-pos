@@ -16,6 +16,8 @@ export const AUDIT_ACTIONS = [
   "PRODUCT_UPDATED",
   "PRODUCT_ARCHIVED",
   "PRODUCT_RESTORED",
+  "SETTINGS_CHANGED",
+  "FISCAL_RANGE_CHANGED",
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

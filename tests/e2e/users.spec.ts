@@ -2,14 +2,9 @@ import { expect, test } from "@playwright/test";
 
 import { messages } from "../../src/config/messages.es";
 
-import { deleteE2eData } from "./helpers/cleanup";
 import { loginAs } from "./helpers/login";
 
 const notFoundTitle = messages.states.notFound.title;
-
-test.afterAll(() => {
-  deleteE2eData();
-});
 
 for (const username of ["cashier", "warehouse", "manager"] as const) {
   test(`${username} does not see or reach the admin screens`, async ({ page }) => {

@@ -12,11 +12,6 @@ export const AUTH_LIMITS = {
   maxPasswordLength: 128,
 } as const;
 
-/** Códigos de barras internos EAN-13: prefijo (editable en configuración, incremento 6) + serie + dígito de control. */
-export const BARCODE = {
-  internalPrefix: "200",
-} as const;
-
 export const PRODUCT_LIMITS = {
   /** Máximo de variantes que el asistente genera de una vez (tallas × colores). */
   maxVariantsPerBatch: 200,

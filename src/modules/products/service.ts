@@ -1,6 +1,6 @@
 import type { z } from "zod";
 
-import { BARCODE, PRODUCT_LIMITS } from "@/config/constants";
+import { PRODUCT_LIMITS } from "@/config/constants";
 import { messages } from "@/config/messages.es";
 import { Prisma, type PrismaClient } from "@/generated/prisma/client";
 import { audit } from "@/lib/audit";
@@ -9,6 +9,7 @@ import { db } from "@/lib/db";
 import { CodeTakenError, HasStockError, NotFoundError, ValidationError } from "@/lib/errors";
 import { percentOf } from "@/lib/money";
 import { requireCapability } from "@/lib/permissions";
+import { getSetting } from "@/lib/settings";
 import { createItem, descendantsOf, type Actor } from "@/modules/catalog/service";
 import { getDefaultLocationId, recordMovement } from "@/modules/inventory/service";
 import {
@@ -152,6 +153,7 @@ export async function createVariantCells(tx: Tx, input: NewVariantCells): Promis
       })
     ).map((row) => row.sku),
   );
+  const prefix = await getSetting(tx, "barcode.internalPrefix");
   const serials = await nextSerials(
     tx,
     "barcode_serial_seq",
@@ -164,7 +166,7 @@ export async function createVariantCells(tx: Tx, input: NewVariantCells): Promis
       sizeId: size?.id ?? null,
       colorId: color?.id ?? null,
       sku: uniqueSku(buildSkuBase(product.code, size?.name, color?.name), taken),
-      barcode: barcode ?? buildEan13(BARCODE.internalPrefix, serials.shift() ?? 0),
+      barcode: barcode ?? buildEan13(prefix, serials.shift() ?? 0),
       avgCostCents: product.baseCostCents,
     })),
     select: { id: true, sizeId: true, colorId: true },
@@ -588,6 +590,7 @@ export async function duplicateProduct(
     });
 
     const taken = new Set<string>();
+    const prefix = await getSetting(tx, "barcode.internalPrefix");
     const serials = await nextSerials(tx, "barcode_serial_seq", source.variants.length);
     if (source.variants.length > 0) {
       await tx.variant.createMany({
@@ -596,7 +599,7 @@ export async function duplicateProduct(
           sizeId: variant.sizeId,
           colorId: variant.colorId,
           sku: uniqueSku(buildSkuBase(code, variant.size?.name, variant.color?.name), taken),
-          barcode: buildEan13(BARCODE.internalPrefix, serials[index] ?? 0),
+          barcode: buildEan13(prefix, serials[index] ?? 0),
           priceCents: variant.priceCents,
           costCents: variant.costCents,
           avgCostCents: variant.costCents ?? source.baseCostCents,
