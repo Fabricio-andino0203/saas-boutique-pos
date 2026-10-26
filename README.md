@@ -1,3 +1,51 @@
+# Boutique POS — Desarrollo local
+
+## Requisitos
+
+- Node 24, pnpm 12.15, Docker con `docker compose` (el motor en marcha) y git.
+- Identidad de git configurada (`git config user.name` y `git config user.email`).
+
+## Primer arranque
+
+```bash
+git clone <url-del-repositorio> boutique-pos
+cd boutique-pos
+cp .env.example .env
+pnpm install
+pnpm db:generate
+pnpm db:up
+pnpm db:deploy
+pnpm db:seed
+pnpm dev
+```
+
+`pnpm db:generate` es obligatorio: `src/generated` no se versiona y Prisma 7 no genera el cliente al migrar. Después abre <http://localhost:3000>.
+
+Si otra pila Docker usa el puerto 5432 (Postgres), detenla antes de `pnpm db:up`.
+
+## Usuarios de demostración (solo desarrollo)
+
+Los crea `pnpm db:seed`. Cámbialos antes de llevar el sistema a producción.
+
+| Usuario | Rol | Contraseña | PIN |
+|---|---|---|---|
+| `owner` | Propietario | `Demo-Propietario-2026` | `1111` |
+| `manager` | Gerente | `Demo-Gerente-2026` | `2222` |
+| `cashier` | Cajero | `Demo-Cajero-2026` | `3333` |
+| `warehouse` | Almacén | `Demo-Almacen-2026` | `4444` |
+
+## Pruebas
+
+```bash
+pnpm test                                 # unitarias e integración (necesita la BD arriba)
+pnpm exec playwright install chromium     # una sola vez
+pnpm test:e2e                             # compila la app y recorre la interfaz
+```
+
+En un clon limpio, `pnpm exec next typegen` va antes de `pnpm typecheck` (genera los tipos de rutas de Next, que no se versionan).
+
+---
+
 # Paquete de contexto — Boutique POS
 
 Este paquete contiene todo el contexto y el plan para que **Claude Code** construya el sistema de inventario y punto de venta de la boutique. **No contiene código**: es la especificación.

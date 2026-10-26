@@ -15,7 +15,7 @@ Moneda: Lempira (HNL, símbolo `L`). Zona horaria: `America/Tegucigalpa`.
 
 ## 2. Estado actual
 
-- [ ] Fase 0 — Cimientos
+- [x] Fase 0 — Cimientos (2026-10-25)
 - [ ] Fase 1 — Acceso, configuración y catálogo
 - [ ] Fase 2 — Inventario y compras
 - [ ] Fase 3 — Caja y punto de venta

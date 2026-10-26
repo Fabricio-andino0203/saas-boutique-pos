@@ -1,0 +1,107 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  AUTH_SECRET: ci-only-secret-with-at-least-32-characters-0000
+  APP_URL: http://localhost:3000
+  TZ: America/Tegucigalpa
+  DATABASE_URL: postgresql://boutique:ci-password@localhost:5432/boutique_pos?schema=public
+  DATABASE_URL_TEST: postgresql://boutique:ci-password@localhost:5432/boutique_pos_test?schema=public
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: boutique
+          POSTGRES_PASSWORD: ci-password
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U boutique -d postgres"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with:
+          cache: true
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm db:generate
+      - name: Create databases and extensions
+        env:
+          PGPASSWORD: ci-password
+        run: |
+          psql -h localhost -U boutique -d postgres -v ON_ERROR_STOP=1 -c 'CREATE DATABASE boutique_pos;' -c 'CREATE DATABASE boutique_pos_test;'
+          for db in boutique_pos boutique_pos_test; do
+            psql -h localhost -U boutique -d "$db" -v ON_ERROR_STOP=1 -c 'CREATE EXTENSION IF NOT EXISTS pg_trgm;' -c 'CREATE EXTENSION IF NOT EXISTS unaccent;'
+          done
+      - run: pnpm db:deploy
+      - run: pnpm lint
+      - run: pnpm exec eslint --max-warnings 0
+      - run: pnpm exec next typegen
+      - run: pnpm typecheck
+      - run: pnpm format:check
+      - run: pnpm test
+      - run: pnpm test:coverage
+      - run: pnpm build
+
+  e2e:
+    if: github.ref == 'refs/heads/main'
+    needs: check
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: boutique
+          POSTGRES_PASSWORD: ci-password
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U boutique -d postgres"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with:
+          cache: true
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm db:generate
+      - name: Create databases and extensions
+        env:
+          PGPASSWORD: ci-password
+        run: |
+          psql -h localhost -U boutique -d postgres -v ON_ERROR_STOP=1 -c 'CREATE DATABASE boutique_pos;' -c 'CREATE DATABASE boutique_pos_test;'
+          for db in boutique_pos boutique_pos_test; do
+            psql -h localhost -U boutique -d "$db" -v ON_ERROR_STOP=1 -c 'CREATE EXTENSION IF NOT EXISTS pg_trgm;' -c 'CREATE EXTENSION IF NOT EXISTS unaccent;'
+          done
+      - run: pnpm db:deploy
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm test:e2e
