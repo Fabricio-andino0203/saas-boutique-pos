@@ -67,6 +67,7 @@ Clave/valor tipado por ámbito (`key @unique`, `valueJson`). Ejemplos: `tax.rate
 | Campo | Notas |
 |---|---|
 | documentType | `INVOICE`, `CREDIT_NOTE`… |
+| terminalId | `Terminal?`; `null` = rango general (sin punto de emisión propio) |
 | cai | String |
 | prefix | p. ej. `000-001-01-` |
 | rangeStart / rangeEnd | Int |
@@ -74,15 +75,21 @@ Clave/valor tipado por ámbito (`key @unique`, `valueJson`). Ejemplos: `tax.rate
 | expiresAt | DateTime (fecha límite de emisión) |
 | isActive | Boolean |
 
-Invariantes: `nextNumber` ∈ [`rangeStart`, `rangeEnd`+1]; no se emite si `now > expiresAt` o `nextNumber > rangeEnd`. Solo un rango activo por tipo y terminal/punto de emisión.
+Invariantes: `nextNumber` ∈ [`rangeStart`, `rangeEnd`+1]; no se emite si `now > expiresAt` o `nextNumber > rangeEnd`. Solo un rango activo por tipo y terminal/punto de emisión (índice parcial único en la migración `constraints`, ver §11).
+
+### Session
+Sesiones en BD, revocables (forma compatible con Auth.js). `sessionToken @unique`, `userId` (`onDelete: Cascade`), `expires`, `ip?`, `userAgent?`, `createdAt`, `updatedAt`. Índices por `userId` y `expires`.
+
+### DocumentCounter
+Numeración correlativa interna sin saltos (ticket, devolución, apartado…). `key` es la clave primaria (p. ej. `SALE`, `RETURN`, `LAYAWAY`, `PURCHASE_ORDER`), `nextValue Int` (por defecto 1) y `updatedAt`. Se incrementa con bloqueo de fila dentro de la transacción del documento.
 
 ### AuditLog
-`userId?`, `action String` (p. ej. `SALE_VOIDED`), `entityType`, `entityId`, `before Json?`, `after Json?`, `reason String?`, `ip?`, `createdAt`. **Solo inserción**; nunca update/delete. Índices por `(entityType, entityId)` y `(userId, createdAt)`.
+`userId?`, `action String` (p. ej. `SALE_VOIDED`), `entityType`, `entityId`, `before Json?`, `after Json?`, `reason String?`, `ip?`, `createdAt`. **Solo inserción**; nunca update/delete. Índices por `(entityType, entityId)`, `(userId, createdAt)` y `(action, createdAt)`.
 
 ## 3. Catálogo
 
 ### Category
-`name`, `parentId?` (auto-referencia), `slug`, `sortOrder`, `allowsReturns Boolean @default(true)`.
+`name`, `parentId?` (auto-referencia), `slug @unique`, `sortOrder`, `allowsReturns Boolean @default(true)`.
 
 ### Brand · Season
 `name @unique`; Season además `startsAt?`, `endsAt?` (p. ej. "Primavera-Verano 2026").
@@ -97,6 +104,7 @@ Invariantes: `nextNumber` ∈ [`rangeStart`, `rangeEnd`+1]; no se emite si `now 
 ### Product
 | Campo | Notas |
 |---|---|
+| code | `String @unique`, base del SKU de sus variantes |
 | name | |
 | description | String? |
 | categoryId | |
@@ -122,7 +130,7 @@ Invariantes: `nextNumber` ∈ [`rangeStart`, `rangeEnd`+1]; no se emite si `now 
 | reorderPoint | Int? stock mínimo |
 | archivedAt? | |
 
-Restricción: `@@unique([productId, sizeId, colorId])`.
+Restricción: `(productId, sizeId, colorId)` es un índice único `NULLS NOT DISTINCT` creado en la migración `constraints` (Prisma no puede expresarlo), de modo que una variante sin talla o sin color tampoco se duplica.
 
 ### PriceHistory
 `variantId` o `productId`, `oldPriceCents`, `newPriceCents`, `oldCostCents`, `newCostCents`, `changedById`, `changedAt`, `reason?`.
@@ -131,7 +139,7 @@ Restricción: `@@unique([productId, sizeId, colorId])`.
 
 ### StockLevel (acumulado — **no se edita directamente**)
 `variantId`, `locationId`, `onHand Int`, `reserved Int` (apartados). `available = onHand − reserved`.
-`@@unique([variantId, locationId])`. Check de BD: `onHand >= 0` (salvo que la configuración permita negativo → en ese caso se valida en servicio).
+`@@unique([variantId, locationId])`. No hay CHECK de `onHand >= 0` en la BD: depende de `sales.allowNegativeStock` y se valida en `inventory.recordMovement`. Sí hay CHECK `reserved >= 0`.
 
 ### StockMovement (kardex — **fuente de verdad, solo inserción**)
 | Campo | Notas |
@@ -148,8 +156,8 @@ Restricción: `@@unique([productId, sizeId, colorId])`.
 Invariante: para cada `(variantId, locationId)`, `Σ quantity (excluyendo reservas) = StockLevel.onHand`. Debe existir un test y un script de **reconciliación** que lo verifique.
 
 ### StockCount / StockCountItem
-- **StockCount:** `locationId`, `status enum (OPEN, IN_REVIEW, APPLIED, CANCELLED)`, `scope` (todo / categoría / zona), `startedById`, `approvedById?`, `appliedAt?`.
-- **StockCountItem:** `stockCountId`, `variantId`, `expectedQty` (congelado al abrir), `countedQty`, `difference` (derivado), `note?`.
+- **StockCount:** `locationId`, `status enum (OPEN, IN_REVIEW, APPLIED, CANCELLED)`, `scope` (todo / categoría / zona), `scopeRef?` (id de categoría o nombre de zona, según `scope`), `startedById`, `approvedById?`, `appliedAt?`.
+- **StockCountItem:** `stockCountId`, `variantId`, `expectedQty` (congelado al abrir), `countedQty`, `difference` (derivado), `note?`. Único en `(stockCountId, variantId)`.
 Al **aplicar** se genera un `StockMovement` `COUNT_ADJUSTMENT` por cada diferencia.
 
 ## 5. Compras
@@ -157,9 +165,9 @@ Al **aplicar** se genera un `StockMovement` `COUNT_ADJUSTMENT` por cada diferenc
 ### PurchaseOrder
 `supplierId`, `locationId`, `number @unique`, `status enum (DRAFT, ORDERED, PARTIALLY_RECEIVED, RECEIVED, CANCELLED)`, `expectedAt?`, `notes?`, `createdById`.
 ### PurchaseOrderItem
-`purchaseOrderId`, `variantId`, `orderedQty`, `receivedQty`, `unitCostCents`.
+`purchaseOrderId`, `variantId`, `orderedQty`, `receivedQty`, `unitCostCents`. Único en `(purchaseOrderId, variantId)`.
 ### GoodsReceipt / GoodsReceiptItem
-Recepción (puede ser sin orden). `supplierId`, `purchaseOrderId?`, `supplierInvoiceRef?`, `receivedById`, `receivedAt`; ítems con `variantId`, `quantity`, `unitCostCents`.
+Recepción (puede ser sin orden). `number @unique`, `supplierId`, `locationId`, `purchaseOrderId?`, `supplierInvoiceRef?`, `receivedById`, `receivedAt`; ítems con `variantId`, `quantity`, `unitCostCents`.
 Al confirmar: crea `StockMovement PURCHASE_IN`, actualiza `StockLevel`, recalcula `avgCostCents`.
 
 ## 6. Ventas
@@ -188,7 +196,7 @@ Entradas/salidas manuales: `cashSessionId`, `type (IN, OUT)`, `amountCents`, `re
 | taxCents | ISV incluido en el total |
 | totalCents | lo que paga el cliente |
 | paidCents / changeCents | |
-| fiscalDocType?, fiscalNumber?, fiscalRangeId? | si se emitió factura |
+| fiscalDocType?, fiscalNumber?, fiscalRangeId? | si se emitió factura; `@@unique([fiscalRangeId, fiscalNumber])` |
 | customerTaxId?, customerNameOnInvoice? | datos a nombre en la factura |
 | voidedAt?, voidedById?, voidReason? | |
 | createdAt | |
@@ -208,7 +216,7 @@ Datos de tarjeta **nunca**: solo monto y referencia.
 ## 7. Devoluciones, apartados, crédito
 
 ### ReturnDoc
-`number @unique`, `saleId` (venta original), `type enum (RETURN, EXCHANGE)`, `exchangeSaleId?` (venta nueva si es cambio), `reason`, `refundMethod enum (ORIGINAL, CASH, STORE_CREDIT, NONE)`, `refundCents`, `cashSessionId`, `processedById`, `authorizedById?`, `createdAt`.
+`number @unique`, `saleId` (venta original), `type enum (RETURN, EXCHANGE)`, `exchangeSaleId?` (venta nueva si es cambio), `reason`, `refundMethod enum (ORIGINAL, CASH, STORE_CREDIT, NONE)`, `refundCents`, `cashSessionId`, `processedById`, `authorizedById?`, `fiscalNumber?`, `fiscalRangeId?` (nota de crédito, si aplica; `@@unique([fiscalRangeId, fiscalNumber])`), `createdAt`.
 ### ReturnItem
 `returnId`, `saleItemId`, `quantity`, `condition enum (RESELLABLE, DAMAGED)`, `refundCents`, `reason`.
 Invariante: Σ `ReturnItem.quantity` por `saleItemId` ≤ `SaleItem.quantity`.
@@ -243,4 +251,17 @@ Al crear: `StockLevel.reserved += qty` (movimiento `LAYAWAY_RESERVE`). Al cancel
 
 ## 10. Datos de ejemplo (seed)
 
+> La **Fase 0** solo carga la semilla mínima (ubicación, terminal, cuatro usuarios, tallas, colores, categorías, perfil del negocio, ajustes por defecto y contadores de documentos). La semilla de demostración grande de abajo llega en fases posteriores.
+
 Una `Location` + `Terminal`; 4 usuarios (uno por rol, con contraseñas de demo documentadas solo para desarrollo); tallas XS–XXL y 34–42; ~12 colores; ~8 categorías; ~30 productos con ~150 variantes y stock; 10 clientes; 40 ventas distribuidas en 30 días; un rango CAI de demo; un apartado activo.
+
+## 11. Restricciones de la migración `constraints`
+
+Lo que Prisma no puede expresar vive en la segunda migración (`constraints`):
+
+- **Extensiones:** `pg_trgm` y `unaccent`.
+- **Unicidad con NULL:** índice único `NULLS NOT DISTINCT` sobre `Variant(productId, sizeId, colorId)`.
+- **Índices parciales únicos:** una caja abierta por usuario y por terminal (`CashSession`, `status = 'OPEN'`) y un rango fiscal activo por tipo y terminal (`FiscalRange`).
+- **CHECK de montos y cantidades:** importes no negativos, cantidades positivas, `reserved >= 0`, `nextNumber` dentro del rango fiscal, descuento no mayor que el subtotal. No hay CHECK de `onHand >= 0` (ver §4).
+- **Tablas de solo inserción:** triggers `prevent_row_mutation` que rechazan `UPDATE` y `DELETE` en `AuditLog`, `StockMovement` y `StoreCreditEntry`.
+- **Búsqueda tolerante a errores:** índices `gin` trigram sobre `Product.name` y `Variant.sku`.

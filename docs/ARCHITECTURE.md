@@ -17,10 +17,13 @@
 | ORM | Prisma | Tipos de extremo a extremo, migraciones claras | Drizzle (también válido; Prisma es más conocido) |
 | UI | Tailwind + shadcn/ui | Componentes accesibles y personalizables, sin dependencia pesada | MUI/AntD (look genérico, más pesado) |
 | Forms | React Hook Form + Zod | Un schema compartido cliente/servidor | Formik |
-| Tablas | TanStack Table | Ordenar, filtrar, paginar, virtualizar | Tablas a mano |
+| Tablas | TanStack Table v8 | Ordenar, filtrar, paginar, virtualizar; v8 es la API con más ejemplos y guía de shadcn | TanStack Table v9 (reescritura; sin guía verificada), tablas a mano |
 | Estado POS | Zustand | Carrito local, rápido, simple | Redux (excesivo) |
 | Auth | Auth.js con sesiones en BD | Estándar; revocación de sesión posible | JWT sin estado (no se puede revocar) |
-| Pruebas | Vitest + Playwright | Rápidas; E2E real del flujo de venta | Jest |
+| Pruebas | Vitest 5 (proyectos `unit` e `integration`) + Playwright (Chromium) | Rápidas; integración contra Postgres real; E2E real del flujo de venta | Jest |
+| Hash de contraseñas | `@node-rs/argon2` (Argon2id) | Binarios precompilados para Windows y Linux, sin compilar | `argon2` (compilación nativa que falla en Windows) |
+| Tipografía | Inter con `next/font/google` | Legible, con cifras tabulares para dinero | Geist (la de la plantilla de Next) |
+| Driver de BD | Prisma 7 con `@prisma/adapter-pg` | Prisma 7 exige un adaptador de driver; cliente generado en `src/generated/prisma` | – |
 | Códigos de barras | `bwip-js` (generar) | Genera EAN-13/Code128 en servidor/cliente | – |
 | PDF/Excel | `@react-pdf/renderer` o impresión HTML; `exceljs` | Reportes y etiquetas | – |
 | Gráficos | Recharts | Suficiente para el dashboard | – |
@@ -199,3 +202,11 @@ Cada decisión relevante nueva se agrega aquí con fecha, contexto y consecuenci
 | (inicio) | Dinero en centavos enteros | Evitar errores de redondeo |
 | (inicio) | Kardex inmutable como fuente de verdad del stock | Trazabilidad y auditoría |
 | (inicio) | Servidor recalcula todos los montos | No confiar en el cliente |
+| 2026-10-23 | TanStack Table v8 sobre v9 | v9 es una reescritura y su guía con shadcn no está verificada |
+| 2026-10-23 | `@node-rs/argon2` (Argon2id) para contraseñas y PIN | Binarios precompilados; `argon2` compila en nativo y falla en Windows |
+| 2026-10-23 | Inter sobre Geist | Legibilidad y cifras tabulares para dinero |
+| 2026-10-23 | Prisma 7 con `@prisma/adapter-pg` y cliente en `src/generated/prisma` (no versionado) | Requisito de Prisma 7; el cliente se regenera con `pnpm db:generate` |
+| 2026-10-23 | Vitest con proyectos `unit` e `integration` contra la BD `boutique_pos_test` | Pruebas de dinero y stock contra Postgres real, sin tocar la BD de desarrollo |
+| 2026-10-23 | Sin CHECK `onHand >= 0` en BD | Depende de `sales.allowNegativeStock`; se valida en `inventory.recordMovement` |
+| 2026-10-23 | `@types/node` en la línea 24 | Lo exige Vitest 5 y coincide con el runtime (Node 24) |
+| 2026-10-23 | Galería `/dev/componentes` + Playwright en lugar de Storybook | Menos dependencias; los componentes se ejercen en un navegador real |
