@@ -1,6 +1,40 @@
 export const messages = {
   app: { name: "Boutique POS" },
-  nav: { home: "Inicio" },
+  nav: { home: "Inicio", account: "Mi cuenta" },
+  auth: {
+    login: {
+      title: "Inicia sesión",
+      description: "Entra con tu usuario y contraseña.",
+      username: "Usuario",
+      password: "Contraseña",
+      submit: "Entrar",
+      submitting: "Entrando…",
+    },
+    logout: "Cerrar sesión",
+    roles: {
+      OWNER: "Propietario",
+      MANAGER: "Gerente",
+      CASHIER: "Cajero",
+      WAREHOUSE: "Almacén",
+    },
+    account: {
+      title: "Mi cuenta",
+      description: "Cambia tu contraseña cuando quieras. Las demás sesiones se cerrarán.",
+      currentPassword: "Contraseña actual",
+      newPassword: "Contraseña nueva",
+      confirmPassword: "Repite la contraseña nueva",
+      submit: "Cambiar contraseña",
+      submitting: "Guardando…",
+      success: "Tu contraseña se cambió.",
+      wrongCurrent: "La contraseña actual no es correcta.",
+    },
+    validation: {
+      required: "Escribe tu usuario y tu contraseña.",
+      passwordTooShort: "La contraseña nueva debe tener al menos 8 caracteres.",
+      passwordMismatch: "Las contraseñas no coinciden.",
+      pinFormat: "El PIN debe tener de 4 a 6 números.",
+    },
+  },
   common: {
     loading: "Cargando…",
     retry: "Reintentar",
@@ -39,6 +73,8 @@ export const messages = {
       "No quedan suficientes prendas de este artículo. ¿Quieres ver otras tallas o colores?",
     CASH_SESSION_CLOSED: "Abre tu caja para empezar a vender.",
     FISCAL_RANGE_EXHAUSTED: "El rango de facturas se agotó o ya venció. Solicita uno nuevo al SAR.",
+    INVALID_CREDENTIALS: "Usuario o contraseña incorrectos.",
+    ACCOUNT_LOCKED: "Demasiados intentos fallidos. Espera unos minutos e inténtalo de nuevo.",
     UNEXPECTED:
       "Ocurrió un problema inesperado. Inténtalo de nuevo; si sigue pasando, avisa al administrador.",
   },

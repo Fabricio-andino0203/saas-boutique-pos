@@ -7,9 +7,11 @@ import {
   AppError,
   CashSessionClosedError,
   ConflictError,
+  AccountLockedError,
   FiscalRangeExhaustedError,
   ForbiddenError,
   InsufficientStockError,
+  InvalidCredentialsError,
   NotFoundError,
   UnauthorizedError,
   ValidationError,
@@ -24,6 +26,8 @@ const table = [
   { create: () => new InsufficientStockError(), code: "INSUFFICIENT_STOCK", status: 409 },
   { create: () => new CashSessionClosedError(), code: "CASH_SESSION_CLOSED", status: 409 },
   { create: () => new FiscalRangeExhaustedError(), code: "FISCAL_RANGE_EXHAUSTED", status: 409 },
+  { create: () => new InvalidCredentialsError(), code: "INVALID_CREDENTIALS", status: 401 },
+  { create: () => new AccountLockedError(), code: "ACCOUNT_LOCKED", status: 423 },
 ] as const;
 
 describe("AppError subclasses", () => {

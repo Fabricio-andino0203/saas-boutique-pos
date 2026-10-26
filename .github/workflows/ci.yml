@@ -103,5 +103,6 @@ jobs:
             psql -h localhost -U boutique -d "$db" -v ON_ERROR_STOP=1 -c 'CREATE EXTENSION IF NOT EXISTS pg_trgm;' -c 'CREATE EXTENSION IF NOT EXISTS unaccent;'
           done
       - run: pnpm db:deploy
+      - run: pnpm db:seed
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm test:e2e

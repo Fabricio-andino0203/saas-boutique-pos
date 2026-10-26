@@ -36,7 +36,7 @@ Actualiza esta lista al terminar cada fase (marca `[x]` y agrega la fecha).
 | Estado del POS | Zustand (solo el carrito y la UI del POS; el resto es server state) |
 | Base de datos | PostgreSQL 16 |
 | ORM | Prisma |
-| Auth | Auth.js (credenciales + PIN rápido para cajeros), sesiones en BD |
+| Auth | Sesiones propias en BD (cookie `httpOnly` con token aleatorio; se guarda su hash), credenciales + PIN rápido con Argon2. **No** Auth.js (ver `docs/ARCHITECTURE.md` §12) |
 | Tests | Vitest (unidad + integración con BD real) y Playwright (E2E) |
 | Gestor de paquetes | pnpm |
 | Entorno local | Docker Compose (Postgres) |

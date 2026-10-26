@@ -2,9 +2,12 @@ import { expect, test } from "@playwright/test";
 
 import { messages } from "../../src/config/messages.es";
 
+import { loginAs } from "./helpers/login";
+
 const gallery = messages.dev.gallery;
 
 test.beforeEach(async ({ page }) => {
+  await loginAs(page, "owner");
   await page.goto("/dev/componentes");
 });
 

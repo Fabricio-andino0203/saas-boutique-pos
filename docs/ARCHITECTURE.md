@@ -19,7 +19,7 @@
 | Forms | React Hook Form + Zod | Un schema compartido cliente/servidor | Formik |
 | Tablas | TanStack Table v8 | Ordenar, filtrar, paginar, virtualizar; v8 es la API con más ejemplos y guía de shadcn | TanStack Table v9 (reescritura; sin guía verificada), tablas a mano |
 | Estado POS | Zustand | Carrito local, rápido, simple | Redux (excesivo) |
-| Auth | Auth.js con sesiones en BD | Estándar; revocación de sesión posible | JWT sin estado (no se puede revocar) |
+| Auth | Sesiones propias en BD (tabla `Session`) | Revocables, sin dependencia de un proyecto en transición; el token se guarda hasheado | Auth.js (el proveedor de credenciales solo admite JWT, que no se puede revocar; v5 sigue en beta y el proyecto pasa a Better Auth) |
 | Pruebas | Vitest 5 (proyectos `unit` e `integration`) + Playwright (Chromium) | Rápidas; integración contra Postgres real; E2E real del flujo de venta | Jest |
 | Hash de contraseñas | `@node-rs/argon2` (Argon2id) | Binarios precompilados para Windows y Linux, sin compilar | `argon2` (compilación nativa que falla en Windows) |
 | Tipografía | Inter con `next/font/google` | Legible, con cifras tabulares para dinero | Geist (la de la plantilla de Next) |
@@ -126,13 +126,13 @@ boutique-pos/
 
 ## 5. Autenticación y permisos
 
-- Login con usuario + contraseña (hash argon2). Sesión en BD (cookie `httpOnly`, `secure`, `sameSite=lax`).
+- Login con usuario + contraseña (Argon2id). Sesión en BD: cookie `httpOnly`, `secure` en producción, `sameSite=lax`, con un token aleatorio de 32 bytes; en la tabla `Session` solo se guarda su hash SHA-256. Vence a las 12 horas o tras 60 minutos de inactividad, y se puede revocar. Código en `src/modules/auth/service.ts` (lógica) y `src/lib/auth.ts` (cookies). `src/proxy.ts` solo redirige a `/login` si falta la cookie; la validación real está en `requireSession()`.
 - **PIN rápido:** en el POS, el cajero activo puede ser cambiado con PIN sin pasar por login completo; se registra en cada venta quién la hizo (`sellerId`).
 - **Capacidades** (en `src/lib/permissions.ts`), por ejemplo:
   `sale.create, sale.void, discount.applyBeyondLimit, return.create, product.write, product.viewCost, price.change, stock.adjust, purchase.receive, cash.open, cash.closeApprove, report.financial, user.manage, settings.manage`.
 - `requireCapability(actor, cap)` en cada action/query. Roles = mapa rol→capacidades.
 - **Autorización por PIN de gerente** (override puntual): la action recibe el PIN, lo verifica contra usuarios con la capacidad requerida y audita quién autorizó.
-- Rate limiting en login y PIN.
+- Bloqueo por intentos en login y PIN: 5 fallos seguidos bloquean la cuenta 15 minutos (`failedLogins`, `lockedUntil`). Un solo contador para contraseña y PIN.
 
 ## 6. POS: decisiones de diseño
 
@@ -210,3 +210,4 @@ Cada decisión relevante nueva se agrega aquí con fecha, contexto y consecuenci
 | 2026-10-23 | Sin CHECK `onHand >= 0` en BD | Depende de `sales.allowNegativeStock`; se valida en `inventory.recordMovement` |
 | 2026-10-23 | `@types/node` en la línea 24 | Lo exige Vitest 5 y coincide con el runtime (Node 24) |
 | 2026-10-23 | Galería `/dev/componentes` + Playwright en lugar de Storybook | Menos dependencias; los componentes se ejercen en un navegador real |
+| 2026-10-25 | Sesiones propias en lugar de Auth.js | Credenciales + base de datos no se combinan en Auth.js (solo JWT, no revocable); v5 sigue en beta y el proyecto pasa a Better Auth. Revisar si se añade inicio de sesión con terceros |

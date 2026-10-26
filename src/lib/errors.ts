@@ -7,6 +7,8 @@ export const APP_ERROR_CODES = [
   "INSUFFICIENT_STOCK",
   "CASH_SESSION_CLOSED",
   "FISCAL_RANGE_EXHAUSTED",
+  "INVALID_CREDENTIALS",
+  "ACCOUNT_LOCKED",
 ] as const;
 
 export type ErrorCode = (typeof APP_ERROR_CODES)[number];
@@ -70,5 +72,17 @@ export class CashSessionClosedError extends AppError {
 export class FiscalRangeExhaustedError extends AppError {
   constructor(message = "Fiscal range exhausted or expired", options?: AppErrorOptions) {
     super("FISCAL_RANGE_EXHAUSTED", 409, message, options);
+  }
+}
+
+export class InvalidCredentialsError extends AppError {
+  constructor(message = "Invalid credentials", options?: AppErrorOptions) {
+    super("INVALID_CREDENTIALS", 401, message, options);
+  }
+}
+
+export class AccountLockedError extends AppError {
+  constructor(message = "Account temporarily locked", options?: AppErrorOptions) {
+    super("ACCOUNT_LOCKED", 423, message, options);
   }
 }

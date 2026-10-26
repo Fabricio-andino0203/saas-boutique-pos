@@ -27,6 +27,7 @@ describe("ci.yml", () => {
   it.each([
     "pnpm install --frozen-lockfile",
     "pnpm db:generate",
+    "pnpm db:seed",
     "pnpm lint",
     "pnpm exec eslint --max-warnings 0",
     "pnpm exec next typegen",
