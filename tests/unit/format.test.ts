@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { ValidationError } from "@/lib/errors";
-import { formatMoney, formatMoneyPlain, parseMoney } from "@/lib/format";
+import { formatMoney, formatMoneyPlain, parseMoney, parsePercentBps } from "@/lib/format";
 
 import { mulberry32 } from "./helpers/prng";
 
@@ -60,6 +60,28 @@ describe("round trip", () => {
     for (let i = 0; i < 1000; i += 1) {
       const value = Math.floor(rng() * 10_000_000_001);
       expect(parseMoney(formatMoney(value))).toBe(value);
+    }
+  });
+});
+
+describe("parsePercentBps", () => {
+  it("reads editable percentages into basis points", () => {
+    expect(parsePercentBps("10")).toBe(1000);
+    expect(parsePercentBps("+7")).toBe(700);
+    expect(parsePercentBps(" -15.5 % ")).toBe(-1550);
+    expect(parsePercentBps("−20")).toBe(-2000); // U+2212
+    expect(parsePercentBps("0.05")).toBe(5);
+    expect(parsePercentBps("2.5")).toBe(250);
+    expect(parsePercentBps("100")).toBe(10000);
+  });
+
+  it("never returns negative zero", () => {
+    expect(Object.is(parsePercentBps("-0"), 0)).toBe(true);
+  });
+
+  it("returns null for anything else", () => {
+    for (const text of ["", "abc", "10.555", "1,5", "1000", "--5", "5 5", "%"]) {
+      expect(parsePercentBps(text), text).toBeNull();
     }
   });
 });

@@ -6,8 +6,10 @@ import {
   APP_ERROR_CODES,
   AppError,
   CashSessionClosedError,
+  CodeTakenError,
   ConflictError,
   AccountLockedError,
+  HasStockError,
   FiscalRangeExhaustedError,
   ForbiddenError,
   InsufficientStockError,
@@ -38,6 +40,8 @@ const table = [
   { create: () => new SelfActionError(), code: "SELF_ACTION", status: 409 },
   { create: () => new NameTakenError(), code: "NAME_TAKEN", status: 409 },
   { create: () => new ItemInUseError(), code: "ITEM_IN_USE", status: 409 },
+  { create: () => new CodeTakenError(), code: "CODE_TAKEN", status: 409 },
+  { create: () => new HasStockError(), code: "HAS_STOCK", status: 409 },
 ] as const;
 
 describe("AppError subclasses", () => {

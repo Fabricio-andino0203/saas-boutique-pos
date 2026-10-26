@@ -14,6 +14,8 @@ export const APP_ERROR_CODES = [
   "SELF_ACTION",
   "NAME_TAKEN",
   "ITEM_IN_USE",
+  "CODE_TAKEN",
+  "HAS_STOCK",
 ] as const;
 
 export type ErrorCode = (typeof APP_ERROR_CODES)[number];
@@ -119,5 +121,17 @@ export class NameTakenError extends AppError {
 export class ItemInUseError extends AppError {
   constructor(message = "Item is still in use", options?: AppErrorOptions) {
     super("ITEM_IN_USE", 409, message, options);
+  }
+}
+
+export class CodeTakenError extends AppError {
+  constructor(message = "Code already exists", options?: AppErrorOptions) {
+    super("CODE_TAKEN", 409, message, options);
+  }
+}
+
+export class HasStockError extends AppError {
+  constructor(message = "Item still has stock", options?: AppErrorOptions) {
+    super("HAS_STOCK", 409, message, options);
   }
 }

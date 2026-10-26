@@ -12,6 +12,10 @@ export const AUDIT_ACTIONS = [
   "USER_DEACTIVATED",
   "USER_REACTIVATED",
   "CREDENTIALS_RESET",
+  "PRODUCT_CREATED",
+  "PRODUCT_UPDATED",
+  "PRODUCT_ARCHIVED",
+  "PRODUCT_RESTORED",
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

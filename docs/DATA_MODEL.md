@@ -122,8 +122,8 @@ Numeración correlativa interna sin saltos (ticket, devolución, apartado…). `
 |---|---|
 | productId | |
 | sizeId?, colorId? | al menos uno o variante "única" |
-| sku | `@unique`, generado: `{código producto}-{talla}-{color}` |
-| barcode | `@unique`, EAN-13/Code128 interno generado si no hay |
+| sku | `@unique`, generado: `{código producto}-{talla}-{color}` (sin tildes, en mayúsculas; si choca, sufijo `-2`, `-3`…) |
+| barcode | `@unique`, EAN-13 interno generado: prefijo `200` + serie de 9 dígitos (`barcode_serial_seq`) + dígito de control |
 | priceCents? | si es null hereda `Product.basePriceCents` |
 | costCents? | si es null hereda `Product.baseCostCents` |
 | avgCostCents | costo promedio ponderado, actualizado por compras |
@@ -264,4 +264,5 @@ Lo que Prisma no puede expresar vive en la segunda migración (`constraints`):
 - **Índices parciales únicos:** una caja abierta por usuario y por terminal (`CashSession`, `status = 'OPEN'`) y un rango fiscal activo por tipo y terminal (`FiscalRange`).
 - **CHECK de montos y cantidades:** importes no negativos, cantidades positivas, `reserved >= 0`, `nextNumber` dentro del rango fiscal, descuento no mayor que el subtotal. No hay CHECK de `onHand >= 0` (ver §4).
 - **Tablas de solo inserción:** triggers `prevent_row_mutation` que rechazan `UPDATE` y `DELETE` en `AuditLog`, `StockMovement` y `StoreCreditEntry`.
-- **Búsqueda tolerante a errores:** índices `gin` trigram sobre `Product.name` y `Variant.sku`.
+- **Búsqueda tolerante a errores:** índices `gin` trigram sobre `Product.name` y `Variant.sku`. La consulta del listado compara con `unaccent(lower(...))` (no usa esos índices; basta a escala de boutique) y combina coincidencia exacta de código o barras, "contiene" y similitud de trigramas.
+- **Secuencias de códigos:** `product_code_seq` (códigos `P00001`…) y `barcode_serial_seq` (serie de los EAN-13 internos). Pueden dejar huecos; solo garantizan unicidad (la numeración sin saltos es la de facturas).

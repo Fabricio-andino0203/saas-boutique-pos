@@ -11,3 +11,20 @@ export const AUTH_LIMITS = {
   minPasswordLength: 8,
   maxPasswordLength: 128,
 } as const;
+
+/** Códigos de barras internos EAN-13: prefijo (editable en configuración, incremento 6) + serie + dígito de control. */
+export const BARCODE = {
+  internalPrefix: "200",
+} as const;
+
+export const PRODUCT_LIMITS = {
+  /** Máximo de variantes que el asistente genera de una vez (tallas × colores). */
+  maxVariantsPerBatch: 200,
+  pageSize: 25,
+  /** Máximo de coincidencias que devuelve la búsqueda antes de filtrar y paginar. */
+  maxSearchMatches: 300,
+  maxBulkProducts: 200,
+} as const;
+
+/** Tope de un monto en centavos: las columnas de precio y costo son enteros de 32 bits (≈ L 21 millones). */
+export const MAX_CENTS = 2_000_000_000;

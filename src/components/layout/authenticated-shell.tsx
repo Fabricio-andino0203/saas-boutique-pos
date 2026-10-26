@@ -6,6 +6,7 @@ import {
   Ruler,
   ScrollText,
   Shapes,
+  Shirt,
   Tag,
   Truck,
   Users,
@@ -42,6 +43,12 @@ const navGroups: readonly NavGroup[] = [
   {
     label: messages.nav.groups.merchandise,
     items: [
+      {
+        href: "/productos",
+        label: messages.nav.products,
+        icon: Shirt,
+        capability: "product.write",
+      },
       {
         href: "/catalogos/categories",
         label: messages.catalog.entities.categories.plural,

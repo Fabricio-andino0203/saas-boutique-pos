@@ -39,3 +39,16 @@ export function formatMoneyPlain(cents: Cents): string {
   const { negative, whole, fraction } = splitCents(cents);
   return `${negative ? "-" : ""}${whole}.${pad2(fraction)}`;
 }
+
+const PERCENT_PATTERN = /^([+\-−])?\s*(\d{1,3})(?:\.(\d{1,2}))?\s*%?$/;
+
+/** Lee un porcentaje editable ("10", "-15.5 %", "+7") y lo devuelve en puntos base (1000 = 10 %). */
+export function parsePercentBps(text: string): number | null {
+  const match = PERCENT_PATTERN.exec(text.trim());
+  if (!match) {
+    return null;
+  }
+  const [, sign = "", wholeText = "", fractionText = ""] = match;
+  const bps = Number(wholeText) * 100 + Number(fractionText.padEnd(2, "0"));
+  return bps !== 0 && (sign === "-" || sign === "−") ? -bps : bps;
+}

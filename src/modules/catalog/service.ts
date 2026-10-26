@@ -343,7 +343,7 @@ function supplierData(d: CatalogInput<"suppliers">) {
   };
 }
 
-function descendantsOf(
+export function descendantsOf(
   all: { id: string; parentId: string | null }[],
   rootId: string,
 ): Set<string> {

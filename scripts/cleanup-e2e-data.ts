@@ -18,6 +18,18 @@ async function main(): Promise<void> {
   try {
     const named = { name: { startsWith: "E2E " } };
     await client.user.deleteMany({ where: { username: { startsWith: "e2e-" } } });
+
+    // Los productos de prueba se crean sin existencias (el kardex no se puede borrar): primero sus
+    // variantes e historial, luego ellos, y después los catálogos que usaban.
+    const products = await client.product.findMany({ where: named, select: { id: true } });
+    const productIds = products.map((product) => product.id);
+    const ofProducts = { productId: { in: productIds } };
+    await client.priceHistory.deleteMany({
+      where: { OR: [ofProducts, { variant: ofProducts }] },
+    });
+    await client.variant.deleteMany({ where: ofProducts });
+    await client.product.deleteMany({ where: { id: { in: productIds } } });
+
     await client.brand.deleteMany({ where: named });
     await client.season.deleteMany({ where: named });
     await client.size.deleteMany({ where: named });

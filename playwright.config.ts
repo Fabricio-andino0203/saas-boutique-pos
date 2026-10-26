@@ -8,6 +8,8 @@ export default defineConfig({
   testDir: "tests/e2e",
   testIgnore: ["**/blueprints/**"],
   fullyParallel: true,
+  // Las acciones del servidor tardan más cuando varios navegadores comparten servidor y base de datos.
+  expect: { timeout: 15_000 },
   forbidOnly: isCI,
   retries: isCI ? 2 : 0,
   reporter: [["list"]],
