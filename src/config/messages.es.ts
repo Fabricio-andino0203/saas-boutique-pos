@@ -46,7 +46,7 @@ export const messages = {
     gallery: {
       title: "Galería de componentes",
       description: "Solo para desarrollo: cada componente compartido en cada uno de sus estados.",
-      money: { label: "Monto" },
+      money: { label: "Monto", title: "Campo de dinero" },
       confirm: {
         open: "Abrir confirmación",
         title: "¿Quitar esta prenda?",
