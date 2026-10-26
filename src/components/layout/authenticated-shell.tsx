@@ -153,7 +153,7 @@ export async function AuthenticatedShell({ children }: { children: ReactNode }) 
           ))}
         </SidebarContent>
       </Sidebar>
-      <SidebarInset>
+      <SidebarInset className="min-w-0">
         <header className="border-divider flex h-14 items-center gap-2 border-b px-4">
           <SidebarTrigger />
           <Separator orientation="vertical" className="h-5" />
@@ -170,7 +170,7 @@ export async function AuthenticatedShell({ children }: { children: ReactNode }) 
             </form>
           </div>
         </header>
-        <main id="contenido" className="flex-1 p-6 md:p-8">
+        <main id="contenido" className="min-w-0 flex-1 p-6 md:p-8">
           {children}
         </main>
       </SidebarInset>
