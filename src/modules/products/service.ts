@@ -65,7 +65,7 @@ async function nextSerials(
   return rows.map((row) => Number(row.n));
 }
 
-async function freshProductCode(tx: Tx): Promise<string> {
+export async function freshProductCode(tx: Tx): Promise<string> {
   for (let attempt = 0; attempt < 5; attempt += 1) {
     const [serial = 0] = await nextSerials(tx, "product_code_seq", 1);
     const code = `P${String(serial).padStart(5, "0")}`;
@@ -104,7 +104,7 @@ async function assertReferences(tx: Tx, data: ProductFieldsInput): Promise<void>
 
 // ───────────────────────── Variantes ─────────────────────────
 
-type Named = { id: string; name: string };
+export type Named = { id: string; name: string };
 
 async function loadActive(tx: Tx, entity: "size" | "color", ids: string[]): Promise<Named[]> {
   const unique = [...new Set(ids)];
@@ -123,23 +123,23 @@ async function loadActive(tx: Tx, entity: "size" | "color", ids: string[]): Prom
   return found;
 }
 
-type NewVariantSource = {
+/** Una celda de la matriz: una variante por crear, con su existencia inicial y, si viene de fuera, su código de barras. */
+export type VariantCell = {
+  size: Named | null;
+  color: Named | null;
+  quantity: number;
+  barcode?: string;
+};
+
+type NewVariantCells = {
   product: { id: string; code: string; baseCostCents: number };
-  sizes: Named[];
-  colors: Named[];
-  quantities: Record<string, number>;
-  /** Combinaciones que ya existen (se omiten). */
-  skip?: Set<string>;
+  cells: VariantCell[];
   actor: Actor;
 };
 
-/** Crea las variantes de la matriz talla × color con SKU y código de barras únicos y su existencia inicial. */
-async function createVariants(tx: Tx, source: NewVariantSource): Promise<number> {
-  const sizes: (Named | null)[] = source.sizes.length > 0 ? source.sizes : [null];
-  const colors: (Named | null)[] = source.colors.length > 0 ? source.colors : [null];
-  const cells = sizes
-    .flatMap((size) => colors.map((color) => ({ size, color })))
-    .filter(({ size, color }) => !source.skip?.has(cellKey(size?.id ?? null, color?.id ?? null)));
+/** Crea variantes con SKU único, código de barras (el dado o uno interno) y su existencia inicial. */
+export async function createVariantCells(tx: Tx, input: NewVariantCells): Promise<number> {
+  const { product, cells, actor } = input;
   if (cells.length === 0) {
     return 0;
   }
@@ -147,29 +147,36 @@ async function createVariants(tx: Tx, source: NewVariantSource): Promise<number>
   const taken = new Set(
     (
       await tx.variant.findMany({
-        where: { sku: { startsWith: source.product.code } },
+        where: { sku: { startsWith: product.code } },
         select: { sku: true },
       })
     ).map((row) => row.sku),
   );
-  const serials = await nextSerials(tx, "barcode_serial_seq", cells.length);
+  const serials = await nextSerials(
+    tx,
+    "barcode_serial_seq",
+    cells.filter((cell) => !cell.barcode).length,
+  );
 
   const created = await tx.variant.createManyAndReturn({
-    data: cells.map(({ size, color }, index) => ({
-      productId: source.product.id,
+    data: cells.map(({ size, color, barcode }) => ({
+      productId: product.id,
       sizeId: size?.id ?? null,
       colorId: color?.id ?? null,
-      sku: uniqueSku(buildSkuBase(source.product.code, size?.name, color?.name), taken),
-      barcode: buildEan13(BARCODE.internalPrefix, serials[index] ?? 0),
-      avgCostCents: source.product.baseCostCents,
+      sku: uniqueSku(buildSkuBase(product.code, size?.name, color?.name), taken),
+      barcode: barcode ?? buildEan13(BARCODE.internalPrefix, serials.shift() ?? 0),
+      avgCostCents: product.baseCostCents,
     })),
     select: { id: true, sizeId: true, colorId: true },
   });
 
+  const quantityOf = new Map(
+    cells.map((cell) => [cellKey(cell.size?.id ?? null, cell.color?.id ?? null), cell.quantity]),
+  );
   const withStock = created
     .map((variant) => ({
       variant,
-      quantity: source.quantities[cellKey(variant.sizeId, variant.colorId)] ?? 0,
+      quantity: quantityOf.get(cellKey(variant.sizeId, variant.colorId)) ?? 0,
     }))
     .filter((entry) => entry.quantity > 0);
   if (withStock.length > 0) {
@@ -180,15 +187,40 @@ async function createVariants(tx: Tx, source: NewVariantSource): Promise<number>
         locationId,
         type: "INITIAL",
         quantity,
-        unitCostCents: source.product.baseCostCents,
-        userId: source.actor.id,
+        unitCostCents: product.baseCostCents,
+        userId: actor.id,
         reason: "Existencia inicial",
         refType: "Product",
-        refId: source.product.id,
+        refId: product.id,
       });
     }
   }
   return created.length;
+}
+
+type NewVariantSource = {
+  product: { id: string; code: string; baseCostCents: number };
+  sizes: Named[];
+  colors: Named[];
+  quantities: Record<string, number>;
+  /** Combinaciones que ya existen (se omiten). */
+  skip?: Set<string>;
+  actor: Actor;
+};
+
+/** La matriz talla × color completa (sin talla o sin color queda una sola fila o columna). */
+async function createVariants(tx: Tx, source: NewVariantSource): Promise<number> {
+  const sizes: (Named | null)[] = source.sizes.length > 0 ? source.sizes : [null];
+  const colors: (Named | null)[] = source.colors.length > 0 ? source.colors : [null];
+  const cells = sizes
+    .flatMap((size) => colors.map((color) => ({ size, color })))
+    .filter(({ size, color }) => !source.skip?.has(cellKey(size?.id ?? null, color?.id ?? null)))
+    .map(({ size, color }) => ({
+      size,
+      color,
+      quantity: source.quantities[cellKey(size?.id ?? null, color?.id ?? null)] ?? 0,
+    }));
+  return createVariantCells(tx, { product: source.product, cells, actor: source.actor });
 }
 
 // ───────────────────────── Crear ─────────────────────────

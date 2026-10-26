@@ -67,9 +67,14 @@ export default async function ProductsPage({
         title={copy.title}
         description={copy.description}
         actions={
-          <Link href="/productos/nuevo" className={buttonVariants()}>
-            {copy.new}
-          </Link>
+          <>
+            <Link href="/productos/importar" className={buttonVariants({ variant: "outline" })}>
+              {copy.import.open}
+            </Link>
+            <Link href="/productos/nuevo" className={buttonVariants()}>
+              {copy.new}
+            </Link>
+          </>
         }
       />
 
