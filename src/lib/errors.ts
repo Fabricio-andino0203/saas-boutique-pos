@@ -12,6 +12,8 @@ export const APP_ERROR_CODES = [
   "USERNAME_TAKEN",
   "LAST_OWNER",
   "SELF_ACTION",
+  "NAME_TAKEN",
+  "ITEM_IN_USE",
 ] as const;
 
 export type ErrorCode = (typeof APP_ERROR_CODES)[number];
@@ -105,5 +107,17 @@ export class LastOwnerError extends AppError {
 export class SelfActionError extends AppError {
   constructor(message = "Not allowed on your own user", options?: AppErrorOptions) {
     super("SELF_ACTION", 409, message, options);
+  }
+}
+
+export class NameTakenError extends AppError {
+  constructor(message = "Name already exists", options?: AppErrorOptions) {
+    super("NAME_TAKEN", 409, message, options);
+  }
+}
+
+export class ItemInUseError extends AppError {
+  constructor(message = "Item is still in use", options?: AppErrorOptions) {
+    super("ITEM_IN_USE", 409, message, options);
   }
 }

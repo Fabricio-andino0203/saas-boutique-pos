@@ -1,4 +1,16 @@
-import { House, LogOut, ScrollText, Users, type LucideIcon } from "lucide-react";
+import {
+  CalendarRange,
+  House,
+  LogOut,
+  Palette,
+  Ruler,
+  ScrollText,
+  Shapes,
+  Tag,
+  Truck,
+  Users,
+  type LucideIcon,
+} from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
@@ -27,6 +39,52 @@ type NavGroup = { label: string; items: readonly NavItem[] };
 
 const homeItem: NavItem = { href: "/", label: messages.nav.home, icon: House };
 const navGroups: readonly NavGroup[] = [
+  {
+    label: messages.nav.groups.merchandise,
+    items: [
+      {
+        href: "/catalogos/categories",
+        label: messages.catalog.entities.categories.plural,
+        icon: Shapes,
+        capability: "product.write",
+      },
+      {
+        href: "/catalogos/brands",
+        label: messages.catalog.entities.brands.plural,
+        icon: Tag,
+        capability: "product.write",
+      },
+      {
+        href: "/catalogos/seasons",
+        label: messages.catalog.entities.seasons.plural,
+        icon: CalendarRange,
+        capability: "product.write",
+      },
+      {
+        href: "/catalogos/sizes",
+        label: messages.catalog.entities.sizes.plural,
+        icon: Ruler,
+        capability: "product.write",
+      },
+      {
+        href: "/catalogos/colors",
+        label: messages.catalog.entities.colors.plural,
+        icon: Palette,
+        capability: "product.write",
+      },
+    ],
+  },
+  {
+    label: messages.nav.groups.people,
+    items: [
+      {
+        href: "/catalogos/suppliers",
+        label: messages.catalog.entities.suppliers.plural,
+        icon: Truck,
+        capability: "purchase.receive",
+      },
+    ],
+  },
   {
     label: messages.nav.groups.admin,
     items: [

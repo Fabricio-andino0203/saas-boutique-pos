@@ -2,13 +2,13 @@ import { expect, test } from "@playwright/test";
 
 import { messages } from "../../src/config/messages.es";
 
-import { deleteE2eUsers } from "./helpers/cleanup";
+import { deleteE2eData } from "./helpers/cleanup";
 import { loginAs } from "./helpers/login";
 
 const notFoundTitle = messages.states.notFound.title;
 
 test.afterAll(() => {
-  deleteE2eUsers();
+  deleteE2eData();
 });
 
 for (const username of ["cashier", "warehouse", "manager"] as const) {

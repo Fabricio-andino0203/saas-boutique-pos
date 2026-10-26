@@ -12,7 +12,9 @@ import {
   ForbiddenError,
   InsufficientStockError,
   InvalidCredentialsError,
+  ItemInUseError,
   LastOwnerError,
+  NameTakenError,
   SelfActionError,
   UsernameTakenError,
   NotFoundError,
@@ -34,6 +36,8 @@ const table = [
   { create: () => new UsernameTakenError(), code: "USERNAME_TAKEN", status: 409 },
   { create: () => new LastOwnerError(), code: "LAST_OWNER", status: 409 },
   { create: () => new SelfActionError(), code: "SELF_ACTION", status: 409 },
+  { create: () => new NameTakenError(), code: "NAME_TAKEN", status: 409 },
+  { create: () => new ItemInUseError(), code: "ITEM_IN_USE", status: 409 },
 ] as const;
 
 describe("AppError subclasses", () => {
