@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/shared/page-header";
 import { messages } from "@/config/messages.es";
 import { requirePageCapability } from "@/lib/auth";
+import { hasCapability } from "@/lib/permissions";
 import { ArchiveForm, CatalogForm } from "@/modules/catalog/components/catalog-form";
 import { CATALOG_CONFIG, isCatalogEntity } from "@/modules/catalog/config";
 import { getFieldOptions, getItem } from "@/modules/catalog/service";
@@ -17,7 +18,7 @@ export default async function EditCatalogItemPage({
   if (!isCatalogEntity(entity)) {
     notFound();
   }
-  await requirePageCapability(CATALOG_CONFIG[entity].capability);
+  const { user } = await requirePageCapability(CATALOG_CONFIG[entity].capability);
   const item = await getItem(entity, id);
   if (!item) {
     notFound();
@@ -34,6 +35,14 @@ export default async function EditCatalogItemPage({
           {messages.catalog.actions.back}
         </Link>
         <PageHeader title={labels.singular} description={item.values.name} />
+        {entity === "suppliers" && hasCapability(user.role, "purchase.receive") ? (
+          <Link
+            href={`/compras/recepciones?proveedor=${id}`}
+            className="text-primary text-sm underline underline-offset-4"
+          >
+            {messages.purchasing.receipt.supplierHistory}
+          </Link>
+        ) : null}
         <CatalogForm
           entity={entity}
           id={id}

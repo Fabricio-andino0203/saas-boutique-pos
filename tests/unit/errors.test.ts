@@ -7,6 +7,8 @@ import {
   AppError,
   CashSessionClosedError,
   ActiveRangeExistsError,
+  OrderStateError,
+  OverReceiptError,
   CodeTakenError,
   ConflictError,
   AccountLockedError,
@@ -46,6 +48,8 @@ const table = [
   { create: () => new HasStockError(), code: "HAS_STOCK", status: 409 },
   { create: () => new RangeOverlapError(), code: "RANGE_OVERLAP", status: 409 },
   { create: () => new ActiveRangeExistsError(), code: "ACTIVE_RANGE_EXISTS", status: 409 },
+  { create: () => new OrderStateError(), code: "ORDER_STATE", status: 409 },
+  { create: () => new OverReceiptError(), code: "OVER_RECEIPT", status: 409 },
 ] as const;
 
 describe("AppError subclasses", () => {

@@ -18,6 +18,8 @@ export const APP_ERROR_CODES = [
   "HAS_STOCK",
   "RANGE_OVERLAP",
   "ACTIVE_RANGE_EXISTS",
+  "ORDER_STATE",
+  "OVER_RECEIPT",
 ] as const;
 
 export type ErrorCode = (typeof APP_ERROR_CODES)[number];
@@ -147,5 +149,20 @@ export class RangeOverlapError extends AppError {
 export class ActiveRangeExistsError extends AppError {
   constructor(message = "An active fiscal range already exists", options?: AppErrorOptions) {
     super("ACTIVE_RANGE_EXISTS", 409, message, options);
+  }
+}
+
+export class OrderStateError extends AppError {
+  constructor(
+    message = "The purchase order does not allow this action",
+    options?: AppErrorOptions,
+  ) {
+    super("ORDER_STATE", 409, message, options);
+  }
+}
+
+export class OverReceiptError extends AppError {
+  constructor(message = "Cannot receive more than ordered", options?: AppErrorOptions) {
+    super("OVER_RECEIPT", 409, message, options);
   }
 }

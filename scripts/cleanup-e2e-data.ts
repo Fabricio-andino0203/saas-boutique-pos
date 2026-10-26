@@ -19,6 +19,11 @@ async function main(): Promise<void> {
     const named = { name: { startsWith: "E2E " } };
     await client.user.deleteMany({ where: { username: { startsWith: "e2e-" } } });
 
+    // Recepciones y órdenes de los proveedores de prueba (los movimientos del kardex quedan, solo guardan el id).
+    const ofTestSuppliers = { supplier: named };
+    await client.goodsReceipt.deleteMany({ where: ofTestSuppliers });
+    await client.purchaseOrder.deleteMany({ where: ofTestSuppliers });
+
     // Un producto con movimientos de inventario no se puede borrar (el kardex es de solo inserción):
     // se archiva. Los demás se borran con sus variantes e historial antes que los catálogos que usaban.
     const products = await client.product.findMany({ where: named, select: { id: true } });
