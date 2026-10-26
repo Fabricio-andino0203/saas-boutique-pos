@@ -24,7 +24,7 @@ export function LabelSheet({ labels, template }: { labels: LabelData[]; template
           font-family: Inter, Arial, sans-serif; color: #000; background: #fff; border: 0.1mm dashed #bbb; }
         .label .name { font-size: 7pt; font-weight: 700; line-height: 1.1; max-height: 2.4em; overflow: hidden; }
         .label .meta { font-size: 6pt; line-height: 1.15; display: flex; justify-content: space-between; gap: 1mm; }
-        .label .price { font-size: 9pt; font-weight: 700; }
+        .label .price { font-size: 9pt; font-weight: 700; white-space: nowrap; flex: none; }
         .label .barcode { flex: 1 1 auto; min-height: 0; display: flex; align-items: center; justify-content: center; }
         .label .barcode svg { width: 100%; height: 100%; max-height: 100%; }
         @media print { .label { border: none; } }
