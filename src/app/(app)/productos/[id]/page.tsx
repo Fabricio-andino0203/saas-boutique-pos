@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { PageHeader } from "@/components/shared/page-header";
+import { buttonVariants } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -52,7 +53,18 @@ export default async function ProductPage({
         <Link href="/productos" className="text-muted-foreground text-sm hover:underline">
           {messages.products.back}
         </Link>
-        <PageHeader title={product.name} description={`${copy.codeLabel}: ${product.code}`} />
+        <PageHeader
+          title={product.name}
+          description={`${copy.codeLabel}: ${product.code}`}
+          actions={
+            <Link
+              href={`/inventario/etiquetas?producto=${product.id}`}
+              className={buttonVariants({ variant: "outline" })}
+            >
+              {messages.labels.fromProduct}
+            </Link>
+          }
+        />
         {justCreated ? (
           <p role="status" className="text-success text-sm">
             {messages.products.created}

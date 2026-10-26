@@ -1,4 +1,5 @@
 import {
+  Barcode,
   Boxes,
   CalendarRange,
   ClipboardList,
@@ -13,6 +14,7 @@ import {
   Settings,
   Shirt,
   Tag,
+  TriangleAlert,
   Truck,
   Users,
   type LucideIcon,
@@ -93,6 +95,18 @@ const navGroups: readonly NavGroup[] = [
         href: "/inventario",
         label: messages.nav.stock,
         icon: Boxes,
+        capability: "stock.adjust",
+      },
+      {
+        href: "/inventario/reposicion",
+        label: messages.nav.reorder,
+        icon: TriangleAlert,
+        capability: "stock.adjust",
+      },
+      {
+        href: "/inventario/etiquetas",
+        label: messages.nav.labels,
+        icon: Barcode,
         capability: "stock.adjust",
       },
       {

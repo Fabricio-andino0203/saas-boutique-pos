@@ -37,7 +37,9 @@ async function startCountOfNewProduct(page: Page, stamp: number) {
   }).toPass();
   await page.getByRole("button", { name: copy.form.submit }).click();
   await expect(page).toHaveURL(/\/inventario\/conteos\/[a-z0-9]+$/);
-  await expect(page.getByText(copy.status.OPEN, { exact: true })).toBeVisible();
+  await expect(
+    page.getByText(copy.status.OPEN, { exact: true }).filter({ visible: true }),
+  ).toBeVisible();
   return { category, product, code, url: page.url() };
 }
 
@@ -75,13 +77,17 @@ test("the owner counts with the scanner, reviews the difference and applies it",
 
   // Revisión: una diferencia de +3
   await page.getByRole("button", { name: copy.actions.review }).click();
-  await expect(page.getByText(copy.status.IN_REVIEW, { exact: true })).toBeVisible();
+  await expect(
+    page.getByText(copy.status.IN_REVIEW, { exact: true }).filter({ visible: true }),
+  ).toBeVisible();
   await expect(page.getByRole("row", { name: new RegExp(product) })).toContainText("+3");
 
   // Aprobar y aplicar
   await page.getByRole("button", { name: copy.actions.approve }).click();
   await expect(page.getByText(copy.actions.approved)).toBeVisible();
-  await expect(page.getByText(copy.status.APPLIED, { exact: true })).toBeVisible();
+  await expect(
+    page.getByText(copy.status.APPLIED, { exact: true }).filter({ visible: true }),
+  ).toBeVisible();
 
   // El inventario tiene las 3 prendas y el kardex dice de dónde salieron
   await page.goto(`/inventario?q=${encodeURIComponent(product)}`);
@@ -98,13 +104,17 @@ test("the warehouse counts but cannot approve", async ({ page, browser }) => {
   await loginAs(page, "owner");
   const { url } = await startCountOfNewProduct(page, Date.now() + 1);
   await page.getByRole("button", { name: copy.actions.review }).click();
-  await expect(page.getByText(copy.status.IN_REVIEW, { exact: true })).toBeVisible();
+  await expect(
+    page.getByText(copy.status.IN_REVIEW, { exact: true }).filter({ visible: true }),
+  ).toBeVisible();
 
   const other = await browser.newContext({ baseURL: new URL(url).origin });
   const second = await other.newPage();
   await loginAs(second, "warehouse");
   await second.goto(url);
-  await expect(second.getByText(copy.status.IN_REVIEW, { exact: true })).toBeVisible();
+  await expect(
+    second.getByText(copy.status.IN_REVIEW, { exact: true }).filter({ visible: true }),
+  ).toBeVisible();
   await expect(second.getByText(copy.actions.needManager)).toBeVisible();
   await expect(second.getByRole("button", { name: copy.actions.approve })).toHaveCount(0);
   await other.close();
@@ -112,5 +122,7 @@ test("the warehouse counts but cannot approve", async ({ page, browser }) => {
   // Se cancela: no cambia ninguna existencia y deja abrir otro conteo
   await page.getByRole("button", { name: copy.actions.cancel }).click();
   await expect(page.getByText(copy.actions.cancelled)).toBeVisible();
-  await expect(page.getByText(copy.status.CANCELLED, { exact: true })).toBeVisible();
+  await expect(
+    page.getByText(copy.status.CANCELLED, { exact: true }).filter({ visible: true }),
+  ).toBeVisible();
 });

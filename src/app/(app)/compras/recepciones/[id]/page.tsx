@@ -76,6 +76,13 @@ export default async function ReceiptPage({
           >
             {copy.receipt.supplierHistory}
           </Link>
+          {" · "}
+          <Link
+            href={`/inventario/etiquetas?recepcion=${receipt.id}`}
+            className="text-primary underline underline-offset-4"
+          >
+            {messages.labels.fromReceipt}
+          </Link>
         </p>
       </div>
 

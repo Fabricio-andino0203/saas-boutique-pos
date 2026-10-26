@@ -305,6 +305,12 @@ export function ProductsTable({
           <Button type="button" variant="outline" onClick={() => setBulkOpen(true)}>
             {copy.bulk.open}
           </Button>
+          <Link
+            href={`/inventario/etiquetas?productos=${selected.join(",")}`}
+            className={buttonVariants({ variant: "outline" })}
+          >
+            {messages.labels.fromSelection}
+          </Link>
           <Button
             type="button"
             variant="ghost"

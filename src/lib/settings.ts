@@ -9,6 +9,35 @@ import type { Prisma, PrismaClient } from "@/generated/prisma/client";
 export const PAYMENT_METHODS = ["CASH", "CARD", "TRANSFER", "OTHER"] as const;
 export type ConfigurablePaymentMethod = (typeof PAYMENT_METHODS)[number];
 
+/** Plantilla de las etiquetas de código de barras (se imprime desde el navegador). */
+export const LABEL_TEMPLATE_SCHEMA = z.object({
+  /** Rollo (una etiqueta por página) u hoja adhesiva A4 con varias columnas. */
+  layout: z.enum(["roll", "sheet"]),
+  widthMm: z.number().int().min(20).max(150),
+  heightMm: z.number().int().min(15).max(100),
+  /** Solo en hoja: etiquetas por fila. */
+  columns: z.number().int().min(1).max(6),
+  gapMm: z.number().int().min(0).max(10),
+  showName: z.boolean(),
+  showVariant: z.boolean(),
+  showSku: z.boolean(),
+  showPrice: z.boolean(),
+});
+
+export type LabelTemplate = z.output<typeof LABEL_TEMPLATE_SCHEMA>;
+
+export const DEFAULT_LABEL_TEMPLATE: LabelTemplate = {
+  layout: "roll",
+  widthMm: 50,
+  heightMm: 30,
+  columns: 3,
+  gapMm: 2,
+  showName: true,
+  showVariant: true,
+  showSku: true,
+  showPrice: true,
+};
+
 export const SETTING_DEFS = {
   /** Puntos base: 1500 = 15 %. */
   "tax.rate": { schema: z.number().int().min(0).max(5000), default: 1500 },
@@ -25,6 +54,7 @@ export const SETTING_DEFS = {
   },
   "barcode.internalPrefix": { schema: z.string().regex(/^\d{1,6}$/), default: "200" },
   "onboarding.completed": { schema: z.boolean(), default: false },
+  "labels.template": { schema: LABEL_TEMPLATE_SCHEMA, default: DEFAULT_LABEL_TEMPLATE },
 } as const;
 
 export type SettingKey = keyof typeof SETTING_DEFS;
