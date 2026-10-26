@@ -17,6 +17,7 @@ import { requirePageCapability } from "@/lib/auth";
 import { formatLocalDateTime } from "@/lib/dates";
 import { formatMoney } from "@/lib/format";
 import { hasCapability } from "@/lib/permissions";
+import { AdjustStockForm } from "@/modules/inventory/components/adjust-stock-form";
 import { getKardex } from "@/modules/inventory/queries";
 
 export default async function KardexPage({
@@ -72,6 +73,12 @@ export default async function KardexPage({
           <dd className="font-mono text-sm">{header.barcode}</dd>
         </div>
       </dl>
+
+      <AdjustStockForm
+        key={`${variantId}-${header.onHand}-${kardex.total}`}
+        variantId={variantId}
+        onHand={header.onHand}
+      />
 
       {kardex.rows.length === 0 ? (
         <EmptyState title={copy.empty.title} description={copy.empty.description} />

@@ -140,6 +140,16 @@ export async function recordMovement(tx: Tx, input: MovementInput): Promise<void
   });
 }
 
+/** Existencia actual de una variante en una ubicación, con la fila bloqueada hasta que termine la transacción. */
+export async function lockOnHand(tx: Tx, variantId: string, locationId: string): Promise<number> {
+  const rows = await tx.$queryRaw<{ onHand: number }[]>`
+    SELECT "onHand" FROM "StockLevel"
+    WHERE "variantId" = ${variantId} AND "locationId" = ${locationId}
+    FOR UPDATE
+  `;
+  return rows[0]?.onHand ?? 0;
+}
+
 /** La ubicación donde se vende hoy (la tienda principal). */
 export async function getDefaultLocationId(
   client: Pick<PrismaClient, "location">,

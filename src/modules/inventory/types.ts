@@ -90,3 +90,5 @@ export type Kardex = {
   page: number;
   pageSize: number;
 };
+
+export type InventoryActionState = { error?: string; success?: string } | undefined;

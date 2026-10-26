@@ -58,3 +58,63 @@ test("a new product shows as out of stock, with its matrix and an empty kardex",
   ).toBeVisible();
   await expect(page.getByText(copy.kardex.empty.title)).toBeVisible();
 });
+
+test("the owner adjusts the stock with a reason and sees it in the kardex", async ({ page }) => {
+  test.slow();
+  const name = `E2E Ajuste ${Date.now()}`;
+  const adjust = copy.adjust;
+  await loginAs(page, "owner");
+  await createSimpleProduct(page, name, "90", "L 90.00");
+
+  await page.goto(`/inventario?q=${encodeURIComponent(name)}`);
+  await page.getByRole("button", { name: `${copy.showSizes}: ${name}` }).click();
+  await page.getByRole("link", { name: new RegExp(`^${copy.matrix.kardexOf} `) }).click();
+  await expect(
+    page.getByRole("heading", { level: 1, name: new RegExp(copy.kardex.title) }),
+  ).toBeVisible();
+
+  const quantity = page.getByLabel(adjust.quantity, { exact: true });
+  const reason = page.getByLabel(adjust.reason, { exact: true });
+  const submit = page.getByRole("button", { name: adjust.submit });
+  const fill = async (mode: string, amount: string, why: string, note = "") => {
+    await expect(async () => {
+      await page.getByRole("radio", { name: mode }).check();
+      await quantity.fill(amount);
+      await reason.selectOption({ label: why });
+      await page.getByLabel(adjust.note, { exact: true }).fill(note);
+      await expect(quantity).toHaveValue(amount);
+    }).toPass();
+  };
+
+  // Sin motivo no se puede
+  await fill(adjust.modes.in, "5", adjust.chooseReason);
+  await submit.click();
+  await expect(page.getByText(adjust.validation.reason)).toBeVisible();
+
+  // Entran 5
+  await fill(adjust.modes.in, "5", adjust.reasons.COUNT_ERROR);
+  await submit.click();
+  await expect(page.getByText(adjust.done)).toBeVisible();
+  await expect(page.getByRole("row", { name: /Ajuste \(entrada\)/ })).toContainText("+5");
+
+  // "Otro" pide detalle
+  await fill(adjust.modes.out, "2", adjust.reasons.OTHER);
+  await submit.click();
+  await expect(page.getByText(adjust.validation.note)).toBeVisible();
+
+  // Salen 2, con detalle
+  await fill(adjust.modes.out, "2", adjust.reasons.OTHER, "Se cayó del exhibidor");
+  await submit.click();
+  await expect(page.getByRole("row", { name: /Ajuste \(salida\)/ })).toContainText(
+    "Otro: Se cayó del exhibidor",
+  );
+
+  // No se puede sacar más de lo que hay (quedan 3)
+  await fill(adjust.modes.out, "10", adjust.reasons.THEFT);
+  await submit.click();
+  await expect(page.getByText(messages.errors.INSUFFICIENT_STOCK)).toBeVisible();
+
+  // La existencia actual es 3
+  await expect(page.getByRole("term").filter({ hasText: copy.kardex.current })).toBeVisible();
+  await expect(page.getByRole("definition").filter({ hasText: /^3$/ })).toBeVisible();
+});

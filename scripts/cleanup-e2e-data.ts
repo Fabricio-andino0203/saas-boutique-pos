@@ -19,24 +19,51 @@ async function main(): Promise<void> {
     const named = { name: { startsWith: "E2E " } };
     await client.user.deleteMany({ where: { username: { startsWith: "e2e-" } } });
 
-    // Los productos de prueba se crean sin existencias (el kardex no se puede borrar): primero sus
-    // variantes e historial, luego ellos, y después los catálogos que usaban.
+    // Un producto con movimientos de inventario no se puede borrar (el kardex es de solo inserción):
+    // se archiva. Los demás se borran con sus variantes e historial antes que los catálogos que usaban.
     const products = await client.product.findMany({ where: named, select: { id: true } });
     const productIds = products.map((product) => product.id);
-    const ofProducts = { productId: { in: productIds } };
+    const moved = await client.stockMovement.findMany({
+      where: { variant: { productId: { in: productIds } } },
+      distinct: ["variantId"],
+      select: { variant: { select: { productId: true } } },
+    });
+    const keep = [...new Set(moved.map((movement) => movement.variant.productId))];
+    const deletable = productIds.filter((id) => !keep.includes(id));
+    if (keep.length > 0) {
+      const archivedAt = new Date();
+      await client.variant.updateMany({ where: { productId: { in: keep } }, data: { archivedAt } });
+      await client.product.updateMany({ where: { id: { in: keep } }, data: { archivedAt } });
+    }
+    const ofProducts = { productId: { in: deletable } };
     await client.priceHistory.deleteMany({
       where: { OR: [ofProducts, { variant: ofProducts }] },
     });
     await client.variant.deleteMany({ where: ofProducts });
-    await client.product.deleteMany({ where: { id: { in: productIds } } });
+    await client.product.deleteMany({ where: { id: { in: deletable } } });
 
     await client.fiscalRange.deleteMany({ where: { prefix: { startsWith: "E2E-" } } });
-    await client.brand.deleteMany({ where: named });
-    await client.season.deleteMany({ where: named });
-    await client.size.deleteMany({ where: named });
-    await client.color.deleteMany({ where: named });
-    await client.supplier.deleteMany({ where: named });
-    await client.category.deleteMany({ where: named });
+    // Si algún producto archivado todavía usa un catálogo de prueba, ese catálogo se queda.
+    const tryDelete = async (run: () => Promise<unknown>): Promise<void> => {
+      try {
+        await run();
+      } catch (error) {
+        if (!(
+          typeof error === "object" &&
+          error !== null &&
+          "code" in error &&
+          error.code === "P2003"
+        )) {
+          throw error;
+        }
+      }
+    };
+    await tryDelete(() => client.brand.deleteMany({ where: named }));
+    await tryDelete(() => client.season.deleteMany({ where: named }));
+    await tryDelete(() => client.size.deleteMany({ where: named }));
+    await tryDelete(() => client.color.deleteMany({ where: named }));
+    await tryDelete(() => client.supplier.deleteMany({ where: named }));
+    await tryDelete(() => client.category.deleteMany({ where: named }));
   } finally {
     await client.$disconnect();
   }
