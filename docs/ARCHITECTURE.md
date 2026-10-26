@@ -54,7 +54,7 @@ Prisma  →  PostgreSQL
 
 | Servicio | Responsabilidad | Garantías |
 |---|---|---|
-| `inventory.recordMovement(tx, input)` | **Única** puerta para cambiar stock: inserta `StockMovement` y actualiza `StockLevel` | Atómico; valida no-negativo; lock de fila (`SELECT … FOR UPDATE`) |
+| `inventory.recordMovement(tx, input)` | **Única** puerta para cambiar stock: inserta `StockMovement` y actualiza `StockLevel` | Atómico; valida no-negativo con un `UPDATE` condicionado que toma el lock de la fila; en entradas de compra recalcula el costo promedio con el lock de la variante |
 | `sales.completeSale(input)` | Valida carrito, recalcula totales en el servidor, descuenta stock, registra pagos, asigna numeración, audita | Idempotente por `clientRequestId`; todo-o-nada |
 | `sales.voidSale(id, actor, reason)` | Revierte stock y pagos | Requiere capacidad o PIN de gerente; audita |
 | `returns.processReturn(...)` | Devolución/cambio | No excede lo vendido; stock según condición |
@@ -68,7 +68,8 @@ Prisma  →  PostgreSQL
 
 ### Concurrencia
 
-- Dos cajeros vendiendo la última prenda: `recordMovement` toma lock de la fila de `StockLevel` y falla con `InsufficientStockError` al segundo.
+- Dos cajeros vendiendo la última prenda: `recordMovement` descuenta con un solo `UPDATE … WHERE onHand + cantidad >= 0` (toma el lock de la fila); el segundo espera, ve el valor ya descontado y falla con `InsufficientStockError`. La fila de `StockLevel` se crea con `INSERT … ON CONFLICT DO NOTHING`, así dos primeras entradas simultáneas no se estorban. Hay pruebas con 20 intentos simultáneos.
+- Numeración de documentos internos (compras, recepciones…): `nextDocumentNumber` incrementa `DocumentCounter` con `INSERT … ON CONFLICT DO UPDATE` dentro de la transacción del documento: correlativa y sin saltos (si se revierte, el número se reutiliza).
 - Fiscal: `FiscalRange` se bloquea con `FOR UPDATE` al emitir.
 - Nivel de aislamiento por defecto `READ COMMITTED` + locks explícitos; usar `Serializable` solo si un test demuestra necesidad.
 
@@ -141,7 +142,7 @@ boutique-pos/
 - **Escáner de código de barras:** modo "teclado" (el lector emula escritura + Enter). Un listener global captura ráfagas rápidas de teclas (< 50 ms entre caracteres) y las interpreta como escaneo aunque el foco no esté en el campo de búsqueda.
 - **Búsqueda:** endpoint/consulta con `pg_trgm` + normalización de tildes (`unaccent`); resultados en < 200 ms; los más vendidos primero.
 - **Optimismo con red:** si falla el cobro por red, el botón queda en "Reintentando…" usando el **mismo** `clientRequestId`; la venta nunca se duplica.
-- **Reglas de dinero (`money.ts`):** precios al público con ISV incluido; el ISV se **extrae** (`total − total / (1 + tasa)`), el redondeo se hace una sola vez por línea con política documentada; los descuentos globales se **prorratean** entre líneas para devoluciones exactas.
+- **Reglas de dinero (`money.ts`):** precios al público con ISV incluido; el ISV se **extrae** (`total − total / (1 + tasa)`), el redondeo se hace una sola vez por línea con política documentada; los descuentos globales se **prorratean** entre líneas para devoluciones exactas. El **costo promedio** de una variante tras una compra es `(existencia × promedio + entrada × costo) ÷ (existencia + entrada)`, redondeado una sola vez (mitad hacia afuera del cero); sin existencia previa, el promedio pasa a ser el costo de la entrada (`weightedAverageCents`).
 
 ## 7. Impresión
 
@@ -211,3 +212,4 @@ Cada decisión relevante nueva se agrega aquí con fecha, contexto y consecuenci
 | 2026-10-23 | `@types/node` en la línea 24 | Lo exige Vitest 5 y coincide con el runtime (Node 24) |
 | 2026-10-23 | Galería `/dev/componentes` + Playwright en lugar de Storybook | Menos dependencias; los componentes se ejercen en un navegador real |
 | 2026-10-25 | Sesiones propias en lugar de Auth.js | Credenciales + base de datos no se combinan en Auth.js (solo JWT, no revocable); v5 sigue en beta y el proyecto pasa a Better Auth. Revisar si se añade inicio de sesión con terceros |
+| 2026-10-26 | `recordMovement` con SQL directo (`UPDATE` condicionado + `ON CONFLICT`) y sentido del movimiento validado por tipo | El `upsert` de Prisma dentro de una transacción no tolera la carrera de la primera entrada (un error aborta la transacción); un `UPDATE` condicionado hace atómica la validación de no-negativo |

@@ -1,7 +1,8 @@
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 
+import { findStockDiscrepancies } from "@/modules/inventory/reconcile";
+
 import { closeDatabase, resetDatabase, testDb } from "./helpers/db";
-import { findStockDiscrepancies } from "./helpers/invariants";
 
 class RollbackSignal extends Error {}
 

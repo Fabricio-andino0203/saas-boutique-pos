@@ -10,6 +10,7 @@ export type StockDiscrepancy = {
 /**
  * Invariante 1 de docs/DATA_MODEL.md §9: Σ StockMovement.quantity (sin reservas) = StockLevel.onHand.
  * Los movimientos de apartado cambian `reserved`, no `onHand`. Los `::int` evitan `bigint` en Prisma.
+ * Devuelve solo las variantes y ubicaciones que no cuadran; vacío significa que todo está bien.
  */
 export async function findStockDiscrepancies(
   client: Pick<PrismaClient, "$queryRaw">,

@@ -61,6 +61,34 @@ export function percentOf(cents: Cents, bps: number): Cents {
   return roundHalfAwayFromZero(cents * bps, 10000);
 }
 
+/**
+ * Costo promedio ponderado después de una entrada de mercadería:
+ * (existencia × costo promedio + entrada × costo nuevo) ÷ (existencia + entrada), redondeado una sola vez.
+ * Sin existencia previa (cero o negativa) el costo de la entrada pasa a ser el promedio.
+ */
+export function weightedAverageCents(
+  onHand: number,
+  avgCents: Cents,
+  inQuantity: number,
+  unitCostCents: Cents,
+): Cents {
+  assertCents(onHand, "onHand");
+  assertCents(avgCents, "avgCents");
+  assertCents(inQuantity, "inQuantity");
+  assertCents(unitCostCents, "unitCostCents");
+  if (inQuantity <= 0) {
+    throw new ValidationError("inQuantity must be positive");
+  }
+  if (avgCents < 0 || unitCostCents < 0) {
+    throw new ValidationError("costs must not be negative");
+  }
+  if (onHand <= 0) {
+    return unitCostCents;
+  }
+  const numerator = addCents(mulCents(avgCents, onHand), mulCents(unitCostCents, inQuantity));
+  return roundHalfAwayFromZero(numerator, onHand + inQuantity);
+}
+
 /** Extrae el impuesto de un total con impuesto incluido (15 % = 1500 puntos base). */
 export function extractTax(
   totalCents: Cents,

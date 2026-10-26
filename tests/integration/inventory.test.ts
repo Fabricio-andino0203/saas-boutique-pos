@@ -1,6 +1,7 @@
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 
 import { InsufficientStockError, NotFoundError, ValidationError } from "@/lib/errors";
+import { setSetting } from "@/lib/settings";
 import { getDefaultLocationId, recordMovement } from "@/modules/inventory/service";
 
 import { closeDatabase, resetDatabase, testDb } from "./helpers/db";
@@ -101,5 +102,213 @@ describe("recordMovement", () => {
     await expect(getDefaultLocationId(testDb)).rejects.toBeInstanceOf(NotFoundError);
     const { location } = await seed();
     expect(await getDefaultLocationId(testDb)).toBe(location.id);
+  });
+});
+
+describe("recordMovement: reglas de movimiento", () => {
+  beforeEach(resetDatabase);
+
+  const base = (w: Awaited<ReturnType<typeof seed>>) =>
+    ({ variantId: w.variant.id, locationId: w.location.id, userId: w.user.id }) as const;
+
+  it("rejects the wrong direction for each type and the layaway types", async () => {
+    const w = await seed();
+    const attempts = [
+      { type: "SALE_OUT", quantity: 1 },
+      { type: "ADJUSTMENT_OUT", quantity: 1 },
+      { type: "ADJUSTMENT_IN", quantity: -1 },
+      { type: "PURCHASE_IN", quantity: -1 },
+      { type: "INITIAL", quantity: -1 },
+      { type: "LAYAWAY_RESERVE", quantity: 1 },
+      { type: "LAYAWAY_RELEASE", quantity: -1 },
+    ] as const;
+    for (const attempt of attempts) {
+      await expect(
+        testDb.$transaction((tx) => recordMovement(tx, { ...base(w), ...attempt })),
+        attempt.type,
+      ).rejects.toBeInstanceOf(ValidationError);
+    }
+    expect(await testDb.stockMovement.count()).toBe(0);
+    expect(await testDb.stockLevel.count()).toBe(0);
+  });
+
+  it("lets a count adjustment go either way", async () => {
+    const w = await seed();
+    await testDb.$transaction(async (tx) => {
+      await recordMovement(tx, { ...base(w), type: "INITIAL", quantity: 5 });
+      await recordMovement(tx, { ...base(w), type: "COUNT_ADJUSTMENT", quantity: -2 });
+      await recordMovement(tx, { ...base(w), type: "COUNT_ADJUSTMENT", quantity: 1 });
+    });
+    expect(await onHand(w.variant.id, w.location.id)).toBe(4);
+  });
+
+  it("follows the negative-stock setting unless the caller overrides it", async () => {
+    const w = await seed();
+    const sell = (allowNegative?: boolean) =>
+      testDb.$transaction((tx) =>
+        recordMovement(tx, { ...base(w), type: "SALE_OUT", quantity: -1, allowNegative }),
+      );
+
+    await expect(sell()).rejects.toBeInstanceOf(InsufficientStockError); // por defecto: apagado
+
+    await setSetting(testDb, "sales.allowNegativeStock", true);
+    await sell();
+    expect(await onHand(w.variant.id, w.location.id)).toBe(-1);
+
+    await expect(sell(false)).rejects.toBeInstanceOf(InsufficientStockError); // la orden explícita manda
+    expect(await onHand(w.variant.id, w.location.id)).toBe(-1);
+  });
+
+  it("records the current average cost when the caller gives none", async () => {
+    const w = await seed();
+    await testDb.variant.update({ where: { id: w.variant.id }, data: { avgCostCents: 3300 } });
+    await testDb.$transaction(async (tx) => {
+      await recordMovement(tx, { ...base(w), type: "ADJUSTMENT_IN", quantity: 2 });
+      await recordMovement(tx, {
+        ...base(w),
+        type: "ADJUSTMENT_OUT",
+        quantity: -1,
+        unitCostCents: 100,
+      });
+    });
+    const costs = (await testDb.stockMovement.findMany({ orderBy: { createdAt: "asc" } })).map(
+      (m) => m.unitCostCents,
+    );
+    expect(costs).toEqual([3300, 100]);
+  });
+
+  it("fails clearly for an unknown variant", async () => {
+    const w = await seed();
+    await expect(
+      testDb.$transaction((tx) =>
+        recordMovement(tx, {
+          ...base(w),
+          variantId: "no-existe",
+          type: "ADJUSTMENT_IN",
+          quantity: 1,
+        }),
+      ),
+    ).rejects.toBeInstanceOf(NotFoundError);
+    await expect(
+      testDb.$transaction((tx) =>
+        recordMovement(tx, {
+          ...base(w),
+          variantId: "no-existe",
+          type: "PURCHASE_IN",
+          quantity: 1,
+          unitCostCents: 5,
+        }),
+      ),
+    ).rejects.toBeInstanceOf(NotFoundError);
+  });
+});
+
+describe("recordMovement: costo promedio en compras", () => {
+  beforeEach(resetDatabase);
+
+  const purchase = (w: Awaited<ReturnType<typeof seed>>, quantity: number, unitCostCents: number) =>
+    testDb.$transaction((tx) =>
+      recordMovement(tx, {
+        variantId: w.variant.id,
+        locationId: w.location.id,
+        userId: w.user.id,
+        type: "PURCHASE_IN",
+        quantity,
+        unitCostCents,
+      }),
+    );
+  const avg = async (w: Awaited<ReturnType<typeof seed>>) =>
+    (await testDb.variant.findUniqueOrThrow({ where: { id: w.variant.id } })).avgCostCents;
+
+  it("takes the cost of the first purchase, then weights the following ones", async () => {
+    const w = await seed();
+    await purchase(w, 10, 1000);
+    expect(await avg(w)).toBe(1000); // sin existencia previa: el costo de la entrada
+    await purchase(w, 5, 1300);
+    expect(await avg(w)).toBe(1100); // (10×1000 + 5×1300) ÷ 15
+    expect(await onHand(w.variant.id, w.location.id)).toBe(15);
+  });
+
+  it("receiving 100 garments updates stock, kardex and average cost with concrete numbers", async () => {
+    const w = await seed();
+    await testDb.variant.update({ where: { id: w.variant.id }, data: { avgCostCents: 4000 } });
+    await testDb.$transaction((tx) =>
+      recordMovement(tx, {
+        variantId: w.variant.id,
+        locationId: w.location.id,
+        userId: w.user.id,
+        type: "INITIAL",
+        quantity: 100,
+        unitCostCents: 4000,
+      }),
+    );
+
+    await purchase(w, 100, 5000);
+
+    expect(await onHand(w.variant.id, w.location.id)).toBe(200);
+    expect(await avg(w)).toBe(4500); // (100×4000 + 100×5000) ÷ 200
+    const last = await testDb.stockMovement.findFirstOrThrow({
+      where: { type: "PURCHASE_IN" },
+    });
+    expect(last).toMatchObject({ quantity: 100, unitCostCents: 5000 });
+  });
+
+  it("weights by the stock of every location", async () => {
+    const w = await seed();
+    const other = await testDb.location.create({ data: { code: "BOD", name: "Bodega" } });
+    await testDb.variant.update({ where: { id: w.variant.id }, data: { avgCostCents: 1000 } });
+    await testDb.$transaction(async (tx) => {
+      await recordMovement(tx, {
+        variantId: w.variant.id,
+        locationId: w.location.id,
+        userId: w.user.id,
+        type: "INITIAL",
+        quantity: 6,
+        unitCostCents: 1000,
+      });
+      await recordMovement(tx, {
+        variantId: w.variant.id,
+        locationId: other.id,
+        userId: w.user.id,
+        type: "INITIAL",
+        quantity: 4,
+        unitCostCents: 1000,
+      });
+    });
+    await purchase(w, 10, 2000);
+    expect(await avg(w)).toBe(1500); // (10×1000 + 10×2000) ÷ 20
+  });
+
+  it("restarts from the new cost when the stock was negative or zero", async () => {
+    const w = await seed();
+    await testDb.variant.update({ where: { id: w.variant.id }, data: { avgCostCents: 999 } });
+    await testDb.$transaction((tx) =>
+      recordMovement(tx, {
+        variantId: w.variant.id,
+        locationId: w.location.id,
+        userId: w.user.id,
+        type: "SALE_OUT",
+        quantity: -2,
+        allowNegative: true,
+      }),
+    );
+    await purchase(w, 5, 1234);
+    expect(await avg(w)).toBe(1234);
+  });
+
+  it("does not touch the average cost for other movement types", async () => {
+    const w = await seed();
+    await testDb.variant.update({ where: { id: w.variant.id }, data: { avgCostCents: 777 } });
+    await testDb.$transaction((tx) =>
+      recordMovement(tx, {
+        variantId: w.variant.id,
+        locationId: w.location.id,
+        userId: w.user.id,
+        type: "ADJUSTMENT_IN",
+        quantity: 3,
+        unitCostCents: 50,
+      }),
+    );
+    expect(await avg(w)).toBe(777);
   });
 });
