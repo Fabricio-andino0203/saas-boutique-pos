@@ -41,6 +41,7 @@ Contabilidad completa, nómina, e-commerce público, integración con marketplac
 | Cambiar precios | ✓ | ✓ | – | – |
 | Recibir compras | ✓ | ✓ | – | ✓ |
 | Ajustes de inventario | ✓ | ✓ | – | ✓ (con motivo) |
+| Aprobar y aplicar un conteo físico | ✓ | ✓ | – | – (cuenta, no aprueba) |
 | Reportes financieros | ✓ | ✓ | – | – |
 | Usuarios y configuración | ✓ | – | – | – |
 

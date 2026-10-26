@@ -20,6 +20,8 @@ export const APP_ERROR_CODES = [
   "ACTIVE_RANGE_EXISTS",
   "ORDER_STATE",
   "OVER_RECEIPT",
+  "COUNT_IN_PROGRESS",
+  "COUNT_STATE",
 ] as const;
 
 export type ErrorCode = (typeof APP_ERROR_CODES)[number];
@@ -164,5 +166,17 @@ export class OrderStateError extends AppError {
 export class OverReceiptError extends AppError {
   constructor(message = "Cannot receive more than ordered", options?: AppErrorOptions) {
     super("OVER_RECEIPT", 409, message, options);
+  }
+}
+
+export class CountInProgressError extends AppError {
+  constructor(message = "A stock count is already in progress", options?: AppErrorOptions) {
+    super("COUNT_IN_PROGRESS", 409, message, options);
+  }
+}
+
+export class CountStateError extends AppError {
+  constructor(message = "The stock count does not allow this action", options?: AppErrorOptions) {
+    super("COUNT_STATE", 409, message, options);
   }
 }

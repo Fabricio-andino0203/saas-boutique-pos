@@ -28,6 +28,7 @@ const matrix: ReadonlyArray<readonly [Capability, boolean, boolean, boolean, boo
   ["product.viewCost", true, true, false, false],
   ["price.change", true, true, false, false],
   ["stock.adjust", true, true, false, true],
+  ["stock.approveCount", true, true, false, false],
   ["purchase.receive", true, true, false, true],
   ["report.financial", true, true, false, false],
   ["user.manage", true, false, false, false],

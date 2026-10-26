@@ -17,6 +17,7 @@ export const CAPABILITIES = [
   "product.viewCost",
   "price.change",
   "stock.adjust",
+  "stock.approveCount",
   "purchase.receive",
   "report.financial",
   "user.manage",
@@ -35,7 +36,7 @@ export const ROLE_CAPABILITIES: Record<Role, ReadonlySet<Capability>> = {
   OWNER: new Set<Capability>(CAPABILITIES),
   MANAGER: new Set<Capability>(MANAGER_CAPABILITIES),
   CASHIER: new Set<Capability>(["sale.create", "discount.apply", "return.create", "cash.open"]),
-  WAREHOUSE: new Set<Capability>(["product.write", "stock.adjust", "purchase.receive"]),
+  WAREHOUSE: new Set<Capability>(["product.write", "stock.adjust", "purchase.receive"]), // cuenta, pero no aprueba conteos
 };
 
 export const MANAGER_PIN_OVERRIDES = [

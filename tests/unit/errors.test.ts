@@ -7,6 +7,8 @@ import {
   AppError,
   CashSessionClosedError,
   ActiveRangeExistsError,
+  CountInProgressError,
+  CountStateError,
   OrderStateError,
   OverReceiptError,
   CodeTakenError,
@@ -50,6 +52,8 @@ const table = [
   { create: () => new ActiveRangeExistsError(), code: "ACTIVE_RANGE_EXISTS", status: 409 },
   { create: () => new OrderStateError(), code: "ORDER_STATE", status: 409 },
   { create: () => new OverReceiptError(), code: "OVER_RECEIPT", status: 409 },
+  { create: () => new CountInProgressError(), code: "COUNT_IN_PROGRESS", status: 409 },
+  { create: () => new CountStateError(), code: "COUNT_STATE", status: 409 },
 ] as const;
 
 describe("AppError subclasses", () => {

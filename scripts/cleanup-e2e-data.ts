@@ -19,6 +19,12 @@ async function main(): Promise<void> {
     const named = { name: { startsWith: "E2E " } };
     await client.user.deleteMany({ where: { username: { startsWith: "e2e-" } } });
 
+    // Conteos de las categorías de prueba (sus prendas se cuentan solo ahí).
+    const testCategories = await client.category.findMany({ where: named, select: { id: true } });
+    await client.stockCount.deleteMany({
+      where: { scopeRef: { in: testCategories.map((category) => category.id) } },
+    });
+
     // Recepciones y órdenes de los proveedores de prueba (los movimientos del kardex quedan, solo guardan el id).
     const ofTestSuppliers = { supplier: named };
     await client.goodsReceipt.deleteMany({ where: ofTestSuppliers });
@@ -69,6 +75,8 @@ async function main(): Promise<void> {
     await tryDelete(() => client.color.deleteMany({ where: named }));
     await tryDelete(() => client.supplier.deleteMany({ where: named }));
     await tryDelete(() => client.category.deleteMany({ where: named }));
+    // Las que todavía usan productos archivados se archivan para que no ensucien el catálogo.
+    await client.category.updateMany({ where: named, data: { archivedAt: new Date() } });
   } finally {
     await client.$disconnect();
   }

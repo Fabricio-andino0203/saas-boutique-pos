@@ -7,6 +7,7 @@ import {
   PackageCheck,
   Palette,
   Ruler,
+  ScanBarcode,
   ScrollText,
   Shapes,
   Settings,
@@ -92,6 +93,12 @@ const navGroups: readonly NavGroup[] = [
         href: "/inventario",
         label: messages.nav.stock,
         icon: Boxes,
+        capability: "stock.adjust",
+      },
+      {
+        href: "/inventario/conteos",
+        label: messages.nav.counts,
+        icon: ScanBarcode,
         capability: "stock.adjust",
       },
       {
