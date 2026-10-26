@@ -6,6 +6,7 @@ import {
   endOfLocalDay,
   formatLocalDateTime,
   localDateKey,
+  parseLocalDateKey,
   startOfLocalDay,
 } from "@/lib/dates";
 import { ValidationError } from "@/lib/errors";
@@ -60,6 +61,25 @@ describe("formatLocalDateTime", () => {
     expect(formatLocalDateTime(utc("2026-10-23T06:00:00.000Z"))).toBe("23/10/2026 00:00");
     expect(formatLocalDateTime(utc("2026-10-23T18:05:00.000Z"))).toBe("23/10/2026 12:05");
     expect(formatLocalDateTime(utc("2026-01-01T00:00:00.000Z"))).toBe("31/12/2025 18:00");
+  });
+});
+
+describe("parseLocalDateKey", () => {
+  it("returns local noon of the given day", () => {
+    // mediodía local (UTC−6) = 18:00 UTC
+    expect(parseLocalDateKey("2026-10-23")?.toISOString()).toBe("2026-10-23T18:00:00.000Z");
+    expect(parseLocalDateKey("2028-02-29")?.toISOString()).toBe("2028-02-29T18:00:00.000Z");
+  });
+
+  it("round-trips with localDateKey", () => {
+    const parsed = parseLocalDateKey("2026-01-01");
+    expect(parsed && localDateKey(parsed)).toBe("2026-01-01");
+  });
+
+  it("rejects text that is not a real date", () => {
+    for (const bad of ["2026-02-30", "2026-13-01", "2026-1-1", "hoy", "", "2026-10-23T10:00"]) {
+      expect(parseLocalDateKey(bad), bad).toBeNull();
+    }
   });
 });
 

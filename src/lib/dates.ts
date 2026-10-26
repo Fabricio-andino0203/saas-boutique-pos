@@ -85,6 +85,27 @@ export function endOfLocalDay(date: Date): Date {
   return new Date(startOfLocalDay(addLocalDays(date, 1)).getTime() - 1);
 }
 
+/**
+ * Convierte una fecha local "YYYY-MM-DD" (la de un campo de fecha) en un instante: el mediodía
+ * local de ese día. Devuelve `null` si el texto no es una fecha real.
+ */
+export function parseLocalDateKey(key: string): Date | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(key);
+  if (!match) {
+    return null;
+  }
+  const [year, month, day] = [Number(match[1]), Number(match[2]), Number(match[3])];
+  const probe = new Date(Date.UTC(year, month - 1, day, 12));
+  if (
+    probe.getUTCFullYear() !== year ||
+    probe.getUTCMonth() !== month - 1 ||
+    probe.getUTCDate() !== day
+  ) {
+    return null;
+  }
+  return new Date(startOfLocalDay(probe).getTime() + 12 * 3_600_000);
+}
+
 export function formatLocalDateTime(date: Date): string {
   assertValidDate(date);
   const p = zonedParts(date);

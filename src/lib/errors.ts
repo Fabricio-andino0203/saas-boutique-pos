@@ -9,6 +9,9 @@ export const APP_ERROR_CODES = [
   "FISCAL_RANGE_EXHAUSTED",
   "INVALID_CREDENTIALS",
   "ACCOUNT_LOCKED",
+  "USERNAME_TAKEN",
+  "LAST_OWNER",
+  "SELF_ACTION",
 ] as const;
 
 export type ErrorCode = (typeof APP_ERROR_CODES)[number];
@@ -84,5 +87,23 @@ export class InvalidCredentialsError extends AppError {
 export class AccountLockedError extends AppError {
   constructor(message = "Account temporarily locked", options?: AppErrorOptions) {
     super("ACCOUNT_LOCKED", 423, message, options);
+  }
+}
+
+export class UsernameTakenError extends AppError {
+  constructor(message = "Username already taken", options?: AppErrorOptions) {
+    super("USERNAME_TAKEN", 409, message, options);
+  }
+}
+
+export class LastOwnerError extends AppError {
+  constructor(message = "At least one active owner must remain", options?: AppErrorOptions) {
+    super("LAST_OWNER", 409, message, options);
+  }
+}
+
+export class SelfActionError extends AppError {
+  constructor(message = "Not allowed on your own user", options?: AppErrorOptions) {
+    super("SELF_ACTION", 409, message, options);
   }
 }

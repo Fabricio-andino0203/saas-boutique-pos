@@ -13,16 +13,21 @@ test.beforeEach(async ({ page }) => {
 
 test("MoneyInput formats a valid amount on blur", async ({ page }) => {
   const input = page.getByLabel(gallery.money.label);
-  await input.fill("1234.5");
-  await input.blur();
-  await expect(input).toHaveValue("L 1,234.50");
+  // Si se escribe antes de que React hidrate la página, el campo se reinicia: se reintenta el bloque.
+  await expect(async () => {
+    await input.fill("1234.5");
+    await input.blur();
+    await expect(input).toHaveValue("L 1,234.50", { timeout: 1000 });
+  }).toPass();
 });
 
 test("MoneyInput flags an invalid amount", async ({ page }) => {
   const input = page.getByLabel(gallery.money.label);
-  await input.fill("12.345");
-  await input.blur();
-  await expect(input).toHaveAttribute("aria-invalid", "true");
+  await expect(async () => {
+    await input.fill("12.345");
+    await input.blur();
+    await expect(input).toHaveAttribute("aria-invalid", "true", { timeout: 1000 });
+  }).toPass();
 });
 
 test("ConfirmDialog opens and closes with Escape", async ({ page }) => {

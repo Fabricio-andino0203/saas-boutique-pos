@@ -1,10 +1,10 @@
 import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { connection } from "next/server";
 import { cache } from "react";
 
 import { env } from "@/lib/env";
-import { requireCapability, type Capability } from "@/lib/permissions";
+import { hasCapability, requireCapability, type Capability } from "@/lib/permissions";
 import { SESSION_COOKIE } from "@/lib/session-cookie";
 import { findSession, revokeSession, type ActiveSession } from "@/modules/auth/service";
 
@@ -36,6 +36,18 @@ export async function requireSession(): Promise<ActiveSession> {
 export async function requireUserCapability(capability: Capability): Promise<ActiveSession> {
   const session = await requireSession();
   requireCapability(session.user, capability);
+  return session;
+}
+
+/**
+ * Para páginas: sin la capacidad se muestra la página "no encontrada", como si la ruta no
+ * existiera (no revela que hay una pantalla de administración).
+ */
+export async function requirePageCapability(capability: Capability): Promise<ActiveSession> {
+  const session = await requireSession();
+  if (!hasCapability(session.user.role, capability)) {
+    notFound();
+  }
   return session;
 }
 

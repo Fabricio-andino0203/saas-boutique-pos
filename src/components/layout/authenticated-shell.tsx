@@ -1,4 +1,4 @@
-import { House, LogOut, type LucideIcon } from "lucide-react";
+import { House, LogOut, ScrollText, Users, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
@@ -26,7 +26,15 @@ type NavItem = { href: string; label: string; icon: LucideIcon; capability?: Cap
 type NavGroup = { label: string; items: readonly NavItem[] };
 
 const homeItem: NavItem = { href: "/", label: messages.nav.home, icon: House };
-const navGroups: readonly NavGroup[] = [];
+const navGroups: readonly NavGroup[] = [
+  {
+    label: messages.nav.groups.admin,
+    items: [
+      { href: "/usuarios", label: messages.nav.users, icon: Users, capability: "user.manage" },
+      { href: "/auditoria", label: messages.nav.audit, icon: ScrollText, capability: "audit.view" },
+    ],
+  },
+];
 
 export async function AuthenticatedShell({ children }: { children: ReactNode }) {
   const { user } = await requireSession();

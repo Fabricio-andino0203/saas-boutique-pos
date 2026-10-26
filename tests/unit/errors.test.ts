@@ -12,6 +12,9 @@ import {
   ForbiddenError,
   InsufficientStockError,
   InvalidCredentialsError,
+  LastOwnerError,
+  SelfActionError,
+  UsernameTakenError,
   NotFoundError,
   UnauthorizedError,
   ValidationError,
@@ -28,6 +31,9 @@ const table = [
   { create: () => new FiscalRangeExhaustedError(), code: "FISCAL_RANGE_EXHAUSTED", status: 409 },
   { create: () => new InvalidCredentialsError(), code: "INVALID_CREDENTIALS", status: 401 },
   { create: () => new AccountLockedError(), code: "ACCOUNT_LOCKED", status: 423 },
+  { create: () => new UsernameTakenError(), code: "USERNAME_TAKEN", status: 409 },
+  { create: () => new LastOwnerError(), code: "LAST_OWNER", status: 409 },
+  { create: () => new SelfActionError(), code: "SELF_ACTION", status: 409 },
 ] as const;
 
 describe("AppError subclasses", () => {
