@@ -1281,9 +1281,7 @@ export const messages = {
       busyHint: "Pídele que cierre su turno, o pasa a vender en su caja.",
     },
     header: {
-      terminal: "Caja",
       open: "Abierta",
-      seller: "Vende",
     },
     search: {
       label: "Escanea o busca una prenda",

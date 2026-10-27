@@ -32,10 +32,13 @@ const copy = messages.pos;
 type DialogName = "discount" | "customer" | "parked" | "help";
 type Notice = { tone: "ok" | "warn"; text: string };
 
+/** Las dos primeras palabras con peso: "Blusa de lino" es BL, no BD. */
+const SMALL_WORDS = new Set(["de", "del", "la", "el", "los", "las", "y", "con", "para"]);
+
 function initialsOf(name: string): string {
   return name
     .split(/\s+/)
-    .filter(Boolean)
+    .filter((word) => word !== "" && !SMALL_WORDS.has(word.toLowerCase()))
     .slice(0, 2)
     .map((word) => word.charAt(0).toUpperCase())
     .join("");
@@ -328,8 +331,7 @@ export function PosScreen({
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">{copy.title}</h1>
           <p className="text-muted-foreground text-sm">
-            {copy.header.terminal} {config.terminalName} · {copy.header.open} ({config.openedByName}
-            )
+            {config.terminalName} · {copy.header.open} ({config.openedByName})
           </p>
         </div>
         <div className="flex flex-wrap gap-2">

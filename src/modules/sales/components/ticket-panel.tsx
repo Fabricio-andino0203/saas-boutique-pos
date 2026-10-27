@@ -194,13 +194,13 @@ export function TicketPanel({
         )}
       </div>
 
-      <footer className="space-y-3 border-t p-4">
+      <footer className="space-y-2 border-t p-3">
         {summary.invalidDiscount ? (
           <p role="alert" className="text-destructive text-sm">
             {ticket.invalidDiscount}
           </p>
         ) : null}
-        <dl className="space-y-1 text-sm">
+        <dl className="space-y-0.5 text-sm">
           <div className="flex justify-between">
             <dt className="text-muted-foreground">{ticket.subtotal}</dt>
             <dd className="tabular-nums">{formatMoney(summary.grossCents)}</dd>
@@ -220,21 +220,21 @@ export function TicketPanel({
         <div
           role="group"
           aria-label={ticket.total}
-          className="bg-muted flex items-baseline justify-between rounded-lg px-4 py-3"
+          className="bg-muted flex items-baseline justify-between rounded-lg px-4 py-2"
         >
           <span className="text-lg font-semibold">{ticket.total}</span>
-          <span className="text-3xl font-bold tabular-nums">
+          <span className="text-3xl leading-tight font-bold tabular-nums">
             {formatMoney(priced?.totalCents ?? 0)}
           </span>
         </div>
         <div className="grid grid-cols-[1fr_auto] gap-2">
-          <Button type="button" variant="outline" className="h-11" onClick={onDiscount}>
+          <Button type="button" variant="outline" className="h-10" onClick={onDiscount}>
             {copy.actions.discount} <kbd className="text-muted-foreground ml-1 text-xs">F4</kbd>
           </Button>
           <Button
             type="button"
             variant="ghost"
-            className="h-11"
+            className="h-10"
             disabled={items.length === 0}
             onClick={onClear}
           >
@@ -244,7 +244,7 @@ export function TicketPanel({
         </div>
         <Button
           type="button"
-          className="h-14 w-full text-lg font-semibold"
+          className="h-12 w-full text-lg font-semibold"
           disabled={!priced}
           onClick={onCharge}
         >
