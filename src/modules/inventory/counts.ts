@@ -141,56 +141,60 @@ export async function scanCount(
   if (term === "" || !Number.isInteger(delta) || delta === 0) {
     return { found: false };
   }
-  return client.$transaction(async (tx) => {
-    const count = await tx.stockCount.findUnique({
-      where: { id: countId },
-      select: { status: true },
-    });
-    if (!count) {
-      throw new NotFoundError();
-    }
-    if (count.status !== "OPEN") {
-      throw new CountStateError();
-    }
-    const item = await tx.stockCountItem.findFirst({
-      where: {
-        stockCountId: countId,
-        variant: { OR: [{ barcode: term }, { sku: { equals: term, mode: "insensitive" } }] },
-      },
-      include: {
-        variant: {
-          select: {
-            sku: true,
-            product: { select: { name: true } },
-            size: { select: { name: true } },
-            color: { select: { name: true } },
-          },
+  // Sin transacción: las lecturas con relaciones se atienden en conexiones distintas y la única escritura es una
+  // sola sentencia, condicionada a que el conteo siga abierto (si se cerró entretanto, no suma nada).
+  const count = await client.stockCount.findUnique({
+    where: { id: countId },
+    select: { status: true },
+  });
+  if (!count) {
+    throw new NotFoundError();
+  }
+  if (count.status !== "OPEN") {
+    throw new CountStateError();
+  }
+  const item = await client.stockCountItem.findFirst({
+    where: {
+      stockCountId: countId,
+      variant: { OR: [{ barcode: term }, { sku: { equals: term, mode: "insensitive" } }] },
+    },
+    include: {
+      variant: {
+        select: {
+          sku: true,
+          product: { select: { name: true } },
+          size: { select: { name: true } },
+          color: { select: { name: true } },
         },
       },
-    });
-    if (!item) {
-      return { found: false } as const;
-    }
-    const [updated] = await tx.$queryRaw<{ countedQty: number }[]>`
-      UPDATE "StockCountItem"
-      SET "countedQty" = GREATEST(0, "countedQty" + ${delta}::int), "updatedAt" = now()
-      WHERE "id" = ${item.id}
-      RETURNING "countedQty"
-    `;
-    const countedQty = updated?.countedQty ?? item.countedQty;
-    return {
-      found: true,
-      item: {
-        variantId: item.variantId,
-        productName: item.variant.product.name,
-        label: [item.variant.size?.name, item.variant.color?.name].filter(Boolean).join(" · "),
-        sku: item.variant.sku,
-        expectedQty: item.expectedQty,
-        countedQty,
-        becameCounted: item.countedQty === 0 && countedQty > 0,
-      },
-    } as const;
+    },
   });
+  if (!item) {
+    return { found: false } as const;
+  }
+  const [updated] = await client.$queryRaw<{ countedQty: number }[]>`
+    UPDATE "StockCountItem"
+    SET "countedQty" = GREATEST(0, "countedQty" + ${delta}::int), "updatedAt" = now()
+    WHERE "id" = ${item.id}
+      AND EXISTS (SELECT 1 FROM "StockCount" WHERE "id" = ${countId} AND "status" = 'OPEN')
+    RETURNING "countedQty"
+  `;
+  if (!updated) {
+    throw new CountStateError();
+  }
+  const countedQty = updated.countedQty;
+  return {
+    found: true,
+    item: {
+      variantId: item.variantId,
+      productName: item.variant.product.name,
+      label: [item.variant.size?.name, item.variant.color?.name].filter(Boolean).join(" · "),
+      sku: item.variant.sku,
+      expectedQty: item.expectedQty,
+      countedQty,
+      becameCounted: item.countedQty === 0 && countedQty > 0,
+    },
+  } as const;
 }
 
 /** Escribe a mano la cantidad contada de una prenda del conteo (solo mientras está abierto). */

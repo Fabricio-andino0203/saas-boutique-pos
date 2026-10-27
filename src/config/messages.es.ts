@@ -1298,6 +1298,9 @@ export const messages = {
       "Ya hay una caja abierta (la tuya o la de esta terminal). Ciérrala antes de abrir otra.",
     CASH_SESSION_STATE:
       "Esta caja ya no permite esa acción. Actualiza la pantalla para ver su estado.",
+    DISCOUNT_NEEDS_APPROVAL:
+      "Este descuento supera tu límite. Pide a un gerente que lo autorice con su PIN.",
+    SALE_STATE: "Esta venta ya no permite esa acción. Actualiza la pantalla para ver su estado.",
     INSUFFICIENT_CASH:
       "No hay tanto efectivo en la caja. Revisa el monto: el efectivo esperado no puede quedar en negativo.",
     FISCAL_RANGE_EXHAUSTED: "El rango de facturas se agotó o ya venció. Solicita uno nuevo al SAR.",

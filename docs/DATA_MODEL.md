@@ -202,13 +202,15 @@ Entradas/salidas manuales: `cashSessionId`, `type (IN, OUT)`, `amountCents` (> 0
 | voidedAt?, voidedById?, voidReason? | |
 | createdAt | |
 
-Invariante: `totalCents = subtotal − discount` (con ISV incluido: `taxCents` es informativo); `Σ Payment.amountCents − changeCents = totalCents`.
+Invariante: `totalCents = subtotal − discount` (con ISV incluido: `taxCents` es informativo; si los precios no incluyen ISV, `totalCents = subtotal − discount + taxCents`); `Σ Payment.amountCents − changeCents = totalCents`; `Σ SaleItem.lineTotalCents = totalCents`. El `Sale` cae en el turno abierto de la terminal; `sellerId` es quien vendió. Una venta con total 0 (por ejemplo, con el 100 % de descuento) no se acepta.
+
+Anulación: solo mientras el turno de la venta sigue abierto; pone `status = VOIDED` con `voidedAt`, `voidedById` (quien autorizó) y `voidReason`, devuelve cada prenda con un movimiento `RETURN_IN` (motivo "Anulación de venta T-…", costo de la línea) y no borra nada: el número de ticket y el de factura quedan usados (sin saltos). Después de cerrar el turno se corrige con una devolución (Fase 4).
 
 ### SaleItem (snapshot)
-`saleId`, `variantId`, `quantity`, `unitPriceCents`, `unitCostCents`, `lineDiscountCents`, `taxRate` (basis points, p. ej. 1500), `taxCents`, `lineTotalCents`, y **copias de texto** `productName`, `sizeName`, `colorName`, `sku` (para que el recibo histórico no cambie si se renombra el producto).
+`saleId`, `variantId`, `quantity`, `unitPriceCents`, `unitCostCents` (promedio de la prenda; si nunca se compró, el costo del catálogo), `lineDiscountCents` (descuento propio **más** su parte prorrateada del descuento global), `taxRate` (basis points, p. ej. 1500), `taxCents`, `lineTotalCents`, y **copias de texto** `productName`, `sizeName`, `colorName`, `sku` (para que el recibo histórico no cambie si se renombra el producto).
 
 ### Payment
-`saleId`, `method enum (CASH, CARD, TRANSFER, STORE_CREDIT, OTHER)`, `amountCents`, `reference?` (últimos 4 / # autorización / # transferencia), `cashSessionId`.
+`saleId`, `method enum (CASH, CARD, TRANSFER, STORE_CREDIT, OTHER)`, `amountCents` (en efectivo, lo que entregó el cliente: el vuelto se resta aparte en `Sale.changeCents`; solo el efectivo puede pasarse del total), `reference?` (últimos 4 / # autorización / # transferencia), `cashSessionId`.
 Datos de tarjeta **nunca**: solo monto y referencia.
 
 ### ParkedSale (venta en espera, opcional en servidor)

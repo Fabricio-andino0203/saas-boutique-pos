@@ -9,6 +9,8 @@ export const APP_ERROR_CODES = [
   "CASH_SESSION_OPEN",
   "CASH_SESSION_STATE",
   "INSUFFICIENT_CASH",
+  "DISCOUNT_NEEDS_APPROVAL",
+  "SALE_STATE",
   "FISCAL_RANGE_EXHAUSTED",
   "INVALID_CREDENTIALS",
   "ACCOUNT_LOCKED",
@@ -74,8 +76,12 @@ export class ConflictError extends AppError {
 }
 
 export class InsufficientStockError extends AppError {
-  constructor(message = "Insufficient stock", options?: AppErrorOptions) {
+  /** La prenda que no alcanzó, para poder decirle al cajero cuál es. */
+  readonly variantId?: string;
+
+  constructor(message = "Insufficient stock", options?: AppErrorOptions & { variantId?: string }) {
     super("INSUFFICIENT_STOCK", 409, message, options);
+    this.variantId = options?.variantId;
   }
 }
 
@@ -100,6 +106,18 @@ export class CashSessionStateError extends AppError {
 export class InsufficientCashError extends AppError {
   constructor(message = "Not enough cash in the drawer", options?: AppErrorOptions) {
     super("INSUFFICIENT_CASH", 409, message, options);
+  }
+}
+
+export class DiscountNeedsApprovalError extends AppError {
+  constructor(message = "The discount is above the allowed limit", options?: AppErrorOptions) {
+    super("DISCOUNT_NEEDS_APPROVAL", 403, message, options);
+  }
+}
+
+export class SaleStateError extends AppError {
+  constructor(message = "The sale does not allow this action", options?: AppErrorOptions) {
+    super("SALE_STATE", 409, message, options);
   }
 }
 

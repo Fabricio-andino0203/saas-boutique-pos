@@ -70,7 +70,10 @@ Prisma  →  PostgreSQL
 
 - Dos cajeros vendiendo la última prenda: `recordMovement` descuenta con un solo `UPDATE … WHERE onHand + cantidad >= 0` (toma el lock de la fila); el segundo espera, ve el valor ya descontado y falla con `InsufficientStockError`. La fila de `StockLevel` se crea con `INSERT … ON CONFLICT DO NOTHING`, así dos primeras entradas simultáneas no se estorban. Hay pruebas con 20 intentos simultáneos.
 - Numeración de documentos internos (compras, recepciones…): `nextDocumentNumber` incrementa `DocumentCounter` con `INSERT … ON CONFLICT DO UPDATE` dentro de la transacción del documento: correlativa y sin saltos (si se revierte, el número se reutiliza).
-- Fiscal: `FiscalRange` se bloquea con `FOR UPDATE` al emitir.
+- Fiscal: `FiscalRange` se bloquea con `FOR UPDATE` al emitir (`CaiRangeIssuer`, dentro de la transacción de la venta: si esta se revierte, el número no se consume). Vale hasta el final del día de su fecha límite.
+- Cobro (`sales.completeSale`): un `pg_advisory_xact_lock` por `clientRequestId` hace que dos envíos iguales se atiendan en fila (el segundo devuelve la venta del primero); el turno de caja se toma con `FOR SHARE` (el cierre pide `FOR UPDATE` y espera a que terminen las ventas en curso); orden de bloqueos fijo: turno → rango fiscal → contador de tickets → existencias por `variantId`. La anulación bloquea la venta (`FOR UPDATE`) y el turno (`FOR SHARE`), y solo anula ventas de un turno abierto.
+- Una autorización por PIN de gerente (`authorizeWithManagerPin`) se verifica **fuera** de la transacción de la operación: si esta se revierte, el contador de intentos fallidos también se revertiría y el bloqueo no funcionaría.
+- Con `@prisma/adapter-pg`, un `include`/`select` con varias relaciones, o un `Promise.all`, **dentro de una transacción interactiva** lanza consultas a la vez por la misma conexión (aviso `Calling client.query() when the client is already executing a query`, que `pg@9` convierte en error). Dentro de una transacción se consulta en fila (`await` uno tras otro) o se carga fuera de ella. `createMany` en lugar de `create` anidado cuando hay dos relaciones.
 - Nivel de aislamiento por defecto `READ COMMITTED` + locks explícitos; usar `Serializable` solo si un test demuestra necesidad.
 
 ## 4. Estructura de carpetas
@@ -212,4 +215,8 @@ Cada decisión relevante nueva se agrega aquí con fecha, contexto y consecuenci
 | 2026-10-23 | `@types/node` en la línea 24 | Lo exige Vitest 5 y coincide con el runtime (Node 24) |
 | 2026-10-23 | Galería `/dev/componentes` + Playwright en lugar de Storybook | Menos dependencias; los componentes se ejercen en un navegador real |
 | 2026-10-25 | Sesiones propias en lugar de Auth.js | Credenciales + base de datos no se combinan en Auth.js (solo JWT, no revocable); v5 sigue en beta y el proyecto pasa a Better Auth. Revisar si se añade inicio de sesión con terceros |
+| 2026-10-26 | `SaleItem.lineDiscountCents` incluye la parte prorrateada del descuento global; `Sale.discountCents` guarda solo el global | Así `lineTotalCents = cantidad × precio − lineDiscountCents` (con ISV incluido) y una devolución recupera exactamente lo pagado por esa línea; el descuento propio total sale de `Σ lineDiscountCents − Sale.discountCents` |
+| 2026-10-26 | El límite de descuento del cajero se compara con lo que el cajero pidió (el porcentaje tal cual; el monto contra la base), no con el monto ya redondeado | 10 % de L 99.99 no debe "pasar" del 10 % por el redondeo |
+| 2026-10-26 | La venta cae en el turno abierto de la **terminal** (no en el del usuario) y `sellerId` es quien vendió | Permite cambiar de cajero con PIN sin cerrar el turno |
+| 2026-10-26 | Anular solo ventas de un turno abierto; después, devolución | Un turno cerrado y aprobado no cambia sus cifras guardadas |
 | 2026-10-26 | `recordMovement` con SQL directo (`UPDATE` condicionado + `ON CONFLICT`) y sentido del movimiento validado por tipo | El `upsert` de Prisma dentro de una transacción no tolera la carrera de la primera entrada (un error aborta la transacción); un `UPDATE` condicionado hace atómica la validación de no-negativo |

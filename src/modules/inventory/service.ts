@@ -122,7 +122,7 @@ export async function recordMovement(tx: Tx, input: MovementInput): Promise<void
     RETURNING "onHand"
   `;
   if (updated.length === 0) {
-    throw new InsufficientStockError();
+    throw new InsufficientStockError(undefined, { variantId: input.variantId });
   }
 
   await tx.stockMovement.create({

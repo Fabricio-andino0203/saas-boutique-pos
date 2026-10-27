@@ -31,11 +31,13 @@ function isUniqueViolation(error: unknown): boolean {
 }
 
 /** La terminal en la que se abre el turno: por ahora la primera activa (hoy solo hay "Caja 1"). */
-export async function getDefaultTerminal(client: Client): Promise<{ id: string; name: string }> {
+export async function getDefaultTerminal(
+  client: Client,
+): Promise<{ id: string; name: string; locationId: string }> {
   const terminal = await client.terminal.findFirst({
     where: { isActive: true },
     orderBy: { createdAt: "asc" },
-    select: { id: true, name: true },
+    select: { id: true, name: true, locationId: true },
   });
   if (!terminal) {
     throw new ValidationError("There is no active terminal");
@@ -52,21 +54,20 @@ export async function loadCashTotals(client: Client, cashSessionId: string): Pro
   if (!session) {
     throw new NotFoundError();
   }
-  const [cashPayments, change, movements] = await Promise.all([
-    client.payment.aggregate({
-      _sum: { amountCents: true },
-      where: { cashSessionId, method: "CASH", sale: { status: "COMPLETED" } },
-    }),
-    client.sale.aggregate({
-      _sum: { changeCents: true },
-      where: { cashSessionId, status: "COMPLETED" },
-    }),
-    client.cashMovement.groupBy({
-      by: ["type"],
-      where: { cashSessionId },
-      _sum: { amountCents: true },
-    }),
-  ]);
+  // En secuencia: con una transacción, una sola conexión no puede atender consultas a la vez.
+  const cashPayments = await client.payment.aggregate({
+    _sum: { amountCents: true },
+    where: { cashSessionId, method: "CASH", sale: { status: "COMPLETED" } },
+  });
+  const change = await client.sale.aggregate({
+    _sum: { changeCents: true },
+    where: { cashSessionId, status: "COMPLETED" },
+  });
+  const movements = await client.cashMovement.groupBy({
+    by: ["type"],
+    where: { cashSessionId },
+    _sum: { amountCents: true },
+  });
   const moved = (type: "IN" | "OUT") =>
     movements.find((movement) => movement.type === type)?._sum.amountCents ?? 0;
   return {
