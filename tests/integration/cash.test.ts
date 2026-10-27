@@ -530,7 +530,11 @@ describe("cash queries", () => {
   it("finds the open shift of a user and who has the terminal", async () => {
     const w = await world();
     expect(await getOpenSessionOf(w.cashier.id)).toBeNull();
-    expect(await getTerminalStatus()).toEqual({ terminalName: "Caja 1", openBy: null });
+    expect(await getTerminalStatus()).toEqual({
+      terminalId: w.terminal.id,
+      terminalName: "Caja 1",
+      openBy: null,
+    });
 
     await openCashSession(w.cashier, { openingFloatCents: 2500 }, testDb);
     const open = await getOpenSessionOf(w.cashier.id);
@@ -541,7 +545,11 @@ describe("cash queries", () => {
       openingFloatCents: 2500,
     });
     expect(await getOpenSessionOf(w.cashier2.id)).toBeNull();
-    expect(await getTerminalStatus()).toEqual({ terminalName: "Caja 1", openBy: "cashier" });
+    expect(await getTerminalStatus()).toEqual({
+      terminalId: w.terminal.id,
+      terminalName: "Caja 1",
+      openBy: "cashier",
+    });
   });
 
   it("lists shifts newest first, filtered by user or status, and counts the pending ones", async () => {

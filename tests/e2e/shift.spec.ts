@@ -517,3 +517,170 @@ test("the cashier hands the counter to a manager with a PIN and back", async ({ 
   await expect(who).toContainText("Cajero Demo");
   await closeLeftoverCash(page);
 });
+
+// ───────────── Aceptación de la Fase 3 ─────────────
+
+test("acceptance: scan three garments, 10 % off, split payment, ticket, and the cash closes at zero", async ({
+  page,
+  browser,
+}) => {
+  test.slow();
+  const stamp = Date.now();
+  const items = [
+    { name: `E2E Dia A ${stamp}`, price: "100", shown: "L 100.00" },
+    { name: `E2E Dia B ${stamp}`, price: "200", shown: "L 200.00" },
+    { name: `E2E Dia C ${stamp}`, price: "300", shown: "L 300.00" },
+  ];
+  const baseURL = test.info().project.use.baseURL as string;
+
+  // El propietario deja tres prendas con existencias; su código es el que luego se "escanea"
+  const ownerContext = await browser.newContext({ baseURL });
+  const owner = await ownerContext.newPage();
+  await loginAs(owner, "owner");
+  const codes: string[] = [];
+  for (const item of items) {
+    codes.push(await createSimpleProduct(owner, item.name, item.price, item.shown));
+    await addStock(owner, item.name, "2");
+  }
+  await ownerContext.close();
+
+  // La cajera inicia sesión y abre la caja con L 500 de fondo
+  await loginAs(page, "cashier");
+  await closeLeftoverCash(page);
+  await page.goto("/caja");
+  await fillMoney(page, messages.cash.open.float, "500");
+  await page.getByRole("button", { name: messages.cash.open.submit }).click();
+  await expect(page.getByRole("group", { name: messages.cash.current.expected })).toContainText(
+    "L 500.00",
+  );
+
+  // Escanea las tres: el lector escribe el código y pulsa Enter
+  await page.goto("/vender");
+  const search = page.getByRole("textbox", { name: pos.search.label });
+  await expect(search).toBeFocused();
+  await expect(page.getByText(pos.ticket.empty)).toBeVisible();
+  for (const [index, code] of codes.entries()) {
+    await search.fill(code);
+    await search.press("Enter");
+    await expect(page.getByText(`${pos.notices.added} ${items[index]?.name}`)).toBeVisible();
+  }
+  const total = page.getByRole("group", { name: pos.ticket.total });
+  await expect(total).toContainText("L 600.00");
+
+  // 10 % a toda la venta (dentro del límite del cajero): L 540
+  await page.keyboard.press("F4");
+  await page.getByRole("radio", { name: pos.discount.scopeAll }).check();
+  const value = page.getByLabel(pos.discount.value, { exact: true });
+  await expect(async () => {
+    await value.fill("10");
+    await expect(value).toHaveValue("10");
+  }).toPass();
+  await page.getByRole("button", { name: pos.discount.apply }).click();
+  await expect(total).toContainText("L 540.00");
+
+  // Pago mixto: tarjeta L 140 y el resto en efectivo, exacto (sin cambio)
+  await page.keyboard.press("F12");
+  await page.getByRole("button", { name: charge.methods.CARD, exact: true }).click();
+  const amount = page.getByLabel(charge.amount, { exact: true });
+  await expect(async () => {
+    await amount.click();
+    await amount.press("ControlOrMeta+a");
+    await amount.pressSequentially("140");
+    await amount.blur();
+    await expect(amount).toHaveValue("L 140.00");
+  }).toPass();
+  await page.getByLabel(charge.reference, { exact: true }).fill("9999");
+  await page.getByRole("button", { name: charge.addPayment }).click();
+  await page.getByRole("button", { name: charge.methods.CASH, exact: true }).click();
+  await expect(amount).toHaveValue("L 400.00");
+  await page.getByRole("button", { name: `${charge.submit} L 540.00` }).click();
+
+  // Venta registrada, sin cambio; el ticket lleva las tres prendas
+  await expect(page.getByRole("heading", { name: charge.done.title })).toBeVisible();
+  await expect(page.getByText(charge.done.noChange)).toBeVisible();
+  const printHref = (await page
+    .getByRole("link", { name: charge.done.printTicket })
+    .getAttribute("href")) as string;
+  await page.goto(printHref.replace("?auto=1", ""));
+  const sheet = page.getByRole("article", { name: new RegExp(`^${messages.salesDoc.ticket} T-`) });
+  for (const item of items) {
+    await expect(sheet).toContainText(item.name);
+  }
+  await expect(sheet).toContainText("L 540.00");
+
+  // Cierre: debe haber L 500 de fondo + L 400 en efectivo = L 900 (la tarjeta no entra al cajón)
+  await page.goto("/caja");
+  await expect(page.getByRole("group", { name: messages.cash.current.expected })).toContainText(
+    "L 900.00",
+  );
+  await fillMoney(page, messages.cash.close.counted, "900");
+  await page.getByRole("button", { name: messages.cash.close.check }).click();
+  await expect(page.getByText(messages.cash.close.matches)).toBeVisible();
+  const closeButton = page.getByRole("button", { name: messages.cash.close.submit, exact: true });
+  await expect(closeButton).toBeEnabled();
+  await closeButton.click();
+
+  // El resumen del turno: una venta, el efectivo y la tarjeta por separado, diferencia cero
+  await expect(page).toHaveURL(/\/caja\/cierres\/[a-z0-9]+$/);
+  const detailUrl = page.url();
+  const summary = page.getByRole("region", { name: messages.cash.detail.summary });
+  await expect(summary).toContainText("L 900.00");
+  await expect(summary).toContainText(`${messages.cash.detail.salesCount}: 1`);
+  await expect(
+    page.getByRole("region", { name: messages.cash.detail.paymentsTitle }),
+  ).toContainText(`${messages.cash.methods.CARD} (1)`);
+  await expect(
+    page.getByText(messages.cash.status.CLOSED_PENDING_APPROVAL, { exact: true }),
+  ).toBeVisible();
+
+  // El gerente lo aprueba y el turno queda cerrado
+  const managerContext = await browser.newContext({ baseURL });
+  const manager = await managerContext.newPage();
+  await loginAs(manager, "manager");
+  await manager.goto(detailUrl);
+  await manager.getByRole("button", { name: messages.cash.approve.action }).click();
+  await expect(manager.getByText(messages.cash.approve.approved)).toBeVisible();
+  await expect(manager.getByText(messages.cash.status.CLOSED, { exact: true })).toBeVisible();
+  await managerContext.close();
+});
+
+// ───────────── Alertas del CAI ─────────────
+
+test("a billing range about to expire is flagged on the manager's home page", async ({
+  browser,
+}) => {
+  test.slow();
+  const baseURL = test.info().project.use.baseURL as string;
+  const prefix = `E2E-${Date.now() % 100000}-`;
+  // La fecha límite: dentro de 12 días, en la fecha local de Honduras (YYYY-MM-DD)
+  const in12Days = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Tegucigalpa" }).format(
+    new Date(Date.now() + 12 * 86_400_000),
+  );
+
+  const ownerContext = await browser.newContext({ baseURL });
+  const owner = await ownerContext.newPage();
+  await loginAs(owner, "owner");
+  await createInvoiceRange(owner, prefix, in12Days);
+
+  const managerContext = await browser.newContext({ baseURL });
+  const manager = await managerContext.newPage();
+  await loginAs(manager, "manager");
+  const card = manager.getByRole("region", { name: messages.fiscalAlerts.homeTitle });
+  await expect(card).toContainText(
+    `${messages.fiscalAlerts.expiresIn} 12 ${messages.fiscalAlerts.days}`,
+  );
+  await expect(card).toContainText(prefix);
+  await managerContext.close();
+
+  // Un cajero no ve la tarjeta de facturación del inicio
+  const cashierContext = await browser.newContext({ baseURL });
+  const cashier = await cashierContext.newPage();
+  await loginAs(cashier, "cashier");
+  await expect(cashier.getByRole("region", { name: messages.fiscalAlerts.homeTitle })).toHaveCount(
+    0,
+  );
+  await cashierContext.close();
+
+  await deactivateInvoiceRange(owner, prefix);
+  await ownerContext.close();
+});

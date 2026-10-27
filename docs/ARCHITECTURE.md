@@ -161,7 +161,11 @@ interface FiscalDocumentIssuer {
   issue(tx, saleDraft): Promise<{ type; number; cai?; ... }>
 }
 ```
-Implementación inicial: `CaiRangeIssuer` (correlativo local con rango/CAI/fecha límite). Si luego se exige facturación electrónica, se agrega otra implementación sin tocar `sales`.
+Implementación inicial: `caiRangeIssuer` en `src/modules/fiscal/issuer.ts` (correlativo local con rango/CAI/fecha límite): toma el rango activo de la terminal (o el general) con `FOR UPDATE`, no emite si venció (vale hasta el final del día de su fecha límite, hora de Honduras) ni si se agotó, y el número se consume dentro de la transacción de la venta. Si luego se exige facturación electrónica, se agrega otra implementación sin tocar `sales`.
+
+**Alertas** (`src/modules/fiscal/health.ts` y `alerts.ts`): un rango activo avisa 30 días antes de vencer (`expiring`), cuando quedan pocos números (los mayores entre 50 o el 10 % del rango: `low`), y bloquea al vencer o agotarse (`expired`, `exhausted`). El POS muestra el aviso y solo ofrece factura si hay un rango utilizable (si no, ticket interno); el inicio del gerente y del propietario muestra la tarjeta "Facturación con CAI". Sin ningún rango activo no hay alertas: se vende con ticket interno.
+
+**Documentos impresos:** ticket de 80 mm (`/imprimir/ticket/[id]`) y factura A4 (`/imprimir/factura/[id]`) con CAI, rango autorizado, fecha límite e importes exento/gravado/ISV, por el diálogo de impresión del navegador. Pendiente de validar con el contador del negocio: el formato oficial de la factura y el "total en letras" (Fase 6).
 
 ## 9. Despliegue y operación
 

@@ -1,3 +1,4 @@
+import type { InvoicingState } from "@/modules/fiscal/alerts";
 import type { SalePaymentMethod } from "@/modules/sales/schemas";
 
 /** Tipos que comparten el servidor y la pantalla del punto de venta (sin código de servidor). */
@@ -39,6 +40,8 @@ export type PosConfig = {
   taxRateBps: number;
   pricesIncludeTax: boolean;
   allowNegativeStock: boolean;
+  /** Si se puede facturar hoy con el rango de la terminal y qué rangos hay que renovar. */
+  invoicing: InvoicingState;
   /** Formas de pago que el negocio tiene activas (ajuste `payments.enabled`). */
   enabledPaymentMethods: SalePaymentMethod[];
   /** Límite de descuento del cajero, en porcentaje (10 = 10 %). */

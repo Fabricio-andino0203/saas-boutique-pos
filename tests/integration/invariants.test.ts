@@ -65,15 +65,9 @@ describe("invariante 1: Σ StockMovement = StockLevel.onHand", () => {
   });
 });
 
+// Las invariantes de la Fase 3 (pagos, correlativos, efectivo esperado, anulaciones) se comprueban en
+// `invariants-sales.test.ts` tras 200 operaciones aleatorias.
 describe("invariantes pendientes de fases posteriores", () => {
-  it.todo("Σ Payment − change = Sale.total para toda venta completada (Fase 3)");
   it.todo("Σ ReturnItem.quantity ≤ SaleItem.quantity por línea (Fase 4)");
-  it.todo(
-    "Los correlativos fiscales no tienen saltos ni repeticiones y están dentro del rango vigente (Fase 3)",
-  );
   it.todo("Customer.storeCreditCents = Σ StoreCreditEntry.amountCents (Fase 4)");
-  it.todo(
-    "CashSession.expectedCash = opening + Σ pagos en efectivo + Σ CashMovement IN − Σ CashMovement OUT − reembolsos en efectivo (Fase 3)",
-  );
-  it.todo("Una venta VOIDED revierte exactamente sus movimientos de stock y de pago (Fase 3)");
 });

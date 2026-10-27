@@ -5,7 +5,9 @@ import { messages } from "@/config/messages.es";
 import { requireSession } from "@/lib/auth";
 import { formatLocalDateTime } from "@/lib/dates";
 import { hasCapability } from "@/lib/permissions";
-import { countPendingApprovals, getOpenSessionOf } from "@/modules/cash/queries";
+import { countPendingApprovals, getOpenSessionOf, getTerminalStatus } from "@/modules/cash/queries";
+import { getInvoicingState } from "@/modules/fiscal/alerts";
+import { FiscalAlerts } from "@/modules/fiscal/components/fiscal-alerts";
 import { listReorderAlerts } from "@/modules/inventory/reorder";
 import { getSettingsSnapshot } from "@/modules/settings/service";
 
@@ -19,6 +21,9 @@ export default async function HomePage() {
   const reorder = messages.reorder.card;
   const cashCopy = messages.cash.card;
   const myCash = hasCapability(user.role, "cash.open") ? await getOpenSessionOf(user.id) : null;
+  const invoicing = hasCapability(user.role, "cash.closeApprove")
+    ? await getInvoicingState((await getTerminalStatus()).terminalId)
+    : null;
   const pendingCloses = hasCapability(user.role, "cash.closeApprove")
     ? await countPendingApprovals()
     : 0;
@@ -53,6 +58,14 @@ export default async function HomePage() {
               </Link>
             </p>
           ) : null}
+        </section>
+      ) : null}
+      {invoicing && invoicing.alerts.length > 0 ? (
+        <section aria-labelledby="fiscal-title" className="bg-card space-y-3 rounded-lg border p-4">
+          <h2 id="fiscal-title" className="font-medium">
+            {messages.fiscalAlerts.homeTitle}
+          </h2>
+          <FiscalAlerts alerts={invoicing.alerts} />
         </section>
       ) : null}
       {alerts ? (

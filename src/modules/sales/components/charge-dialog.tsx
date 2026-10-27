@@ -310,16 +310,20 @@ function ChargeForm({
         </Button>
       ) : null}
 
-      <label className="flex items-center gap-2 text-sm">
-        <input
-          type="checkbox"
-          checked={invoice}
-          onChange={(event) => setInvoice(event.target.checked)}
-          className="accent-primary size-4"
-        />
-        {copy.invoice}
-      </label>
-      {invoice ? (
+      {config.invoicing.available ? (
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={invoice}
+            onChange={(event) => setInvoice(event.target.checked)}
+            className="accent-primary size-4"
+          />
+          {copy.invoice}
+        </label>
+      ) : config.invoicing.alerts.length > 0 ? (
+        <p className="text-muted-foreground text-sm">{messages.fiscalAlerts.unavailable}</p>
+      ) : null}
+      {invoice && config.invoicing.available ? (
         <div className="grid gap-3 sm:grid-cols-2">
           <FormField label={copy.invoiceTaxId} htmlFor="charge-tax-id">
             <Input

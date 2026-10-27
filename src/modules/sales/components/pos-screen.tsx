@@ -10,6 +10,7 @@ import { formatMoney } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { labelOfVariant, summarizeCart } from "@/modules/sales/cart-logic";
 import { hydratePosStore, usePosStore } from "@/modules/sales/cart-store";
+import { FiscalAlerts } from "@/modules/fiscal/components/fiscal-alerts";
 import { ChargeDialog } from "@/modules/sales/components/charge-dialog";
 import { DiscountDialog } from "@/modules/sales/components/discount-dialog";
 import {
@@ -372,6 +373,8 @@ export function PosScreen({
           </Button>
         </div>
       </header>
+
+      <FiscalAlerts alerts={config.invoicing.alerts} />
 
       <div className="grid gap-4 lg:h-[calc(100dvh-13rem)] lg:grid-cols-[minmax(0,1fr)_24rem]">
         <div className="flex min-h-0 flex-col gap-3">

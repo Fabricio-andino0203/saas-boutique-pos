@@ -60,7 +60,7 @@ uno por uno y marca la fase en CLAUDE.md.
 **Objetivo:** poder entrar al sistema, configurarlo y **cargar el catálogo completo de la boutique**.
 
 **Entregables**
-1. **Auth:** login, sesión, cierre de sesión, bloqueo por intentos, cambio de contraseña; PIN de cajero (guardar/validar; el cambio rápido en el POS llega en Fase 3).
+1. **Auth:** login, sesión, cierre de sesión, bloqueo por intentos, cambio de contraseña; PIN de cajero (guardar/validar; el cambio rápido en el POS se hizo en la Fase 3: `switchUserWithPin`).
 2. **Usuarios:** CRUD, roles, activar/desactivar, reset de contraseña/PIN. Guardas de capacidad en todas las rutas.
 3. **Auditoría:** `audit.log()` en acciones sensibles + pantalla de consulta con filtros.
 4. **Configuración:** datos del negocio, impuestos, métodos de pago, límites de descuento, políticas (devoluciones, apartados), rangos CAI (CRUD básico con validaciones), stock negativo sí/no.

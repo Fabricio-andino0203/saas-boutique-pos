@@ -7,6 +7,7 @@ import { db } from "@/lib/db";
 import { hasCapability } from "@/lib/permissions";
 import { getSettings } from "@/lib/settings";
 import { getTerminalStatus } from "@/modules/cash/queries";
+import { getInvoicingState } from "@/modules/fiscal/alerts";
 import { PosScreen } from "@/modules/sales/components/pos-screen";
 import { listPosCategories } from "@/modules/sales/pos-queries";
 import type { PosConfig } from "@/modules/sales/pos-types";
@@ -31,13 +32,18 @@ export default async function PosPage() {
     );
   }
 
-  const [settings, categories] = await Promise.all([getSettings(db), listPosCategories()]);
+  const [settings, categories, invoicing] = await Promise.all([
+    getSettings(db),
+    listPosCategories(),
+    getInvoicingState(terminal.terminalId),
+  ]);
   const config: PosConfig = {
     terminalName: terminal.terminalName,
     openedByName: terminal.openBy,
     taxRateBps: settings["tax.rate"],
     pricesIncludeTax: settings["tax.pricesIncludeTax"],
     allowNegativeStock: settings["sales.allowNegativeStock"],
+    invoicing,
     enabledPaymentMethods: settings["payments.enabled"],
     cashierDiscountPercent: settings["discount.maxPercent.CASHIER"],
     canDiscountBeyondLimit: hasCapability(user.role, "discount.applyBeyondLimit"),

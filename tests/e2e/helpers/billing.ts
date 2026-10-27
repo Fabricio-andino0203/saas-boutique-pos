@@ -14,7 +14,11 @@ async function typeInto(page: Page, label: string, value: string) {
 }
 
 /** Crea un rango de facturas de prueba para "Caja 1" (el prefijo empieza por `E2E-`: la limpieza lo reconoce). */
-export async function createInvoiceRange(page: Page, prefix: string): Promise<void> {
+export async function createInvoiceRange(
+  page: Page,
+  prefix: string,
+  expires = "2099-12-31",
+): Promise<void> {
   await page.goto("/configuracion/cai");
   await expect(page.getByRole("heading", { level: 1, name: copy.title })).toBeVisible();
   await expect(async () => {
@@ -26,7 +30,7 @@ export async function createInvoiceRange(page: Page, prefix: string): Promise<vo
   await typeInto(page, copy.fields.prefix, prefix);
   await typeInto(page, copy.fields.start, "1");
   await typeInto(page, copy.fields.end, "100");
-  await typeInto(page, copy.fields.expires, "2099-12-31");
+  await typeInto(page, copy.fields.expires, expires);
   await page.getByRole("button", { name: copy.create }).click();
   await expect(page.getByText(copy.created)).toBeVisible();
 }

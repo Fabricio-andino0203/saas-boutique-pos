@@ -63,6 +63,7 @@ export async function getOpenSessionOf(userId: string): Promise<CashSessionRow |
 
 /** Quién tiene abierta la terminal por defecto (para avisar antes de intentar abrirla). */
 export async function getTerminalStatus(): Promise<{
+  terminalId: string;
   terminalName: string;
   openBy: string | null;
 }> {
@@ -71,7 +72,7 @@ export async function getTerminalStatus(): Promise<{
     where: { terminalId: terminal.id, status: "OPEN" },
     select: { user: { select: { name: true } } },
   });
-  return { terminalName: terminal.name, openBy: open?.user.name ?? null };
+  return { terminalId: terminal.id, terminalName: terminal.name, openBy: open?.user.name ?? null };
 }
 
 export type CashSessionList = {
