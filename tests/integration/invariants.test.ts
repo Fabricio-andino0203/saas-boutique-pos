@@ -65,9 +65,6 @@ describe("invariante 1: Σ StockMovement = StockLevel.onHand", () => {
   });
 });
 
-// Las invariantes de la Fase 3 (pagos, correlativos, efectivo esperado, anulaciones) se comprueban en
-// `invariants-sales.test.ts` tras 200 operaciones aleatorias.
-describe("invariantes pendientes de fases posteriores", () => {
-  it.todo("Σ ReturnItem.quantity ≤ SaleItem.quantity por línea (Fase 4)");
-  it.todo("Customer.storeCreditCents = Σ StoreCreditEntry.amountCents (Fase 4)");
-});
+// Las demás invariantes se comprueban tras 200 operaciones aleatorias: pagos, correlativos, efectivo esperado y anulaciones
+// en `invariants-sales.test.ts` (Fase 3); devoluciones (#3), crédito de tienda (#5), apartados y reservas, con ventas,
+// cambios y notas de crédito mezclados, en `invariants-phase4.test.ts` (Fase 4).

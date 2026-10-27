@@ -10,6 +10,7 @@ import {
   LayawayDepositError,
   LayawayStateError,
   NotFoundError,
+  SaleStateError,
   ValidationError,
 } from "@/lib/errors";
 import { hashSecret } from "@/lib/password";
@@ -25,7 +26,8 @@ import {
   expireOverdueLayaways,
   settleLayaway,
 } from "@/modules/layaways/service";
-import { completeSale } from "@/modules/sales/service";
+import { lookupCode, searchSellable } from "@/modules/sales/pos-queries";
+import { completeSale, voidSale } from "@/modules/sales/service";
 
 import { closeDatabase, resetDatabase, testDb } from "./helpers/db";
 
@@ -307,6 +309,42 @@ describe("reserved garments are not for sale", () => {
   });
 });
 
+describe("what the counter sees", () => {
+  beforeEach(resetDatabase);
+  afterAll(closeAll);
+
+  it("shows a reserved garment as not available, and gives it back when the layaway expires or is cancelled", async () => {
+    const w = await world();
+    const availableOf = async () => {
+      const found = await searchSellable({ q: "VES1" });
+      return found.flatMap((product) => product.variants).find((v) => v.variantId === w.dress.id)
+        ?.onHand;
+    };
+    const byCode = async () => {
+      const result = await lookupCode(w.dress.barcode as string);
+      return result.kind === "variant" ? result.variant.onHand : null;
+    };
+    expect(await availableOf()).toBe(5);
+
+    const layaway = await create(w, [{ variantId: w.dress.id, quantity: 2 }], cash(4000));
+    expect(await availableOf()).toBe(3);
+    expect(await byCode()).toBe(3);
+
+    // Al cancelar vuelve a estar disponible
+    await cancelLayaway(w.manager, { layawayId: layaway.id, reason: "Ya no lo quiere" }, testDb);
+    expect(await availableOf()).toBe(5);
+
+    // Y al vencer, también
+    await create(w, [{ variantId: w.dress.id, quantity: 3 }], cash(6000), {
+      now: addLocalDays(new Date(), -40),
+    });
+    expect(await availableOf()).toBe(2);
+    await expireOverdueLayaways(w.cashier, testDb);
+    expect(await availableOf()).toBe(5);
+    expect(await byCode()).toBe(5);
+  });
+});
+
 describe("addLayawayPayment", () => {
   beforeEach(resetDatabase);
   afterAll(closeAll);
@@ -490,6 +528,19 @@ describe("settleLayaway", () => {
     const results = await Promise.all([1, 2, 3].map(() => settle(w, layaway.id, [cash(8000)], id)));
     expect(results.filter((r) => !r.replayed)).toHaveLength(1);
     expect(await testDb.sale.count()).toBe(1);
+    expect(await stock(w.dress.id)).toEqual({ onHand: 4, reserved: 0 });
+  });
+
+  it("does not let the sale that settled a layaway be voided: its deposits are already collected", async () => {
+    const w = await world();
+    const layaway = await create(w, oneDress(w), cash(2000));
+    const result = await settle(w, layaway.id, [cash(8000)]);
+    await expect(
+      voidSale(w.manager, result.sale.id, { reason: "Error del cajero" }, testDb),
+    ).rejects.toBeInstanceOf(SaleStateError);
+    expect((await testDb.sale.findUniqueOrThrow({ where: { id: result.sale.id } })).status).toBe(
+      "COMPLETED",
+    );
     expect(await stock(w.dress.id)).toEqual({ onHand: 4, reserved: 0 });
   });
 

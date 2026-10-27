@@ -490,6 +490,10 @@ export async function voidSale(
       if ((await tx.returnDoc.count({ where: { saleId } })) > 0) {
         throw new SaleStateError("The sale has returns: it cannot be voided");
       }
+      // Tampoco la que saldó un apartado: sus abonos ya están cobrados en otros turnos.
+      if ((await tx.layaway.count({ where: { saleId } })) > 0) {
+        throw new SaleStateError("The sale settled a layaway: use a return instead");
+      }
       // La venta que nació de un cambio tampoco: anularla dejaría la devolución del cambio sin su venta.
       if ((await tx.returnDoc.count({ where: { exchangeSaleId: saleId } })) > 0) {
         throw new SaleStateError("The sale came from an exchange: use a return instead");

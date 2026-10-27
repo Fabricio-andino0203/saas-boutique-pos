@@ -19,7 +19,7 @@ Moneda: Lempira (HNL, símbolo `L`). Zona horaria: `America/Tegucigalpa`.
 - [x] Fase 1 — Acceso, configuración y catálogo (2026-10-26)
 - [x] Fase 2 — Inventario y compras (2026-10-26)
 - [x] Fase 3 — Caja y punto de venta (2026-10-26)
-- [ ] Fase 4 — Devoluciones, cambios, apartados, crédito de tienda
+- [x] Fase 4 — Devoluciones, cambios, apartados, crédito de tienda (2026-10-27)
 - [ ] Fase 5 — Clientes, reportes y dashboard
 - [ ] Fase 6 — Endurecimiento y despliegue
 
