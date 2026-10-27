@@ -238,24 +238,26 @@ export function TicketPanel({
               <span>{messages.returns.exchange.credit}</span>
               <span className="tabular-nums">−{formatMoney(credit)}</span>
             </div>
-            <div
-              role="group"
-              aria-label={
-                difference >= 0
-                  ? messages.returns.exchange.toPay
-                  : messages.returns.exchange.inFavor
-              }
-              className="bg-primary text-primary-foreground flex items-baseline justify-between rounded-lg px-4 py-2"
-            >
-              <span className="font-semibold">
-                {difference >= 0
-                  ? messages.returns.exchange.toPay
-                  : messages.returns.exchange.inFavor}
-              </span>
-              <span className="text-2xl leading-tight font-bold tabular-nums">
-                {formatMoney(Math.abs(difference))}
-              </span>
-            </div>
+            {items.length > 0 ? (
+              <div
+                role="group"
+                aria-label={
+                  difference >= 0
+                    ? messages.returns.exchange.toPay
+                    : messages.returns.exchange.inFavor
+                }
+                className="bg-primary text-primary-foreground flex items-baseline justify-between rounded-lg px-4 py-2"
+              >
+                <span className="font-semibold">
+                  {difference >= 0
+                    ? messages.returns.exchange.toPay
+                    : messages.returns.exchange.inFavor}
+                </span>
+                <span className="text-2xl leading-tight font-bold tabular-nums">
+                  {formatMoney(Math.abs(difference))}
+                </span>
+              </div>
+            ) : null}
           </>
         ) : null}
         <div className="grid grid-cols-[1fr_auto] gap-2">
