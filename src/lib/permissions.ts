@@ -12,6 +12,8 @@ export const CAPABILITIES = [
   "return.create",
   "return.refundCash",
   "return.overridePolicy",
+  "customer.view",
+  "credit.adjust",
   "cash.open",
   "cash.closeApprove",
   "cash.viewOthers",
@@ -37,7 +39,13 @@ const MANAGER_CAPABILITIES: readonly Capability[] = CAPABILITIES.filter(
 export const ROLE_CAPABILITIES: Record<Role, ReadonlySet<Capability>> = {
   OWNER: new Set<Capability>(CAPABILITIES),
   MANAGER: new Set<Capability>(MANAGER_CAPABILITIES),
-  CASHIER: new Set<Capability>(["sale.create", "discount.apply", "return.create", "cash.open"]),
+  CASHIER: new Set<Capability>([
+    "sale.create",
+    "discount.apply",
+    "return.create",
+    "customer.view",
+    "cash.open",
+  ]),
   WAREHOUSE: new Set<Capability>(["product.write", "stock.adjust", "purchase.receive"]), // cuenta, pero no aprueba conteos
 };
 

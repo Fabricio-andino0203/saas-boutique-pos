@@ -279,9 +279,11 @@ describe("sale schemas", () => {
     expect(
       saleInputSchema.safeParse({ ...valid, discount: { type: "AMOUNT", cents: 0 } }).success,
     ).toBe(false);
+    // El crédito de tienda se cobra; el pago "Cambio" lo crea el servidor, nunca el cliente
     expect(paymentSchema.safeParse({ method: "STORE_CREDIT", amountCents: 100 }).success).toBe(
-      false,
+      true,
     );
+    expect(paymentSchema.safeParse({ method: "EXCHANGE", amountCents: 100 }).success).toBe(false);
     expect(paymentSchema.safeParse({ method: "CASH", amountCents: 0 }).success).toBe(false);
   });
 

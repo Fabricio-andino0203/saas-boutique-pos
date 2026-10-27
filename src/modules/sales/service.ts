@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import {
   CashSessionClosedError,
   ConflictError,
+  CustomerRequiredError,
   DiscountNeedsApprovalError,
   ForbiddenError,
   NotFoundError,
@@ -16,6 +17,7 @@ import { sumCents } from "@/lib/money";
 import { hasCapability, requireCapability } from "@/lib/permissions";
 import { getSettings } from "@/lib/settings";
 import { authorizeWithManagerPin } from "@/modules/auth/manager-override";
+import { applyStoreCredit } from "@/modules/credit/service";
 import type { SessionUser } from "@/modules/auth/service";
 import type { Actor } from "@/modules/catalog/service";
 import { getDefaultTerminal } from "@/modules/cash/service";
@@ -265,8 +267,18 @@ export async function runSale(
   }
 
   const enabled: readonly string[] = settings["payments.enabled"];
-  if (data.payments.some((payment) => !enabled.includes(payment.method))) {
+  if (
+    data.payments.some(
+      (payment) => payment.method !== "STORE_CREDIT" && !enabled.includes(payment.method),
+    )
+  ) {
     throw new ValidationError("A payment method is not enabled");
+  }
+  const storeCreditCents = sumCents(
+    data.payments.filter((payment) => payment.method === "STORE_CREDIT").map((p) => p.amountCents),
+  );
+  if (storeCreditCents > 0 && !data.customerId) {
+    throw new CustomerRequiredError();
   }
   const creditAppliedCents = Math.min(options.creditCents ?? 0, priced.totalCents);
   const allPayments: { method: PaymentMethod; amountCents: number; reference?: string }[] = [
@@ -358,6 +370,17 @@ export async function runSale(
       userId: actor.id,
       refType: "Sale",
       refId: sale.id,
+    });
+  }
+
+  if (storeCreditCents > 0 && data.customerId) {
+    await applyStoreCredit(tx, {
+      customerId: data.customerId,
+      amountCents: -storeCreditCents,
+      reason: "USED_IN_SALE",
+      refType: "Sale",
+      refId: sale.id,
+      userId: actor.id,
     });
   }
 
@@ -480,6 +503,30 @@ export async function voidSale(
           reason: `${VOID_STOCK_REASON} ${sale.number}`,
           refType: "Sale",
           refId: saleId,
+        });
+      }
+
+      // Lo pagado con crédito de tienda vuelve al saldo del cliente (queda en el libro como "venta anulada").
+      const spentCredit = await tx.payment.aggregate({
+        _sum: { amountCents: true },
+        where: { saleId, method: "STORE_CREDIT" },
+      });
+      const creditToRestore = spentCredit._sum.amountCents ?? 0;
+      if (creditToRestore > 0) {
+        const owner = await tx.sale.findUniqueOrThrow({
+          where: { id: saleId },
+          select: { customerId: true },
+        });
+        if (!owner.customerId) {
+          throw new SaleStateError("A sale paid with store credit must have a customer");
+        }
+        await applyStoreCredit(tx, {
+          customerId: owner.customerId,
+          amountCents: creditToRestore,
+          reason: "SALE_VOID",
+          refType: "Sale",
+          refId: saleId,
+          userId: actor.id,
         });
       }
 

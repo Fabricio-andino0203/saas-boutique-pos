@@ -22,7 +22,11 @@ import {
 import { SwitchCashierDialog } from "@/modules/sales/components/switch-cashier-dialog";
 import { TicketPanel } from "@/modules/sales/components/ticket-panel";
 import { VariantPicker } from "@/modules/sales/components/variant-picker";
-import { lookupCodeAction, searchPosAction } from "@/modules/sales/pos-actions";
+import {
+  getCustomerCreditAction,
+  lookupCodeAction,
+  searchPosAction,
+} from "@/modules/sales/pos-actions";
 import type {
   PosCategory,
   PosConfig,
@@ -90,6 +94,11 @@ export function PosScreen({
   const [notice, setNotice] = useState<Notice | null>(null);
   const [picker, setPicker] = useState<SellableProduct | null>(null);
   const [dialog, setDialog] = useState<DialogName | null>(null);
+  // El saldo de crédito del cliente del ticket; se vuelve a leer al elegirlo y al abrir o cerrar el cobro.
+  const [credit, setCredit] = useState<{ customerId: string; cents: number } | null>(null);
+  const customerId = customer?.id ?? null;
+  const chargeOpen = dialog === "charge";
+  const creditCents = credit && credit.customerId === customerId ? credit.cents : 0;
   const searchRef = useRef<HTMLInputElement>(null);
 
   const focusSearch = useCallback(() => {
@@ -100,6 +109,21 @@ export function PosScreen({
     void hydratePosStore();
     focusSearch();
   }, [focusSearch]);
+
+  useEffect(() => {
+    if (!customerId) {
+      return;
+    }
+    let cancelled = false;
+    void getCustomerCreditAction(customerId).then((result) => {
+      if (!cancelled && "creditCents" in result) {
+        setCredit({ customerId, cents: result.creditCents });
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [customerId, chargeOpen]);
 
   // Los avisos se van solos.
   useEffect(() => {
@@ -530,6 +554,7 @@ export function PosScreen({
           selectedId={selectedId}
           customer={customer}
           exchange={exchange}
+          creditCents={creditCents}
           onSelect={(id) => usePosStore.getState().select(id)}
           onQuantity={(id, quantity) => {
             const { capped } = usePosStore.getState().changeQuantity(id, quantity, rule);
@@ -589,6 +614,7 @@ export function PosScreen({
         open={dialog === "charge"}
         summary={summary}
         config={config}
+        creditCents={creditCents}
         onClose={closeDialog}
       />
       <SwitchCashierDialog open={dialog === "switch"} onClose={closeDialog} />

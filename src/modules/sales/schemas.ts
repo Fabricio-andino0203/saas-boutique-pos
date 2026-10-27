@@ -3,8 +3,8 @@ import { z } from "zod";
 /** Tope razonable para cualquier monto de una venta (L 10,000,000.00): evita desbordes y errores de dedo. */
 export const MAX_SALE_CENTS = 1_000_000_000;
 
-/** Formas de pago que ya se pueden cobrar. El crédito de tienda llega con la Fase 4. */
-export const SALE_PAYMENT_METHODS = ["CASH", "CARD", "TRANSFER", "OTHER"] as const;
+/** Formas de pago que se pueden cobrar. El crédito de tienda siempre está activo, pero pide un cliente con saldo. */
+export const SALE_PAYMENT_METHODS = ["CASH", "CARD", "TRANSFER", "OTHER", "STORE_CREDIT"] as const;
 export type SalePaymentMethod = (typeof SALE_PAYMENT_METHODS)[number];
 
 /** Un descuento tal como lo pidió el cajero: un porcentaje (puntos base) o un monto fijo. */

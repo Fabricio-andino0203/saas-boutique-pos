@@ -36,6 +36,8 @@ Contabilidad completa, nómina, e-commerce público, integración con marketplac
 | Devoluciones / cambios | ✓ | ✓ | ✓ (con reglas) | – |
 | Reembolsar en efectivo una devolución | ✓ | ✓ | PIN de gerente | – |
 | Devolución fuera de política (plazo o categoría) | ✓ | ✓ | PIN de gerente | – |
+| Ver clientes y su crédito de tienda | ✓ | ✓ | ✓ | – |
+| Ajustar a mano el crédito de tienda de un cliente (con motivo) | ✓ | ✓ | – | – |
 | Abrir / cerrar caja propia | ✓ | ✓ | ✓ | – |
 | Ver cierres de otros cajeros | ✓ | ✓ | – | – |
 | Crear / editar productos | ✓ | ✓ | – | ✓ |

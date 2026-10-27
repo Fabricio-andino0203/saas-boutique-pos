@@ -12,6 +12,8 @@ export type StoreCreditMovement = {
   refType: string;
   refId: string;
   userId: string;
+  /** El motivo, en los ajustes manuales. */
+  note?: string;
 };
 
 /**
@@ -44,6 +46,7 @@ export async function applyStoreCredit(
       reason: movement.reason,
       refType: movement.refType,
       refId: movement.refId,
+      note: movement.note,
       userId: movement.userId,
     },
   });

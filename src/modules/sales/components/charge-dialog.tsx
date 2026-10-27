@@ -1,6 +1,6 @@
 "use client";
 
-import { Banknote, CreditCard, Landmark, Wallet, X, type LucideIcon } from "lucide-react";
+import { Banknote, CreditCard, Landmark, Ticket, Wallet, X, type LucideIcon } from "lucide-react";
 import { useEffect, useRef, useState, useTransition } from "react";
 
 import { FormField } from "@/components/shared/form-field";
@@ -35,8 +35,15 @@ const METHOD_ICON: Record<SalePaymentMethod, LucideIcon> = {
   CARD: CreditCard,
   TRANSFER: Landmark,
   OTHER: Wallet,
+  STORE_CREDIT: Ticket,
 };
-const METHOD_ORDER: readonly SalePaymentMethod[] = ["CASH", "CARD", "TRANSFER", "OTHER"];
+const METHOD_ORDER: readonly SalePaymentMethod[] = [
+  "CASH",
+  "CARD",
+  "TRANSFER",
+  "OTHER",
+  "STORE_CREDIT",
+];
 /** Billetes de uso diario para cobrar rápido en efectivo (en centavos). */
 const QUICK_BILLS = [10000, 20000, 50000, 100000] as const;
 
@@ -46,11 +53,13 @@ type ChargeDialogProps = {
   open: boolean;
   summary: CartSummary;
   config: PosConfig;
+  /** El saldo de crédito de tienda del cliente del ticket (0 si no hay cliente). */
+  creditCents: number;
   /** Se llama al cerrar el diálogo (con o sin venta). */
   onClose: () => void;
 };
 
-export function ChargeDialog({ open, summary, config, onClose }: ChargeDialogProps) {
+export function ChargeDialog({ open, summary, config, creditCents, onClose }: ChargeDialogProps) {
   // Mientras se envía el cobro no se deja cerrar: así no se pierde el resultado.
   const busyRef = useRef(false);
   return (
@@ -64,7 +73,13 @@ export function ChargeDialog({ open, summary, config, onClose }: ChargeDialogPro
     >
       <DialogContent className="sm:max-w-xl">
         {open ? (
-          <ChargeForm summary={summary} config={config} busyRef={busyRef} onClose={onClose} />
+          <ChargeForm
+            summary={summary}
+            config={config}
+            creditCents={creditCents}
+            busyRef={busyRef}
+            onClose={onClose}
+          />
         ) : null}
       </DialogContent>
     </Dialog>
@@ -74,6 +89,7 @@ export function ChargeDialog({ open, summary, config, onClose }: ChargeDialogPro
 function ChargeForm({
   summary,
   config,
+  creditCents,
   busyRef,
   onClose,
 }: Omit<ChargeDialogProps, "open"> & { busyRef: { current: boolean } }) {
@@ -88,7 +104,10 @@ function ChargeForm({
   const credit = exchange?.valueCents ?? 0;
   const payable = Math.max(0, total - credit);
   const leftover = Math.max(0, credit - total);
-  const methods = METHOD_ORDER.filter((method) => config.enabledPaymentMethods.includes(method));
+  const canUseCredit = customer !== null && creditCents > 0;
+  const methods = METHOD_ORDER.filter((option) =>
+    option === "STORE_CREDIT" ? canUseCredit : config.enabledPaymentMethods.includes(option),
+  );
 
   const [lines, setLines] = useState<PaymentDraft[]>([]);
   const [method, setMethod] = useState<SalePaymentMethod>(methods[0] ?? "CASH");
@@ -115,6 +134,16 @@ function ChargeForm({
       : lines;
   const paidCents = sumCents(effective.map((line) => line.amountCents));
   const remainingCents = Math.max(0, payable - paidCents);
+  const creditUsedCents = sumCents(
+    effective.filter((line) => line.method === "STORE_CREDIT").map((line) => line.amountCents),
+  );
+  const creditLeftCents = Math.max(
+    0,
+    creditCents -
+      sumCents(
+        lines.filter((line) => line.method === "STORE_CREDIT").map((line) => line.amountCents),
+      ),
+  );
   let changeCents = 0;
   let covers = false;
   try {
@@ -126,7 +155,10 @@ function ChargeForm({
 
   function chooseMethod(next: SalePaymentMethod) {
     setMethod(next);
-    setAmountCents(Math.max(0, payable - addedCents) || null);
+    const pending = Math.max(0, payable - addedCents);
+    setAmountCents(
+      (next === "STORE_CREDIT" ? Math.min(pending, creditLeftCents) : pending) || null,
+    );
     setReference("");
   }
 
@@ -143,6 +175,10 @@ function ChargeForm({
     setError(null);
     if (!covers) {
       setError(paidCents < payable ? copy.errors.notEnough : copy.errors.noChange);
+      return;
+    }
+    if (creditUsedCents > creditCents) {
+      setError(copy.errors.creditExceeded);
       return;
     }
     if (exchange && leftover > 0 && leftoverMethod === "STORE_CREDIT" && !customer) {
@@ -298,7 +334,12 @@ function ChargeForm({
         <>
           <fieldset className="space-y-2">
             <legend className="mb-1 text-sm font-medium">{copy.method}</legend>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <div
+              className={cn(
+                "grid grid-cols-2 gap-2",
+                methods.length > 4 ? "sm:grid-cols-5" : "sm:grid-cols-4",
+              )}
+            >
               {methods.map((option) => {
                 const Icon = METHOD_ICON[option];
                 return (
@@ -308,7 +349,7 @@ function ChargeForm({
                     aria-pressed={method === option}
                     onClick={() => chooseMethod(option)}
                     className={cn(
-                      "focus-visible:ring-ring/50 flex h-14 flex-col items-center justify-center gap-0.5 rounded-lg border text-sm font-medium outline-none focus-visible:ring-3",
+                      "focus-visible:ring-ring/50 flex min-h-14 flex-col items-center justify-center gap-0.5 rounded-lg border text-sm font-medium outline-none focus-visible:ring-3",
                       method === option
                         ? "border-primary bg-primary text-primary-foreground"
                         : "hover:bg-muted",
@@ -316,6 +357,11 @@ function ChargeForm({
                   >
                     <Icon aria-hidden="true" className="size-5" />
                     {copy.methods[option]}
+                    {option === "STORE_CREDIT" ? (
+                      <span className="text-xs font-normal tabular-nums">
+                        {copy.creditBalance} {formatMoney(creditLeftCents)}
+                      </span>
+                    ) : null}
                   </button>
                 );
               })}
@@ -334,7 +380,7 @@ function ChargeForm({
                 className="h-11 text-xl font-semibold"
               />
             </FormField>
-            {method === "CASH" ? null : (
+            {method === "CASH" || method === "STORE_CREDIT" ? null : (
               <FormField
                 label={copy.reference}
                 htmlFor="charge-reference"

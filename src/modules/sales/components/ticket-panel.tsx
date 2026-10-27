@@ -57,6 +57,8 @@ type TicketPanelProps = {
   selectedId: string | null;
   customer: QuickCustomer | null;
   exchange: ExchangeContext | null;
+  /** El saldo de crédito de tienda del cliente elegido. */
+  creditCents: number;
   onSelect: (id: string) => void;
   onQuantity: (id: string, quantity: number) => void;
   onRemove: (id: string) => void;
@@ -74,6 +76,7 @@ export function TicketPanel({
   selectedId,
   customer,
   exchange,
+  creditCents,
   onSelect,
   onQuantity,
   onRemove,
@@ -110,6 +113,22 @@ export function TicketPanel({
           </span>
         </Button>
       </header>
+
+      {customer ? (
+        <div className="flex items-center justify-between gap-2 border-b px-4 py-1.5 text-xs">
+          <span className={creditCents > 0 ? "text-success font-medium" : "text-muted-foreground"}>
+            {ticket.credit}: <span className="tabular-nums">{formatMoney(creditCents)}</span>
+          </span>
+          <a
+            href={`/clientes/${customer.id}`}
+            target="_blank"
+            rel="noreferrer"
+            className="text-primary underline underline-offset-4"
+          >
+            {ticket.creditLink}
+          </a>
+        </div>
+      ) : null}
 
       <div className="min-h-40 flex-1 overflow-y-auto">
         {items.length === 0 ? (

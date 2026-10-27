@@ -28,7 +28,7 @@ export type SaleDocument = {
   sellerName: string;
   /** El turno de caja de la venta sigue abierto: solo entonces se puede anular. */
   shiftOpen: boolean;
-  customer: { name: string; phone: string | null } | null;
+  customer: { id: string; name: string; phone: string | null } | null;
   items: SaleDocumentItem[];
   payments: { method: PaymentMethod; amountCents: number; reference: string | null }[];
   /** Σ precio × cantidad, antes de cualquier descuento. */
@@ -63,7 +63,7 @@ export async function getSaleDocument(id: string): Promise<SaleDocument | null> 
     include: {
       seller: { select: { name: true } },
       cashSession: { select: { status: true } },
-      customer: { select: { name: true, phone: true } },
+      customer: { select: { id: true, name: true, phone: true } },
       fiscalRange: true,
       items: { orderBy: { id: "asc" } },
       payments: { orderBy: { id: "asc" } },

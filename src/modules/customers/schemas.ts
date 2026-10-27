@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { MAX_SALE_CENTS } from "@/modules/sales/schemas";
+
 const blankToUndefined = (value: unknown) =>
   typeof value === "string" && value.trim() === "" ? undefined : value;
 
@@ -17,3 +19,15 @@ export const quickCustomerSchema = z.object({
 });
 
 export type QuickCustomerInput = z.input<typeof quickCustomerSchema>;
+
+/** Un ajuste manual del crédito de tienda: suma o resta, siempre con motivo. */
+export const adjustCreditSchema = z.object({
+  /** Lo genera la pantalla una vez por ajuste: reintentar con el mismo valor no ajusta dos veces. */
+  requestId: z.string().min(8).max(64),
+  customerId: z.string().min(1).max(40),
+  direction: z.enum(["ADD", "SUBTRACT"]),
+  amountCents: z.number().int().min(1).max(MAX_SALE_CENTS),
+  reason: z.string().trim().min(3).max(200),
+});
+
+export type AdjustCreditInput = z.input<typeof adjustCreditSchema>;

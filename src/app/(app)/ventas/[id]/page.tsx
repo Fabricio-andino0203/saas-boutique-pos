@@ -134,7 +134,18 @@ export default async function SaleDetailPage({ params }: { params: Promise<{ id:
         <div className="flex gap-2">
           <dt className="text-muted-foreground">{copy.customer}:</dt>
           <dd className="font-medium">
-            {doc.customer?.name ?? doc.invoice?.customerName ?? messages.salesHistory.finalConsumer}
+            {doc.customer && hasCapability(user.role, "customer.view") ? (
+              <Link
+                href={`/clientes/${doc.customer.id}`}
+                className="text-primary underline underline-offset-4"
+              >
+                {doc.customer.name}
+              </Link>
+            ) : (
+              (doc.customer?.name ??
+              doc.invoice?.customerName ??
+              messages.salesHistory.finalConsumer)
+            )}
           </dd>
         </div>
         {doc.invoice ? (

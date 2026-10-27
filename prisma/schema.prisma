@@ -129,6 +129,7 @@ enum StoreCreditReason {
   LAYAWAY_CANCEL
   MANUAL
   USED_IN_SALE
+  SALE_VOID
 }
 
 // ─────────────────── Acceso y configuración ───────────────────
@@ -908,6 +909,7 @@ model StoreCreditEntry {
   reason      StoreCreditReason
   refType     String?
   refId       String?
+  note        String? // el motivo, en los ajustes manuales
   userId      String
   createdAt   DateTime          @default(now())
 

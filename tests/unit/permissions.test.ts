@@ -23,6 +23,8 @@ const matrix: ReadonlyArray<readonly [Capability, boolean, boolean, boolean, boo
   ["return.create", true, true, true, false],
   ["return.refundCash", true, true, false, false],
   ["return.overridePolicy", true, true, false, false],
+  ["customer.view", true, true, true, false],
+  ["credit.adjust", true, true, false, false],
   ["cash.open", true, true, true, false],
   ["cash.closeApprove", true, true, false, false],
   ["cash.viewOthers", true, true, false, false],

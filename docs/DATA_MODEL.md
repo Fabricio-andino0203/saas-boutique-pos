@@ -231,8 +231,8 @@ Invariante: Σ `ReturnItem.quantity` por `saleItemId` ≤ `SaleItem.quantity`.
 Al crear: `StockLevel.reserved += qty` (movimiento `LAYAWAY_RESERVE`). Al cancelar/expirar: `LAYAWAY_RELEASE`.
 
 ### StoreCreditEntry (libro del crédito de tienda — solo inserción)
-`customerId`, `amountCents` (+ abona, − consume), `reason enum (RETURN, LAYAWAY_CANCEL, MANUAL, USED_IN_SALE)`, `refType`, `refId`, `userId`, `createdAt`.
-`Customer.storeCreditCents` = Σ del libro (se mantiene en la misma transacción).
+`customerId`, `amountCents` (+ abona, − consume), `reason enum (RETURN, LAYAWAY_CANCEL, MANUAL, USED_IN_SALE, SALE_VOID)`, `refType`, `refId`, `note?` (el motivo de un ajuste manual), `userId`, `createdAt`.
+`Customer.storeCreditCents` = Σ del libro (se mantiene en la misma transacción, con la fila del cliente bloqueada: dos cobros no gastan el mismo saldo). Todo cambio pasa por `applyStoreCredit` (`src/modules/credit/service.ts`) y el saldo nunca queda negativo. Origen de cada movimiento: `RETURN` (devolución o sobrante de un cambio, `refType ReturnDoc`), `USED_IN_SALE` (pago con crédito, `refType Sale`), `SALE_VOID` (anular una venta pagada con crédito lo devuelve), `MANUAL` (ajuste de un gerente con motivo, `refType Adjustment`) y `LAYAWAY_CANCEL` (apartado cancelado o vencido).
 
 ## 8. Índices recomendados
 

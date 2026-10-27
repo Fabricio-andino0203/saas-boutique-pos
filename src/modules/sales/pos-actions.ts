@@ -4,6 +4,7 @@ import { messages } from "@/config/messages.es";
 import { toActionResult } from "@/lib/action-result";
 import { requireUserCapability } from "@/lib/auth";
 import { quickCustomerSchema, type QuickCustomerInput } from "@/modules/customers/schemas";
+import { getCustomerCreditCents } from "@/modules/customers/queries";
 import { quickCustomer } from "@/modules/customers/service";
 import { lookupCode, searchSellable } from "@/modules/sales/pos-queries";
 import type {
@@ -46,4 +47,19 @@ export async function quickCustomerAction(
   const { user } = await requireUserCapability("sale.create");
   const result = await toActionResult(() => quickCustomer(user, parsed.data), messages.errors);
   return result.ok ? { customer: result.data } : { error: result.error.message };
+}
+
+/** El crédito de tienda del cliente elegido, para ofrecerlo como forma de pago. */
+export async function getCustomerCreditAction(
+  customerId: string,
+): Promise<{ creditCents: number } | PosActionError> {
+  await requireUserCapability("sale.create");
+  const result = await toActionResult(
+    () => getCustomerCreditCents(String(customerId)),
+    messages.errors,
+  );
+  if (!result.ok) {
+    return { error: result.error.message };
+  }
+  return { creditCents: result.data ?? 0 };
 }
