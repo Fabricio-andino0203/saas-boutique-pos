@@ -20,6 +20,7 @@ import {
   Tag,
   TriangleAlert,
   Truck,
+  Undo2,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -60,6 +61,12 @@ const navGroups: readonly NavGroup[] = [
         label: messages.nav.salesHistory,
         icon: History,
         capability: "sale.create",
+      },
+      {
+        href: "/devoluciones",
+        label: messages.nav.returns,
+        icon: Undo2,
+        capability: "return.create",
       },
       { href: "/caja", label: messages.nav.cash, icon: Banknote, capability: "cash.open" },
       {

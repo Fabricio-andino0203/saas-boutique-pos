@@ -12,6 +12,7 @@ import {
   type NewCartItem,
   type StockRule,
 } from "@/modules/sales/cart-logic";
+import { newId } from "@/lib/client-id";
 import type { QuickCustomer } from "@/modules/sales/pos-types";
 import type { Discount } from "@/modules/sales/schemas";
 
@@ -24,14 +25,6 @@ export type ParkedCart = {
 };
 
 const MAX_PARKED = 20;
-
-/** `crypto.randomUUID` solo existe en contextos seguros (https o localhost): en una red local con http se usa un respaldo. */
-export function newId(): string {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
-    return crypto.randomUUID();
-  }
-  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
-}
 
 type PosState = {
   items: CartItem[];

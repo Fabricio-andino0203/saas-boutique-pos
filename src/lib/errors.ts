@@ -27,6 +27,11 @@ export const APP_ERROR_CODES = [
   "OVER_RECEIPT",
   "COUNT_IN_PROGRESS",
   "COUNT_STATE",
+  "RETURN_POLICY",
+  "OVER_RETURN",
+  "CUSTOMER_REQUIRED",
+  "APPROVAL_REQUIRED",
+  "INSUFFICIENT_CREDIT",
 ] as const;
 
 export type ErrorCode = (typeof APP_ERROR_CODES)[number];
@@ -217,5 +222,35 @@ export class CountInProgressError extends AppError {
 export class CountStateError extends AppError {
   constructor(message = "The stock count does not allow this action", options?: AppErrorOptions) {
     super("COUNT_STATE", 409, message, options);
+  }
+}
+
+export class ReturnPolicyError extends AppError {
+  constructor(message = "The return does not meet the return policy", options?: AppErrorOptions) {
+    super("RETURN_POLICY", 403, message, options);
+  }
+}
+
+export class OverReturnError extends AppError {
+  constructor(message = "Cannot return more than was sold", options?: AppErrorOptions) {
+    super("OVER_RETURN", 409, message, options);
+  }
+}
+
+export class CustomerRequiredError extends AppError {
+  constructor(message = "A customer is required", options?: AppErrorOptions) {
+    super("CUSTOMER_REQUIRED", 422, message, options);
+  }
+}
+
+export class ApprovalRequiredError extends AppError {
+  constructor(message = "A manager must authorize this", options?: AppErrorOptions) {
+    super("APPROVAL_REQUIRED", 403, message, options);
+  }
+}
+
+export class InsufficientCreditError extends AppError {
+  constructor(message = "Not enough store credit", options?: AppErrorOptions) {
+    super("INSUFFICIENT_CREDIT", 409, message, options);
   }
 }

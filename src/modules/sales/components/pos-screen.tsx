@@ -1,6 +1,7 @@
 "use client";
 
-import { Keyboard, Pause, Search, UserRoundCog } from "lucide-react";
+import { Keyboard, Pause, Search, Undo2, UserRoundCog } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -266,11 +267,14 @@ export function PosScreen({
   };
 
   // Atajos de teclado y escáner: los controladores se leen del último render sin volver a registrar el evento.
+  const router = useRouter();
+  const goReturns = () => router.push("/devoluciones");
   const live = useRef({
     openDialog,
     focusSearch,
     charge,
     reprint,
+    goReturns,
     runLookup,
     selected,
     blocked: false,
@@ -281,6 +285,7 @@ export function PosScreen({
       focusSearch,
       charge,
       reprint,
+      goReturns,
       runLookup,
       selected,
       blocked: dialog !== null || picker !== null,
@@ -307,9 +312,7 @@ export function PosScreen({
       if (key === "F3") return shortcut(() => current.openDialog("customer"));
       if (key === "F4") return shortcut(() => current.openDialog("discount"));
       if (key === "F6") return shortcut(() => current.openDialog("parked"));
-      if (key === "F8") {
-        return shortcut(() => setNotice({ tone: "warn", text: copy.help.rows[5]?.[1] ?? "" }));
-      }
+      if (key === "F8") return shortcut(current.goReturns);
       if (key === "F9") return shortcut(current.reprint);
       if (key === "F12") return shortcut(current.charge);
       if (isTyping(event.target)) {
@@ -362,6 +365,10 @@ export function PosScreen({
               </span>
             ) : null}
             <kbd className="text-muted-foreground text-xs">F6</kbd>
+          </Button>
+          <Button type="button" variant="outline" onClick={goReturns}>
+            <Undo2 aria-hidden="true" />
+            {copy.actions.returns} <kbd className="text-muted-foreground text-xs">F8</kbd>
           </Button>
           <Button type="button" variant="outline" onClick={() => openDialog("switch")}>
             <UserRoundCog aria-hidden="true" />

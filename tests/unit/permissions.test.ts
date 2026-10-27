@@ -21,6 +21,8 @@ const matrix: ReadonlyArray<readonly [Capability, boolean, boolean, boolean, boo
   ["discount.applyBeyondLimit", true, true, false, false],
   ["sale.void", true, true, false, false],
   ["return.create", true, true, true, false],
+  ["return.refundCash", true, true, false, false],
+  ["return.overridePolicy", true, true, false, false],
   ["cash.open", true, true, true, false],
   ["cash.closeApprove", true, true, false, false],
   ["cash.viewOthers", true, true, false, false],
@@ -72,8 +74,13 @@ describe("requireCapability", () => {
 });
 
 describe("manager PIN overrides", () => {
-  it("lists the two overridable capabilities, held by manager and owner but not the cashier", () => {
-    expect([...MANAGER_PIN_OVERRIDES].sort()).toEqual(["discount.applyBeyondLimit", "sale.void"]);
+  it("lists the overridable capabilities, held by manager and owner but not the cashier", () => {
+    expect([...MANAGER_PIN_OVERRIDES].sort()).toEqual([
+      "discount.applyBeyondLimit",
+      "return.overridePolicy",
+      "return.refundCash",
+      "sale.void",
+    ]);
     for (const capability of MANAGER_PIN_OVERRIDES) {
       expect(hasCapability("MANAGER", capability)).toBe(true);
       expect(hasCapability("OWNER", capability)).toBe(true);
@@ -84,6 +91,9 @@ describe("manager PIN overrides", () => {
   it("canManagerPinOverride is true only for those", () => {
     expect(canManagerPinOverride("discount.applyBeyondLimit")).toBe(true);
     expect(canManagerPinOverride("sale.void")).toBe(true);
+    expect(canManagerPinOverride("return.refundCash")).toBe(true);
+    expect(canManagerPinOverride("return.overridePolicy")).toBe(true);
+    expect(canManagerPinOverride("return.create")).toBe(false);
     expect(canManagerPinOverride("product.viewCost")).toBe(false);
   });
 });

@@ -87,6 +87,7 @@ export function CashSessionSummary({ detail }: { detail: CashSessionDetail }) {
           <Row label={`− ${copy.change}`} value={formatMoney(totals.changeGivenCents)} />
           <Row label={`+ ${copy.movementsIn}`} value={formatMoney(totals.movementsInCents)} />
           <Row label={`− ${copy.movementsOut}`} value={formatMoney(totals.movementsOutCents)} />
+          <Row label={`− ${copy.cashRefunds}`} value={formatMoney(totals.cashRefundsCents)} />
           <Row label={copy.expected} value={formatMoney(detail.expectedCents)} strong />
           {closed && session.countedCashCents !== null ? (
             <Row label={copy.counted} value={formatMoney(session.countedCashCents)} strong />

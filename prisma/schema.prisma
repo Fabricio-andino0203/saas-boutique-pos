@@ -636,6 +636,7 @@ model Customer {
   sales              Sale[]
   layaways           Layaway[]
   storeCreditEntries StoreCreditEntry[]
+  returns            ReturnDoc[]
 
   @@index([name])
 }
@@ -794,8 +795,10 @@ model ParkedSale {
 // ─────────────── Devoluciones, apartados y crédito ───────────────
 
 model ReturnDoc {
-  id             String       @id @default(cuid())
-  number         String       @unique
+  id              String       @id @default(cuid())
+  number          String       @unique
+  clientRequestId String       @unique // idempotencia: reintentar no duplica la devolución
+  customerId      String? // quien recibe el crédito de tienda, si lo hay
   saleId         String
   type           ReturnType
   exchangeSaleId String?
@@ -809,6 +812,7 @@ model ReturnDoc {
   fiscalRangeId  String?
   createdAt      DateTime     @default(now())
 
+  customer     Customer?    @relation(fields: [customerId], references: [id])
   sale         Sale         @relation("ReturnOriginalSale", fields: [saleId], references: [id])
   exchangeSale Sale?        @relation("ReturnExchangeSale", fields: [exchangeSaleId], references: [id])
   cashSession  CashSession  @relation(fields: [cashSessionId], references: [id])
@@ -820,6 +824,7 @@ model ReturnDoc {
   @@unique([fiscalRangeId, fiscalNumber])
   @@index([saleId])
   @@index([cashSessionId])
+  @@index([customerId])
 }
 
 model ReturnItem {

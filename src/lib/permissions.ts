@@ -10,6 +10,8 @@ export const CAPABILITIES = [
   "discount.applyBeyondLimit",
   "sale.void",
   "return.create",
+  "return.refundCash",
+  "return.overridePolicy",
   "cash.open",
   "cash.closeApprove",
   "cash.viewOthers",
@@ -42,6 +44,8 @@ export const ROLE_CAPABILITIES: Record<Role, ReadonlySet<Capability>> = {
 export const MANAGER_PIN_OVERRIDES = [
   "discount.applyBeyondLimit",
   "sale.void",
+  "return.refundCash",
+  "return.overridePolicy",
 ] as const satisfies readonly Capability[];
 
 export function hasCapability(role: Role, capability: Capability): boolean {

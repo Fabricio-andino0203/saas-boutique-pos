@@ -10,6 +10,7 @@ import { formatMoney, formatPercentBps } from "@/lib/format";
 import { hasCapability } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 import { VoidSaleDialog } from "@/modules/sales/components/void-sale-dialog";
+import { listReturnsOfSale } from "@/modules/returns/queries";
 import { getSaleDocument } from "@/modules/sales/queries";
 
 const copy = messages.salesHistory.detail;
@@ -23,6 +24,7 @@ export default async function SaleDetailPage({ params }: { params: Promise<{ id:
     notFound();
   }
   const voided = doc.status === "VOIDED";
+  const returns = await listReturnsOfSale(doc.id);
   const rate = doc.items.find((item) => item.taxRate > 0)?.taxRate ?? 0;
   const methods = messages.pos.charge.methods;
 
@@ -58,6 +60,47 @@ export default async function SaleDetailPage({ params }: { params: Promise<{ id:
         }
       />
 
+      {returns.length > 0 ? (
+        <section aria-labelledby="sale-returns" className="space-y-2">
+          <h2 id="sale-returns" className="text-lg font-medium">
+            {messages.returns.detail.title}
+          </h2>
+          <ul className="divide-y rounded-lg border text-sm">
+            {returns.map((entry) => (
+              <li key={entry.id} className="flex flex-wrap items-center justify-between gap-2 p-3">
+                <span>
+                  <span className="font-medium">{entry.number}</span> ·{" "}
+                  {formatLocalDateTime(entry.createdAt)} · {entry.units}{" "}
+                  {messages.returns.detail.units} · {messages.returns.methods[entry.refundMethod]}
+                </span>
+                <span className="flex items-center gap-3">
+                  <span className="font-semibold tabular-nums">
+                    {formatMoney(entry.refundCents)}
+                  </span>
+                  <a
+                    href={`/imprimir/devolucion/${entry.id}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-primary underline underline-offset-4"
+                  >
+                    {messages.returns.detail.view}
+                  </a>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
+      {!voided && hasCapability(user.role, "return.create") ? (
+        <Link
+          href={`/devoluciones?venta=${doc.id}`}
+          className={buttonVariants({ variant: "outline" })}
+        >
+          {messages.returns.detail.action}
+        </Link>
+      ) : null}
+
       {voided ? (
         <section
           role="status"
@@ -71,6 +114,8 @@ export default async function SaleDetailPage({ params }: { params: Promise<{ id:
             </p>
           ) : null}
         </section>
+      ) : returns.length > 0 ? (
+        <p className="text-muted-foreground text-sm">{copy.hasReturns}</p>
       ) : doc.shiftOpen ? (
         <VoidSaleDialog
           saleId={doc.id}

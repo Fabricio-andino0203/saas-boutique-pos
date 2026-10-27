@@ -63,6 +63,10 @@ export async function loadCashTotals(client: Client, cashSessionId: string): Pro
     _sum: { changeCents: true },
     where: { cashSessionId, status: "COMPLETED" },
   });
+  const refunds = await client.returnDoc.aggregate({
+    _sum: { refundCents: true },
+    where: { cashSessionId, refundMethod: "CASH" },
+  });
   const movements = await client.cashMovement.groupBy({
     by: ["type"],
     where: { cashSessionId },
@@ -76,6 +80,7 @@ export async function loadCashTotals(client: Client, cashSessionId: string): Pro
     changeGivenCents: change._sum.changeCents ?? 0,
     movementsInCents: moved("IN"),
     movementsOutCents: moved("OUT"),
+    cashRefundsCents: refunds._sum.refundCents ?? 0,
   };
 }
 

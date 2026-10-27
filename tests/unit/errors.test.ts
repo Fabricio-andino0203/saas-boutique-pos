@@ -11,6 +11,11 @@ import {
   DiscountNeedsApprovalError,
   InsufficientCashError,
   SaleStateError,
+  ReturnPolicyError,
+  OverReturnError,
+  CustomerRequiredError,
+  ApprovalRequiredError,
+  InsufficientCreditError,
   ActiveRangeExistsError,
   CountInProgressError,
   CountStateError,
@@ -64,6 +69,11 @@ const table = [
   { create: () => new OverReceiptError(), code: "OVER_RECEIPT", status: 409 },
   { create: () => new CountInProgressError(), code: "COUNT_IN_PROGRESS", status: 409 },
   { create: () => new CountStateError(), code: "COUNT_STATE", status: 409 },
+  { create: () => new ReturnPolicyError(), code: "RETURN_POLICY", status: 403 },
+  { create: () => new OverReturnError(), code: "OVER_RETURN", status: 409 },
+  { create: () => new CustomerRequiredError(), code: "CUSTOMER_REQUIRED", status: 422 },
+  { create: () => new ApprovalRequiredError(), code: "APPROVAL_REQUIRED", status: 403 },
+  { create: () => new InsufficientCreditError(), code: "INSUFFICIENT_CREDIT", status: 409 },
 ] as const;
 
 describe("AppError subclasses", () => {

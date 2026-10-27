@@ -34,6 +34,8 @@ Contabilidad completa, nómina, e-commerce público, integración con marketplac
 | Descuento sobre el límite | ✓ | ✓ | PIN de gerente | – |
 | Anular venta | ✓ | ✓ | PIN de gerente | – |
 | Devoluciones / cambios | ✓ | ✓ | ✓ (con reglas) | – |
+| Reembolsar en efectivo una devolución | ✓ | ✓ | PIN de gerente | – |
+| Devolución fuera de política (plazo o categoría) | ✓ | ✓ | PIN de gerente | – |
 | Abrir / cerrar caja propia | ✓ | ✓ | ✓ | – |
 | Ver cierres de otros cajeros | ✓ | ✓ | – | – |
 | Crear / editar productos | ✓ | ✓ | – | ✓ |

@@ -431,6 +431,10 @@ export async function voidSale(
       if (sale.status !== "COMPLETED") {
         throw new SaleStateError();
       }
+      // Lo ya devuelto no se puede anular: la devolución es la corrección de esa venta.
+      if ((await tx.returnDoc.count({ where: { saleId } })) > 0) {
+        throw new SaleStateError("The sale has returns: it cannot be voided");
+      }
       // El turno se bloquea igual que al vender: el cierre de caja no puede cruzarse con una anulación.
       const [session] = await tx.$queryRaw<{ status: string }[]>`
         SELECT "status" FROM "CashSession" WHERE "id" = ${sale.cashSessionId} FOR SHARE

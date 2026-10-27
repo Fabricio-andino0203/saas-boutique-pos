@@ -684,3 +684,108 @@ test("a billing range about to expire is flagged on the manager's home page", as
   await deactivateInvoiceRange(owner, prefix);
   await ownerContext.close();
 });
+
+// ───────────── Devoluciones ─────────────
+
+const ret = messages.returns;
+
+test("the cashier returns to store credit, a manager's PIN approves a cash refund, and the sale can no longer be voided", async ({
+  page,
+  browser,
+}) => {
+  test.slow();
+  const name = `E2E Devol ${Date.now()}`;
+  const baseURL = test.info().project.use.baseURL as string;
+  await createStockedProduct(browser, baseURL, name, "150", "L 150.00", "4");
+
+  // Vende dos prendas en efectivo
+  await openCashAndSell(page);
+  await addToTicket(page, name, "L 150.00");
+  await page.getByRole("button", { name: `${pos.ticket.increase}: ${name}` }).click();
+  await page.keyboard.press("F12");
+  await page.getByRole("button", { name: `${charge.submit} L 300.00` }).click();
+  await expect(page.getByRole("heading", { name: charge.done.title })).toBeVisible();
+  const number = (
+    await page
+      .getByText(new RegExp(`^${charge.done.ticket} T-\\d+`))
+      .first()
+      .innerText()
+  )
+    .replace(`${charge.done.ticket} `, "")
+    .trim();
+  await page.getByRole("button", { name: charge.done.newSale }).click();
+
+  // F8 lleva a devoluciones; se busca la venta por su ticket
+  await page.keyboard.press("F8");
+  await expect(page).toHaveURL(/\/devoluciones$/);
+  const searchBox = page.getByLabel(ret.search.label, { exact: true });
+  await expect(async () => {
+    await searchBox.fill(number);
+    await expect(searchBox).toHaveValue(number);
+  }).toPass();
+  await searchBox.press("Enter");
+  await page.getByRole("link", { name: `${ret.search.choose} ${number}` }).click();
+  await expect(page).toHaveURL(/\/devoluciones\?venta=/);
+  const saleUrl = page.url();
+
+  // Una prenda a crédito de tienda, con un cliente que se crea en el momento
+  await page.getByRole("button", { name: `+ ${name}` }).click();
+  await page.getByLabel(ret.reason.label, { exact: true }).fill("E2E talla incorrecta");
+  const total = page.getByRole("group", { name: ret.total.label });
+  await expect(total).toContainText("L 150.00");
+  await page.getByRole("button", { name: ret.refund.chooseCustomer }).click();
+  await page.getByLabel(pos.customer.name, { exact: true }).fill("E2E Cliente Devol");
+  await page.getByLabel(pos.customer.phone, { exact: true }).fill("9999-1212");
+  await page.getByRole("button", { name: pos.customer.save }).click();
+  await expect(page.getByText("E2E Cliente Devol")).toBeVisible();
+  await page.getByRole("button", { name: ret.submit }).click();
+
+  await expect(page.getByRole("heading", { name: ret.done.title })).toBeVisible();
+  await expect(page.getByText("L 150.00").first()).toBeVisible();
+  const printHref = (await page
+    .getByRole("link", { name: ret.done.print })
+    .getAttribute("href")) as string;
+  expect(printHref).toMatch(/^\/imprimir\/devolucion\/[a-z0-9]+\?auto=1$/);
+  await page.goto(printHref.replace("?auto=1", ""));
+  const receipt = page.getByRole("article", { name: new RegExp(`^${ret.doc.title} DV-`) });
+  await expect(receipt).toContainText(name);
+  await expect(receipt).toContainText("L 150.00");
+  await expect(receipt).toContainText("E2E Cliente Devol");
+  await expect(receipt).toContainText(ret.methods.STORE_CREDIT);
+
+  // La otra prenda en efectivo: sin PIN no se puede; con el del gerente sí
+  await page.goto(saleUrl);
+  await expect(page.getByText(ret.lines.returned)).toBeVisible();
+  await page.getByRole("button", { name: `+ ${name}` }).click();
+  await page.getByLabel(ret.reason.label, { exact: true }).fill("E2E defecto");
+  await page.getByRole("radio", { name: new RegExp(`^${ret.methods.CASH}`) }).check();
+  await expect(page.getByText(ret.approval.title, { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: ret.submit }).click();
+  await expect(page.getByText(messages.errors.APPROVAL_REQUIRED)).toBeVisible();
+  await page.getByLabel(ret.approval.username, { exact: true }).fill("manager");
+  await page.getByLabel(ret.approval.pin, { exact: true }).fill("2222");
+  await page.getByRole("button", { name: ret.submit }).click();
+  await expect(page.getByRole("heading", { name: ret.done.title })).toBeVisible();
+  await expect(page.getByText(ret.methods.CASH)).toBeVisible();
+
+  // El efectivo esperado bajó con el reembolso: 0 de fondo + 300 de la venta − 150
+  await page.goto("/caja");
+  await expect(page.getByRole("group", { name: messages.cash.current.expected })).toContainText(
+    "L 150.00",
+  );
+  await expect(page.getByText(messages.cash.current.cashRefunds, { exact: true })).toBeVisible();
+
+  // La venta lista sus dos devoluciones y ya no ofrece anularse
+  await page.goto("/ventas");
+  await page
+    .getByRole("row", { name: new RegExp(number) })
+    .getByRole("link", { name: number })
+    .click();
+  await expect(page.getByRole("heading", { name: ret.detail.title })).toBeVisible();
+  await expect(page.getByText(messages.salesHistory.detail.hasReturns)).toBeVisible();
+  await expect(page.getByRole("button", { name: messages.salesHistory.void.action })).toHaveCount(
+    0,
+  );
+
+  await closeLeftoverCash(page);
+});

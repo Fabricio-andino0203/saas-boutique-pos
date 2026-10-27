@@ -688,6 +688,7 @@ describe("completeSale: the cash shift", () => {
       changeGivenCents: 3500,
       movementsInCents: 0,
       movementsOutCents: 0,
+      cashRefundsCents: 0,
     });
     await expect(
       submitCashClose(w.cashier, { countedCashCents: 21500 }, testDb),

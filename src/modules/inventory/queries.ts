@@ -209,6 +209,18 @@ async function resolveDocuments(
       found.set(`Sale:${row.id}`, { label: row.number, href: `/ventas/${row.id}` });
     }
   }
+  const returns = ids("ReturnDoc");
+  if (returns.length > 0) {
+    for (const row of await client.returnDoc.findMany({
+      where: { id: { in: returns } },
+      select: { id: true, number: true },
+    })) {
+      found.set(`ReturnDoc:${row.id}`, {
+        label: row.number,
+        href: `/imprimir/devolucion/${row.id}`,
+      });
+    }
+  }
   const counts = ids("StockCount");
   if (counts.length > 0) {
     for (const row of await client.stockCount.findMany({

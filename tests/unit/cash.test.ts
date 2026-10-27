@@ -11,8 +11,8 @@ import {
 } from "@/modules/cash/schemas";
 
 describe("expectedCashCents", () => {
-  it("adds float, cash payments and entries, and subtracts change and exits", () => {
-    // 50000 + 123450 + 20000 = 193450 entra; 3450 + 15000 = 18450 sale; 193450 − 18450 = 175000
+  it("adds float, cash payments and entries, and subtracts change, exits and cash refunds", () => {
+    // 50000 + 123450 + 20000 = 193450 entra; 3450 + 15000 + 4000 = 22450 sale; 193450 − 22450 = 171000
     expect(
       expectedCashCents({
         openingFloatCents: 50000,
@@ -20,8 +20,23 @@ describe("expectedCashCents", () => {
         changeGivenCents: 3450,
         movementsInCents: 20000,
         movementsOutCents: 15000,
+        cashRefundsCents: 4000,
       }),
-    ).toBe(175000);
+    ).toBe(171000);
+  });
+
+  it("takes a cash refund out of the drawer even with no other activity", () => {
+    // 25000 de fondo − 10000 reembolsados = 15000
+    expect(
+      expectedCashCents({
+        openingFloatCents: 25000,
+        cashPaymentsCents: 0,
+        changeGivenCents: 0,
+        movementsInCents: 0,
+        movementsOutCents: 0,
+        cashRefundsCents: 10000,
+      }),
+    ).toBe(15000);
   });
 
   it("is just the float for a shift without activity", () => {
@@ -32,6 +47,7 @@ describe("expectedCashCents", () => {
         changeGivenCents: 0,
         movementsInCents: 0,
         movementsOutCents: 0,
+        cashRefundsCents: 0,
       }),
     ).toBe(25000);
   });
@@ -44,6 +60,7 @@ describe("expectedCashCents", () => {
         changeGivenCents: 0,
         movementsInCents: 0,
         movementsOutCents: 1500,
+        cashRefundsCents: 0,
       }),
     ).toBe(-500);
   });

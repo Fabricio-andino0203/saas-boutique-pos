@@ -2,6 +2,8 @@ import type { Prisma } from "@/generated/prisma/client";
 
 export const AUDIT_ACTIONS = [
   "SALE_VOIDED",
+  "RETURN_PROCESSED",
+  "RETURN_OVERRIDE",
   "DISCOUNT_OVERRIDE",
   "STOCK_ADJUSTED",
   "PRICE_CHANGED",

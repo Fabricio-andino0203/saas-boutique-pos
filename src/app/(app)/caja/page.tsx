@@ -54,6 +54,7 @@ export default async function CashPage() {
     { label: copy.current.change, value: formatMoney(totals.changeGivenCents) },
     { label: copy.current.movementsIn, value: formatMoney(totals.movementsInCents) },
     { label: copy.current.movementsOut, value: formatMoney(totals.movementsOutCents) },
+    { label: copy.current.cashRefunds, value: formatMoney(totals.cashRefundsCents) },
   ];
 
   return (
@@ -77,7 +78,7 @@ export default async function CashPage() {
           <p className="text-3xl font-semibold tabular-nums">{formatMoney(detail.expectedCents)}</p>
           <p className="text-muted-foreground text-xs">{copy.current.expectedHint}</p>
         </div>
-        <dl className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+        <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
           {cards.map((card) => (
             <div key={card.label} className="space-y-0.5">
               <dt className="text-muted-foreground text-xs">{card.label}</dt>
