@@ -13,7 +13,7 @@ function paymentLabel(payment: SaleDocument["payments"][number]): string {
 
 function Row({ left, right, bold }: { left: string; right: string; bold?: boolean }) {
   return (
-    <div className={`row${bold ? "bold" : ""}`}>
+    <div className={bold ? "row bold" : "row"}>
       <span>{left}</span>
       <span>{right}</span>
     </div>

@@ -23,6 +23,7 @@ describe("setting definitions", () => {
     expect(SETTING_DEFS["discount.maxPercent.CASHIER"].default).toBe(10);
     expect(SETTING_DEFS["returns.maxDays"].default).toBe(8);
     expect(SETTING_DEFS["layaway.expiryDays"].default).toBe(30);
+    expect(SETTING_DEFS["layaway.minDepositPercent"].default).toBe(20);
     expect(SETTING_DEFS["barcode.internalPrefix"].default).toBe("200");
     expect(SETTING_DEFS["onboarding.completed"].default).toBe(false);
   });
@@ -45,6 +46,8 @@ describe("settingsPatchSchema", () => {
       { "discount.maxPercent.CASHIER": 101 },
       { "returns.maxDays": 366 },
       { "layaway.expiryDays": 0 },
+      { "layaway.minDepositPercent": 101 },
+      { "layaway.minDepositPercent": -1 },
       { "barcode.internalPrefix": "20a" },
       { "barcode.internalPrefix": "" },
       { "barcode.internalPrefix": "1234567" },

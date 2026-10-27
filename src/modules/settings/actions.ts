@@ -72,6 +72,7 @@ function buildPatch(groups: SettingsGroup[], formData: FormData): Record<string,
     patch["discount.maxPercent.CASHIER"] = wholeNumber(text(formData, "discount"));
     patch["returns.maxDays"] = wholeNumber(text(formData, "returnsDays"));
     patch["layaway.expiryDays"] = wholeNumber(text(formData, "layawayDays"));
+    patch["layaway.minDepositPercent"] = wholeNumber(text(formData, "layawayDeposit"));
     patch["sales.allowNegativeStock"] = formData.get("allowNegativeStock") !== null;
   }
   if (groups.includes("codes")) {

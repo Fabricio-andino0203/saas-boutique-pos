@@ -32,6 +32,8 @@ export const APP_ERROR_CODES = [
   "CUSTOMER_REQUIRED",
   "APPROVAL_REQUIRED",
   "INSUFFICIENT_CREDIT",
+  "LAYAWAY_STATE",
+  "LAYAWAY_DEPOSIT",
 ] as const;
 
 export type ErrorCode = (typeof APP_ERROR_CODES)[number];
@@ -252,5 +254,17 @@ export class ApprovalRequiredError extends AppError {
 export class InsufficientCreditError extends AppError {
   constructor(message = "Not enough store credit", options?: AppErrorOptions) {
     super("INSUFFICIENT_CREDIT", 409, message, options);
+  }
+}
+
+export class LayawayStateError extends AppError {
+  constructor(message = "The layaway does not allow this action", options?: AppErrorOptions) {
+    super("LAYAWAY_STATE", 409, message, options);
+  }
+}
+
+export class LayawayDepositError extends AppError {
+  constructor(message = "The initial deposit is below the minimum", options?: AppErrorOptions) {
+    super("LAYAWAY_DEPOSIT", 422, message, options);
   }
 }

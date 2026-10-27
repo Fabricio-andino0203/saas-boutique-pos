@@ -11,6 +11,7 @@ import {
   Palette,
   ReceiptText,
   Ruler,
+  Bookmark,
   ScanBarcode,
   ScrollText,
   Shapes,
@@ -67,6 +68,12 @@ const navGroups: readonly NavGroup[] = [
         label: messages.nav.returns,
         icon: Undo2,
         capability: "return.create",
+      },
+      {
+        href: "/apartados",
+        label: messages.nav.layaways,
+        icon: Bookmark,
+        capability: "layaway.manage",
       },
       { href: "/caja", label: messages.nav.cash, icon: Banknote, capability: "cash.open" },
       {

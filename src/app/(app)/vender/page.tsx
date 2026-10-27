@@ -47,6 +47,11 @@ export default async function PosPage() {
     enabledPaymentMethods: settings["payments.enabled"],
     cashierDiscountPercent: settings["discount.maxPercent.CASHIER"],
     canDiscountBeyondLimit: hasCapability(user.role, "discount.applyBeyondLimit"),
+    layaway: {
+      minDepositPercent: settings["layaway.minDepositPercent"],
+      expiryDays: settings["layaway.expiryDays"],
+    },
+    canLayaway: hasCapability(user.role, "layaway.manage"),
   };
   return <PosScreen config={config} categories={categories} />;
 }

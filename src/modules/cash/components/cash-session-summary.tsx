@@ -84,6 +84,7 @@ export function CashSessionSummary({ detail }: { detail: CashSessionDetail }) {
         <dl className="grid max-w-md grid-cols-[1fr_auto] gap-x-6 gap-y-1 text-sm">
           <Row label={copy.float} value={formatMoney(totals.openingFloatCents)} />
           <Row label={`+ ${copy.cashPayments}`} value={formatMoney(totals.cashPaymentsCents)} />
+          <Row label={`+ ${copy.layawayCash}`} value={formatMoney(totals.layawayCashCents)} />
           <Row label={`− ${copy.change}`} value={formatMoney(totals.changeGivenCents)} />
           <Row label={`+ ${copy.movementsIn}`} value={formatMoney(totals.movementsInCents)} />
           <Row label={`− ${copy.movementsOut}`} value={formatMoney(totals.movementsOutCents)} />

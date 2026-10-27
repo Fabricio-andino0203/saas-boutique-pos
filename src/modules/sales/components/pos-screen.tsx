@@ -1,6 +1,6 @@
 "use client";
 
-import { Keyboard, Pause, Search, Undo2, UserRoundCog } from "lucide-react";
+import { Bookmark, Keyboard, Pause, Search, Undo2, UserRoundCog } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 
@@ -13,6 +13,8 @@ import { labelOfVariant, summarizeCart } from "@/modules/sales/cart-logic";
 import { hydratePosStore, usePosStore } from "@/modules/sales/cart-store";
 import { FiscalAlerts } from "@/modules/fiscal/components/fiscal-alerts";
 import { ChargeDialog } from "@/modules/sales/components/charge-dialog";
+import { expireOverdueLayawaysAction } from "@/modules/layaways/actions";
+import { LayawayDialog } from "@/modules/layaways/components/layaway-dialog";
 import { DiscountDialog } from "@/modules/sales/components/discount-dialog";
 import {
   CustomerDialog,
@@ -38,7 +40,7 @@ import type { Discount } from "@/modules/sales/schemas";
 const copy = messages.pos;
 const exchangeCopy = messages.returns.exchange;
 
-type DialogName = "discount" | "customer" | "parked" | "help" | "charge" | "switch";
+type DialogName = "discount" | "customer" | "parked" | "help" | "charge" | "switch" | "layaway";
 type Notice = { tone: "ok" | "warn"; text: string };
 
 /** Las dos primeras palabras con peso: "Blusa de lino" es BL, no BD. */
@@ -108,7 +110,11 @@ export function PosScreen({
   useEffect(() => {
     void hydratePosStore();
     focusSearch();
-  }, [focusSearch]);
+    // Lo apartado que ya venció vuelve a estar disponible antes de buscar prendas.
+    if (config.canLayaway) {
+      void expireOverdueLayawaysAction();
+    }
+  }, [focusSearch, config.canLayaway]);
 
   useEffect(() => {
     if (!customerId) {
@@ -295,10 +301,16 @@ export function PosScreen({
   // Atajos de teclado y escáner: los controladores se leen del último render sin volver a registrar el evento.
   const router = useRouter();
   const goReturns = () => router.push("/devoluciones");
+  const layaway = () => {
+    if (config.canLayaway && summary.priced && !exchange) {
+      setDialog("layaway");
+    }
+  };
   const live = useRef({
     openDialog,
     focusSearch,
     charge,
+    layaway,
     reprint,
     goReturns,
     runLookup,
@@ -310,6 +322,7 @@ export function PosScreen({
       openDialog,
       focusSearch,
       charge,
+      layaway,
       reprint,
       goReturns,
       runLookup,
@@ -338,6 +351,7 @@ export function PosScreen({
       if (key === "F3") return shortcut(() => current.openDialog("customer"));
       if (key === "F4") return shortcut(() => current.openDialog("discount"));
       if (key === "F6") return shortcut(() => current.openDialog("parked"));
+      if (key === "F7") return shortcut(current.layaway);
       if (key === "F8") return shortcut(current.goReturns);
       if (key === "F9") return shortcut(current.reprint);
       if (key === "F12") return shortcut(current.charge);
@@ -392,6 +406,18 @@ export function PosScreen({
             ) : null}
             <kbd className="text-muted-foreground text-xs">F6</kbd>
           </Button>
+          {config.canLayaway ? (
+            <Button
+              type="button"
+              variant="outline"
+              disabled={!summary.priced || exchange !== null}
+              onClick={layaway}
+            >
+              <Bookmark aria-hidden="true" />
+              {messages.layaways.create.button}{" "}
+              <kbd className="text-muted-foreground text-xs">F7</kbd>
+            </Button>
+          ) : null}
           <Button type="button" variant="outline" onClick={goReturns}>
             <Undo2 aria-hidden="true" />
             {copy.actions.returns} <kbd className="text-muted-foreground text-xs">F8</kbd>
@@ -615,6 +641,12 @@ export function PosScreen({
         summary={summary}
         config={config}
         creditCents={creditCents}
+        onClose={closeDialog}
+      />
+      <LayawayDialog
+        open={dialog === "layaway"}
+        summary={summary}
+        config={config}
         onClose={closeDialog}
       />
       <SwitchCashierDialog open={dialog === "switch"} onClose={closeDialog} />

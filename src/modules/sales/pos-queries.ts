@@ -19,7 +19,7 @@ const productInclude = {
     include: {
       size: { select: { name: true } },
       color: { select: { name: true, hex: true } },
-      stockLevels: { select: { onHand: true } },
+      stockLevels: { select: { onHand: true, reserved: true } },
     },
   },
 } satisfies Prisma.ProductInclude;
@@ -40,7 +40,8 @@ function toSellable(product: ProductRow): SellableProduct {
       colorName: variant.color?.name ?? null,
       colorHex: variant.color?.hex ?? null,
       priceCents: variant.priceCents ?? product.basePriceCents,
-      onHand: variant.stockLevels.reduce((sum, level) => sum + level.onHand, 0),
+      // Lo apartado es de otro cliente: al mostrador solo se le ofrece lo disponible.
+      onHand: variant.stockLevels.reduce((sum, level) => sum + level.onHand - level.reserved, 0),
       taxExempt: product.taxCategory === "EXEMPT",
     })),
   };

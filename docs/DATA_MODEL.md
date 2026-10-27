@@ -210,7 +210,7 @@ Anulación: solo mientras el turno de la venta sigue abierto; pone `status = VOI
 `saleId`, `variantId`, `quantity`, `unitPriceCents`, `unitCostCents` (promedio de la prenda; si nunca se compró, el costo del catálogo), `lineDiscountCents` (descuento propio **más** su parte prorrateada del descuento global), `taxRate` (basis points, p. ej. 1500), `taxCents`, `lineTotalCents`, y **copias de texto** `productName`, `sizeName`, `colorName`, `sku` (para que el recibo histórico no cambie si se renombra el producto).
 
 ### Payment
-`saleId`, `method enum (CASH, CARD, TRANSFER, STORE_CREDIT, OTHER, EXCHANGE)` (`EXCHANGE`: el valor de lo devuelto en un cambio, aplicado a la venta nueva; no mueve el cajón), `amountCents` (en efectivo, lo que entregó el cliente: el vuelto se resta aparte en `Sale.changeCents`; solo el efectivo puede pasarse del total), `reference?` (últimos 4 / # autorización / # transferencia), `cashSessionId`.
+`saleId`, `method enum (CASH, CARD, TRANSFER, STORE_CREDIT, OTHER, EXCHANGE, LAYAWAY)` (`EXCHANGE`: el valor de lo devuelto en un cambio, aplicado a la venta nueva; `LAYAWAY`: los abonos ya recibidos de un apartado, aplicados a la venta al saldar; ninguno mueve el cajón), `amountCents` (en efectivo, lo que entregó el cliente: el vuelto se resta aparte en `Sale.changeCents`; solo el efectivo puede pasarse del total), `reference?` (últimos 4 / # autorización / # transferencia), `cashSessionId`.
 Datos de tarjeta **nunca**: solo monto y referencia.
 
 ### ParkedSale (venta en espera, opcional en servidor)
@@ -225,10 +225,11 @@ Datos de tarjeta **nunca**: solo monto y referencia.
 Invariante: Σ `ReturnItem.quantity` por `saleItemId` ≤ `SaleItem.quantity`.
 
 ### Layaway (apartado)
-`number`, `customerId`, `status enum (ACTIVE, COMPLETED, CANCELLED, EXPIRED)`, `totalCents`, `paidCents`, `expiresAt`, `saleId?` (al saldar), `createdById`.
+`number`, `clientRequestId @unique` (idempotencia), `customerId`, `status enum (ACTIVE, COMPLETED, CANCELLED, EXPIRED)`, `totalCents`, `paidCents` (Σ de los abonos recibidos; el pago final vive en la venta), `retainedCents` (lo que la tienda se queda al cancelar), `expiresAt`, `saleId?` (al saldar), `createdById`, `cancelledAt?`, `cancelReason?`, `cancelledById?`.
 ### LayawayItem · LayawayPayment
-Ítems con snapshot de precio; pagos con `method`, `amountCents`, `cashSessionId`, `createdAt`.
-Al crear: `StockLevel.reserved += qty` (movimiento `LAYAWAY_RESERVE`). Al cancelar/expirar: `LAYAWAY_RELEASE`.
+Ítems con snapshot de precio; abonos (`LayawayPayment`) con `method` (efectivo, tarjeta, transferencia u otro), `amountCents`, `reference?`, `clientRequestId? @unique` (idempotencia), `cashSessionId` (el turno donde entró el abono), `userId` (quien lo recibió), `createdAt`.
+Al crear: `StockLevel.reserved += qty` (movimiento `LAYAWAY_RESERVE`, cantidad positiva; `onHand` no cambia). Al saldar, cancelar o vencer: `LAYAWAY_RELEASE` (cantidad negativa). Una venta (`SALE_OUT`) solo puede sacar lo disponible (`onHand − reserved`). Invariante: Σ de los movimientos de apartado = `StockLevel.reserved` = Σ de las cantidades de los apartados `ACTIVE` (`findReservedDiscrepancies`).
+Al saldar: el apartado se vuelve una venta a los precios guardados; los abonos ya recibidos pagan la venta con un `Payment` de método `LAYAWAY` (su efectivo ya entró en el turno donde se recibió, y `loadCashTotals` lo suma con `layawayCashCents`) y lo que falta se cobra con pagos normales. Al cancelar o vencer: lo abonado menos `retainedCents` pasa a crédito de tienda (`LAYAWAY_CANCEL`) y queda un `AuditLog LAYAWAY_CANCELLED`.
 
 ### StoreCreditEntry (libro del crédito de tienda — solo inserción)
 `customerId`, `amountCents` (+ abona, − consume), `reason enum (RETURN, LAYAWAY_CANCEL, MANUAL, USED_IN_SALE, SALE_VOID)`, `refType`, `refId`, `note?` (el motivo de un ajuste manual), `userId`, `createdAt`.
@@ -249,7 +250,7 @@ Al crear: `StockLevel.reserved += qty` (movimiento `LAYAWAY_RESERVE`). Al cancel
 3. `Σ ReturnItem.quantity ≤ SaleItem.quantity` por línea.
 4. Los correlativos fiscales no tienen saltos ni repeticiones y están dentro del rango vigente.
 5. `Customer.storeCreditCents = Σ StoreCreditEntry.amountCents`.
-6. `CashSession.expectedCash = opening + Σ Payment CASH − Σ Sale.changeCents + Σ CashMovement IN − Σ CashMovement OUT − reembolsos en efectivo`, solo con ventas `COMPLETED` (las anuladas no cuentan). `Payment.amountCents` en efectivo es lo que entregó el cliente (vuelto incluido); el vuelto se resta aparte. Función pura: `src/modules/cash/expected.ts`.
+6. `CashSession.expectedCash = opening + Σ Payment CASH + Σ LayawayPayment CASH − Σ Sale.changeCents + Σ CashMovement IN − Σ CashMovement OUT − reembolsos en efectivo`, solo con ventas `COMPLETED` (las anuladas no cuentan). `Payment.amountCents` en efectivo es lo que entregó el cliente (vuelto incluido); el vuelto se resta aparte. Función pura: `src/modules/cash/expected.ts`.
 7. Una venta `VOIDED` revierte exactamente sus movimientos de stock y de pago.
 
 ## 10. Datos de ejemplo (seed)

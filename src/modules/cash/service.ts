@@ -59,6 +59,11 @@ export async function loadCashTotals(client: Client, cashSessionId: string): Pro
     _sum: { amountCents: true },
     where: { cashSessionId, method: "CASH", sale: { status: "COMPLETED" } },
   });
+  // Un abono recibido en efectivo está en el cajón aunque el apartado se cancele después (se devuelve como crédito).
+  const layawayCash = await client.layawayPayment.aggregate({
+    _sum: { amountCents: true },
+    where: { cashSessionId, method: "CASH" },
+  });
   const change = await client.sale.aggregate({
     _sum: { changeCents: true },
     where: { cashSessionId, status: "COMPLETED" },
@@ -77,6 +82,7 @@ export async function loadCashTotals(client: Client, cashSessionId: string): Pro
   return {
     openingFloatCents: session.openingFloatCents,
     cashPaymentsCents: cashPayments._sum.amountCents ?? 0,
+    layawayCashCents: layawayCash._sum.amountCents ?? 0,
     changeGivenCents: change._sum.changeCents ?? 0,
     movementsInCents: moved("IN"),
     movementsOutCents: moved("OUT"),

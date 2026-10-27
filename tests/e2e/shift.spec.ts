@@ -989,3 +989,119 @@ test("a return becomes store credit, the cashier pays with it and a manager adju
 
   await closeLeftoverCash(page);
 });
+
+// ───────────── Apartados ─────────────
+
+const lay = messages.layaways;
+
+/** Elige (o crea) al cliente del ticket por su nombre y teléfono. */
+async function chooseCustomer(page: Page, name: string, phone: string) {
+  await page.getByRole("button", { name: pos.ticket.customerNone }).click();
+  await page.getByLabel(pos.customer.name, { exact: true }).fill(name);
+  await page.getByLabel(pos.customer.phone, { exact: true }).fill(phone);
+  await page.getByRole("button", { name: pos.customer.save }).click();
+  await expect(page.getByRole("button", { name })).toBeVisible();
+}
+
+test("the cashier reserves a garment with a deposit, receives another, settles it, and a manager's PIN cancels a second one", async ({
+  page,
+  browser,
+}) => {
+  test.slow();
+  const stamp = Date.now();
+  const name = `E2E Apartado ${stamp}`;
+  const customerName = `E2E Cliente Apartado ${stamp}`;
+  const phone = `6${String(stamp).slice(-7)}`;
+  const baseURL = test.info().project.use.baseURL as string;
+  await createStockedProduct(browser, baseURL, name, "200", "L 200.00", "3");
+
+  // Aparta la prenda: el abono mínimo (20 %) son L 40; abona L 50
+  await openCashAndSell(page);
+  await addToTicket(page, name, "L 200.00");
+  await chooseCustomer(page, customerName, phone);
+  await page.getByRole("button", { name: new RegExp(`^${lay.create.button}`) }).click();
+  await expect(page.getByRole("heading", { name: lay.create.title })).toBeVisible();
+  await expect(page.getByText(`${lay.create.minDeposit}`)).toBeVisible();
+  await expect(page.getByLabel(lay.create.deposit, { exact: true })).toHaveValue("40.00");
+  await fillMoney(page, lay.create.deposit, "50");
+  await page.getByRole("button", { name: lay.create.submit }).click();
+  await expect(page.getByRole("heading", { name: lay.create.done.title })).toBeVisible();
+  await expect(page.getByRole("status")).toContainText("L 150.00");
+  const number = (
+    await page
+      .getByText(new RegExp(`${lay.create.done.number} AP-\\d+`))
+      .first()
+      .innerText()
+  ).match(/AP-\d+/)?.[0] as string;
+  await page.getByRole("button", { name: lay.create.done.keepSelling }).click();
+
+  // Lo apartado ya no se ofrece como disponible: de 3 quedan 2
+  const search = page.getByRole("textbox", { name: pos.search.label });
+  await expect(async () => {
+    await search.fill(name);
+    await expect(page.getByRole("button", { name: `${name}, L 200.00` })).toContainText(
+      "2 quedan",
+      {
+        timeout: 3000,
+      },
+    );
+  }).toPass();
+
+  // En la lista de apartados: otro abono, con su recibo
+  await page.goto("/apartados");
+  await page.getByRole("link", { name: `${lay.list.open} ${number}` }).click();
+  await expect(page.getByRole("heading", { name: `${lay.detail.title} ${number}` })).toBeVisible();
+  await expect(page.getByRole("group", { name: lay.detail.summary.balance })).toContainText(
+    "L 150.00",
+  );
+  await fillMoney(page, lay.pay.amount, "60");
+  await page.getByRole("button", { name: lay.pay.submit }).click();
+  await expect(page.getByText(`${lay.pay.done} L 90.00`)).toBeVisible();
+  const receiptHref = (await page
+    .getByRole("link", { name: lay.pay.printReceipt })
+    .getAttribute("href")) as string;
+  expect(receiptHref).toMatch(/^\/imprimir\/apartado\/[a-z0-9]+\?auto=1$/);
+  await page.goto(receiptHref.replace("?auto=1", ""));
+  const receipt = page.getByRole("article", {
+    name: new RegExp(`^${lay.receipt.title} ${number}-02$`),
+  });
+  await expect(receipt).toContainText("L 60.00");
+  await expect(receipt).toContainText("L 110.00");
+  await expect(receipt).toContainText("L 90.00");
+
+  // Salda: se cobra lo que falta (L 90) con el efectivo
+  await page.getByRole("link", { name: lay.receipt.back }).click();
+  await page.getByRole("button", { name: lay.settle.submit }).click();
+  await expect(page.getByRole("heading", { name: lay.settle.done.title })).toBeVisible();
+  await expect(page.getByText(lay.settle.done.noChange)).toBeVisible();
+
+  // En el cajón entraron los L 50 + L 60 de los abonos y los L 90 del saldo
+  await page.goto("/caja");
+  await expect(page.getByRole("group", { name: messages.cash.current.expected })).toContainText(
+    "L 200.00",
+  );
+
+  // Un segundo apartado; la cajera no puede cancelarlo sin el PIN de un gerente
+  await page.goto("/vender");
+  await expect(page.getByRole("heading", { name: pos.title, level: 1 })).toBeVisible();
+  await addToTicket(page, name, "L 200.00");
+  await chooseCustomer(page, customerName, phone);
+  await page.getByRole("button", { name: new RegExp(`^${lay.create.button}`) }).click();
+  await page.getByRole("button", { name: lay.create.submit }).click();
+  await expect(page.getByRole("heading", { name: lay.create.done.title })).toBeVisible();
+  await page.getByRole("link", { name: lay.create.done.view }).click();
+  await expect(
+    page.getByRole("heading", { name: new RegExp(`^${lay.detail.title} AP-`) }),
+  ).toBeVisible();
+
+  await page.getByRole("button", { name: lay.cancel.button }).click();
+  await page.getByLabel(lay.cancel.reason, { exact: true }).fill("E2E ya no lo quiere");
+  await expect(page.getByText(lay.cancel.approval.title, { exact: true })).toBeVisible();
+  await page.getByLabel(lay.cancel.approval.username, { exact: true }).fill("manager");
+  await page.getByLabel(lay.cancel.approval.pin, { exact: true }).fill("2222");
+  await page.getByRole("button", { name: lay.cancel.submit, exact: true }).click();
+  await expect(page.getByText(lay.status.CANCELLED, { exact: true }).first()).toBeVisible();
+  await expect(page.getByText("E2E ya no lo quiere")).toBeVisible();
+
+  await closeLeftoverCash(page);
+});

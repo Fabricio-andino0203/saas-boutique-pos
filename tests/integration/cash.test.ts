@@ -328,6 +328,7 @@ describe("closing a shift", () => {
       changeGivenCents: 20000,
       movementsInCents: 20000,
       movementsOutCents: 15000,
+      layawayCashCents: 0,
       cashRefundsCents: 0,
     });
     expect(detail?.expectedCents).toBe(85000);

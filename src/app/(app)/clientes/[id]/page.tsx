@@ -18,6 +18,7 @@ import { formatMoney } from "@/lib/format";
 import { hasCapability } from "@/lib/permissions";
 import { AdjustCreditForm } from "@/modules/customers/components/adjust-credit-form";
 import { getCustomerFicha } from "@/modules/customers/queries";
+import { listCustomerLayaways } from "@/modules/layaways/queries";
 
 const copy = messages.customers;
 
@@ -29,6 +30,9 @@ export default async function CustomerPage({ params }: { params: Promise<{ id: s
     notFound();
   }
   const canAdjust = hasCapability(user.role, "credit.adjust");
+  const layaways = hasCapability(user.role, "layaway.manage")
+    ? await listCustomerLayaways(customer.id)
+    : null;
   const details = [
     [copy.fields.phone, customer.phone],
     [copy.fields.email, customer.email],
@@ -143,6 +147,39 @@ export default async function CustomerPage({ params }: { params: Promise<{ id: s
           </ul>
         )}
       </section>
+
+      {layaways ? (
+        <section aria-labelledby="layaways-title" className="space-y-2">
+          <h2 id="layaways-title" className="text-lg font-medium">
+            {copy.layaways.title}
+          </h2>
+          {layaways.length === 0 ? (
+            <p className="text-muted-foreground text-sm">{copy.layaways.empty}</p>
+          ) : (
+            <ul className="divide-y rounded-lg border text-sm">
+              {layaways.map((layaway) => (
+                <li
+                  key={layaway.id}
+                  className="flex flex-wrap items-center justify-between gap-2 p-3"
+                >
+                  <span>
+                    <Link
+                      href={`/apartados/${layaway.id}`}
+                      className="text-primary font-medium underline underline-offset-4"
+                    >
+                      {layaway.number}
+                    </Link>{" "}
+                    · {messages.layaways.status[layaway.status]}
+                  </span>
+                  <span className="tabular-nums">
+                    {formatMoney(layaway.paidCents)} / {formatMoney(layaway.totalCents)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      ) : null}
 
       <section aria-labelledby="returns-title" className="space-y-2">
         <h2 id="returns-title" className="text-lg font-medium">

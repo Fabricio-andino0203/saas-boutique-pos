@@ -25,6 +25,8 @@ const matrix: ReadonlyArray<readonly [Capability, boolean, boolean, boolean, boo
   ["return.overridePolicy", true, true, false, false],
   ["customer.view", true, true, true, false],
   ["credit.adjust", true, true, false, false],
+  ["layaway.manage", true, true, true, false],
+  ["layaway.cancel", true, true, false, false],
   ["cash.open", true, true, true, false],
   ["cash.closeApprove", true, true, false, false],
   ["cash.viewOthers", true, true, false, false],
@@ -79,6 +81,7 @@ describe("manager PIN overrides", () => {
   it("lists the overridable capabilities, held by manager and owner but not the cashier", () => {
     expect([...MANAGER_PIN_OVERRIDES].sort()).toEqual([
       "discount.applyBeyondLimit",
+      "layaway.cancel",
       "return.overridePolicy",
       "return.refundCash",
       "sale.void",
@@ -93,6 +96,7 @@ describe("manager PIN overrides", () => {
   it("canManagerPinOverride is true only for those", () => {
     expect(canManagerPinOverride("discount.applyBeyondLimit")).toBe(true);
     expect(canManagerPinOverride("sale.void")).toBe(true);
+    expect(canManagerPinOverride("layaway.cancel")).toBe(true);
     expect(canManagerPinOverride("return.refundCash")).toBe(true);
     expect(canManagerPinOverride("return.overridePolicy")).toBe(true);
     expect(canManagerPinOverride("return.create")).toBe(false);

@@ -49,6 +49,10 @@ export type PosConfig = {
   cashierDiscountPercent: number;
   /** Gerente y propietario descuentan sin límite. */
   canDiscountBeyondLimit: boolean;
+  /** Reglas de los apartados: abono mínimo (%) y días de plazo. */
+  layaway: { minDepositPercent: number; expiryDays: number };
+  /** Puede crear apartados desde el ticket. */
+  canLayaway: boolean;
 };
 
 export type PosActionError = { error: string };

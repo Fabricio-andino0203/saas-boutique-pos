@@ -98,6 +98,7 @@ enum PaymentMethod {
   STORE_CREDIT
   OTHER
   EXCHANGE // crédito de una devolución aplicado a la venta del cambio
+  LAYAWAY
 }
 
 enum ReturnType {
@@ -163,7 +164,9 @@ model User {
   priceChanges         PriceHistory[]
   returnsProcessed     ReturnDoc[]        @relation("ReturnProcessor")
   returnsAuthorized    ReturnDoc[]        @relation("ReturnAuthorizer")
-  layawaysCreated      Layaway[]
+  layawaysCreated      Layaway[]          @relation("LayawayCreator")
+  layawaysCancelled    Layaway[]          @relation("LayawayCanceller")
+  layawayPayments      LayawayPayment[]
   storeCreditEntries   StoreCreditEntry[]
   parkedSales          ParkedSale[]
   auditLogs            AuditLog[]
@@ -801,18 +804,18 @@ model ReturnDoc {
   number          String       @unique
   clientRequestId String       @unique // idempotencia: reintentar no duplica la devolución
   customerId      String? // quien recibe el crédito de tienda, si lo hay
-  saleId         String
-  type           ReturnType
-  exchangeSaleId String?
-  reason         String
-  refundMethod   RefundMethod
-  refundCents    Int
-  cashSessionId  String
-  processedById  String
-  authorizedById String?
-  fiscalNumber   Int? // nota de crédito, si aplica
-  fiscalRangeId  String?
-  createdAt      DateTime     @default(now())
+  saleId          String
+  type            ReturnType
+  exchangeSaleId  String?
+  reason          String
+  refundMethod    RefundMethod
+  refundCents     Int
+  cashSessionId   String
+  processedById   String
+  authorizedById  String?
+  fiscalNumber    Int? // nota de crédito, si aplica
+  fiscalRangeId   String?
+  createdAt       DateTime     @default(now())
 
   customer     Customer?    @relation(fields: [customerId], references: [id])
   sale         Sale         @relation("ReturnOriginalSale", fields: [saleId], references: [id])
@@ -846,23 +849,29 @@ model ReturnItem {
 }
 
 model Layaway {
-  id          String        @id @default(cuid())
-  number      String        @unique
-  customerId  String
-  status      LayawayStatus @default(ACTIVE)
-  totalCents  Int
-  paidCents   Int           @default(0)
-  expiresAt   DateTime
-  saleId      String?       @unique // al saldar
-  createdById String
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  id              String        @id @default(cuid())
+  number          String        @unique
+  clientRequestId String        @unique // idempotencia: reintentar no duplica el apartado
+  customerId      String
+  status          LayawayStatus @default(ACTIVE)
+  totalCents      Int
+  paidCents       Int           @default(0) // Σ de los abonos recibidos; el pago final vive en la venta al saldar
+  retainedCents   Int           @default(0) // lo que la tienda se queda al cancelar (el resto va a crédito de tienda)
+  expiresAt       DateTime
+  saleId          String?       @unique // al saldar
+  createdById     String
+  cancelledAt     DateTime?
+  cancelReason    String?
+  cancelledById   String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
 
-  customer  Customer         @relation(fields: [customerId], references: [id])
-  sale      Sale?            @relation(fields: [saleId], references: [id])
-  createdBy User             @relation(fields: [createdById], references: [id])
-  items     LayawayItem[]
-  payments  LayawayPayment[]
+  customer    Customer         @relation(fields: [customerId], references: [id])
+  sale        Sale?            @relation(fields: [saleId], references: [id])
+  createdBy   User             @relation("LayawayCreator", fields: [createdById], references: [id])
+  cancelledBy User?            @relation("LayawayCanceller", fields: [cancelledById], references: [id])
+  items       LayawayItem[]
+  payments    LayawayPayment[]
 
   @@index([customerId])
   @@index([status, expiresAt])
@@ -887,18 +896,23 @@ model LayawayItem {
 }
 
 model LayawayPayment {
-  id            String        @id @default(cuid())
-  layawayId     String
-  method        PaymentMethod
-  amountCents   Int
-  cashSessionId String
-  createdAt     DateTime      @default(now())
+  id              String        @id @default(cuid())
+  layawayId       String
+  method          PaymentMethod
+  amountCents     Int
+  reference       String? // últimos 4 / # autorización / # transferencia
+  clientRequestId String?       @unique // idempotencia del abono
+  cashSessionId   String
+  userId          String // quien recibió el abono
+  createdAt       DateTime      @default(now())
 
   layaway     Layaway     @relation(fields: [layawayId], references: [id])
   cashSession CashSession @relation(fields: [cashSessionId], references: [id])
+  user        User        @relation(fields: [userId], references: [id])
 
   @@index([layawayId])
   @@index([cashSessionId])
+  @@index([userId])
 }
 
 /// Libro del crédito de tienda. Solo inserción (trigger en la migración `constraints`).

@@ -46,6 +46,8 @@ export const SETTING_DEFS = {
   "discount.maxPercent.CASHIER": { schema: z.number().int().min(0).max(100), default: 10 },
   "returns.maxDays": { schema: z.number().int().min(0).max(365), default: 8 },
   "layaway.expiryDays": { schema: z.number().int().min(1).max(365), default: 30 },
+  /** Porcentaje del total que hay que abonar al crear un apartado. */
+  "layaway.minDepositPercent": { schema: z.number().int().min(0).max(100), default: 20 },
   "ticket.footer": { schema: z.string().max(200), default: "¡Gracias por tu compra!" },
   /** El crédito de tienda siempre está activo: nace de devoluciones y apartados. */
   "payments.enabled": {

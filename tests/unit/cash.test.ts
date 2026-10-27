@@ -20,6 +20,7 @@ describe("expectedCashCents", () => {
         changeGivenCents: 3450,
         movementsInCents: 20000,
         movementsOutCents: 15000,
+        layawayCashCents: 0,
         cashRefundsCents: 4000,
       }),
     ).toBe(171000);
@@ -34,6 +35,7 @@ describe("expectedCashCents", () => {
         changeGivenCents: 0,
         movementsInCents: 0,
         movementsOutCents: 0,
+        layawayCashCents: 0,
         cashRefundsCents: 10000,
       }),
     ).toBe(15000);
@@ -47,6 +49,7 @@ describe("expectedCashCents", () => {
         changeGivenCents: 0,
         movementsInCents: 0,
         movementsOutCents: 0,
+        layawayCashCents: 0,
         cashRefundsCents: 0,
       }),
     ).toBe(25000);
@@ -60,6 +63,7 @@ describe("expectedCashCents", () => {
         changeGivenCents: 0,
         movementsInCents: 0,
         movementsOutCents: 1500,
+        layawayCashCents: 0,
         cashRefundsCents: 0,
       }),
     ).toBe(-500);

@@ -16,6 +16,8 @@ import {
   CustomerRequiredError,
   ApprovalRequiredError,
   InsufficientCreditError,
+  LayawayDepositError,
+  LayawayStateError,
   ActiveRangeExistsError,
   CountInProgressError,
   CountStateError,
@@ -74,6 +76,8 @@ const table = [
   { create: () => new CustomerRequiredError(), code: "CUSTOMER_REQUIRED", status: 422 },
   { create: () => new ApprovalRequiredError(), code: "APPROVAL_REQUIRED", status: 403 },
   { create: () => new InsufficientCreditError(), code: "INSUFFICIENT_CREDIT", status: 409 },
+  { create: () => new LayawayStateError(), code: "LAYAWAY_STATE", status: 409 },
+  { create: () => new LayawayDepositError(), code: "LAYAWAY_DEPOSIT", status: 422 },
 ] as const;
 
 describe("AppError subclasses", () => {

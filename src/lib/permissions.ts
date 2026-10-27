@@ -14,6 +14,8 @@ export const CAPABILITIES = [
   "return.overridePolicy",
   "customer.view",
   "credit.adjust",
+  "layaway.manage",
+  "layaway.cancel",
   "cash.open",
   "cash.closeApprove",
   "cash.viewOthers",
@@ -44,6 +46,7 @@ export const ROLE_CAPABILITIES: Record<Role, ReadonlySet<Capability>> = {
     "discount.apply",
     "return.create",
     "customer.view",
+    "layaway.manage",
     "cash.open",
   ]),
   WAREHOUSE: new Set<Capability>(["product.write", "stock.adjust", "purchase.receive"]), // cuenta, pero no aprueba conteos
@@ -54,6 +57,7 @@ export const MANAGER_PIN_OVERRIDES = [
   "sale.void",
   "return.refundCash",
   "return.overridePolicy",
+  "layaway.cancel",
 ] as const satisfies readonly Capability[];
 
 export function hasCapability(role: Role, capability: Capability): boolean {

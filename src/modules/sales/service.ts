@@ -165,7 +165,14 @@ export async function runSale(
   data: SaleData,
   authorizer: SessionUser | null,
   issuer: FiscalDocumentIssuer,
-  options: { creditCents?: number } = {},
+  options: {
+    /** Valor de lo devuelto en un cambio: paga la venta con un pago EXCHANGE. */
+    creditCents?: number;
+    /** Abonos ya recibidos de un apartado: pagan la venta con un pago LAYAWAY (ya entraron en su turno). */
+    layawayCents?: number;
+    /** Precios fijados al apartar, por prenda: se respetan aunque el catálogo haya cambiado. */
+    unitPrices?: ReadonlyMap<string, number>;
+  } = {},
 ): Promise<CompletedSale> {
   const now = new Date();
 
@@ -233,7 +240,8 @@ export async function runSale(
   });
 
   const cart: CartLine[] = items.map(({ line, variant }) => ({
-    unitPriceCents: variant.priceCents ?? variant.product.basePriceCents,
+    unitPriceCents:
+      options.unitPrices?.get(variant.id) ?? variant.priceCents ?? variant.product.basePriceCents,
     quantity: line.quantity,
     discount: line.discount,
     taxRateBps: variant.product.taxCategory === "EXEMPT" ? 0 : settings["tax.rate"],
@@ -281,9 +289,16 @@ export async function runSale(
     throw new CustomerRequiredError();
   }
   const creditAppliedCents = Math.min(options.creditCents ?? 0, priced.totalCents);
+  const layawayAppliedCents = Math.min(
+    options.layawayCents ?? 0,
+    priced.totalCents - creditAppliedCents,
+  );
   const allPayments: { method: PaymentMethod; amountCents: number; reference?: string }[] = [
     ...(creditAppliedCents > 0
       ? [{ method: "EXCHANGE" as const, amountCents: creditAppliedCents }]
+      : []),
+    ...(layawayAppliedCents > 0
+      ? [{ method: "LAYAWAY" as const, amountCents: layawayAppliedCents }]
       : []),
     ...data.payments,
   ];

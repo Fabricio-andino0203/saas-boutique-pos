@@ -38,6 +38,8 @@ Contabilidad completa, nómina, e-commerce público, integración con marketplac
 | Devolución fuera de política (plazo o categoría) | ✓ | ✓ | PIN de gerente | – |
 | Ver clientes y su crédito de tienda | ✓ | ✓ | ✓ | – |
 | Ajustar a mano el crédito de tienda de un cliente (con motivo) | ✓ | ✓ | – | – |
+| Apartados: crear, abonar y saldar | ✓ | ✓ | ✓ | – |
+| Cancelar un apartado | ✓ | ✓ | PIN de gerente | – |
 | Abrir / cerrar caja propia | ✓ | ✓ | ✓ | – |
 | Ver cierres de otros cajeros | ✓ | ✓ | – | – |
 | Crear / editar productos | ✓ | ✓ | – | ✓ |

@@ -111,7 +111,7 @@ describe("recordMovement: reglas de movimiento", () => {
   const base = (w: Awaited<ReturnType<typeof seed>>) =>
     ({ variantId: w.variant.id, locationId: w.location.id, userId: w.user.id }) as const;
 
-  it("rejects the wrong direction for each type and the layaway types", async () => {
+  it("rejects the wrong direction for each type, layaway reservations included", async () => {
     const w = await seed();
     const attempts = [
       { type: "SALE_OUT", quantity: 1 },
@@ -119,8 +119,8 @@ describe("recordMovement: reglas de movimiento", () => {
       { type: "ADJUSTMENT_IN", quantity: -1 },
       { type: "PURCHASE_IN", quantity: -1 },
       { type: "INITIAL", quantity: -1 },
-      { type: "LAYAWAY_RESERVE", quantity: 1 },
-      { type: "LAYAWAY_RELEASE", quantity: -1 },
+      { type: "LAYAWAY_RESERVE", quantity: -1 },
+      { type: "LAYAWAY_RELEASE", quantity: 1 },
     ] as const;
     for (const attempt of attempts) {
       await expect(
@@ -130,6 +130,42 @@ describe("recordMovement: reglas de movimiento", () => {
     }
     expect(await testDb.stockMovement.count()).toBe(0);
     expect(await testDb.stockLevel.count()).toBe(0);
+  });
+
+  it("reserves and releases without touching onHand; a sale only takes what is available", async () => {
+    const w = await seed();
+    const move = (
+      type: "INITIAL" | "LAYAWAY_RESERVE" | "LAYAWAY_RELEASE" | "SALE_OUT" | "COUNT_ADJUSTMENT",
+      quantity: number,
+    ) => testDb.$transaction((tx) => recordMovement(tx, { ...base(w), type, quantity }));
+    const level = () => testDb.stockLevel.findFirstOrThrow({ where: { variantId: w.variant.id } });
+
+    await move("INITIAL", 5);
+    await move("LAYAWAY_RESERVE", 3);
+    expect(await level()).toMatchObject({ onHand: 5, reserved: 3 });
+
+    // Solo quedan 2 disponibles: no se pueden reservar 3 más, ni liberar más de lo reservado
+    await expect(move("LAYAWAY_RESERVE", 3)).rejects.toBeInstanceOf(InsufficientStockError);
+    await expect(move("LAYAWAY_RELEASE", -4)).rejects.toBeInstanceOf(ValidationError);
+    // Una venta tampoco puede entrar en lo reservado
+    await expect(move("SALE_OUT", -3)).rejects.toBeInstanceOf(InsufficientStockError);
+    await move("SALE_OUT", -2);
+    expect(await level()).toMatchObject({ onHand: 3, reserved: 3 });
+
+    // Un conteo físico refleja lo que de verdad hay, aunque quede por debajo de lo reservado
+    await move("COUNT_ADJUSTMENT", -2);
+    expect(await level()).toMatchObject({ onHand: 1, reserved: 3 });
+
+    await move("LAYAWAY_RELEASE", -3);
+    expect(await level()).toMatchObject({ onHand: 1, reserved: 0 });
+    const kinds = await testDb.stockMovement.findMany({
+      where: { type: { in: ["LAYAWAY_RESERVE", "LAYAWAY_RELEASE"] } },
+      orderBy: { createdAt: "asc" },
+    });
+    expect(kinds.map((m) => [m.type, m.quantity])).toEqual([
+      ["LAYAWAY_RESERVE", 3],
+      ["LAYAWAY_RELEASE", -3],
+    ]);
   });
 
   it("lets a count adjustment go either way", async () => {

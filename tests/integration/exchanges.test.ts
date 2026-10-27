@@ -245,6 +245,7 @@ describe("processExchange: same price", () => {
     expect(totals).toMatchObject({
       cashPaymentsCents: 11500,
       changeGivenCents: 0,
+      layawayCashCents: 0,
       cashRefundsCents: 0,
     });
     expect(expectedCashCents(totals)).toBe(61500);

@@ -41,9 +41,12 @@ function assertSign(input: MovementInput): void {
   if (!Number.isSafeInteger(input.quantity) || input.quantity === 0) {
     throw new ValidationError("Movement quantity must be a non-zero integer");
   }
-  if (input.type === "LAYAWAY_RESERVE" || input.type === "LAYAWAY_RELEASE") {
-    // Las reservas cambian `reserved`, no `onHand`: llegan con la Fase 4.
-    throw new ValidationError("Layaway movements are not supported yet");
+  // Las reservas de un apartado cambian `reserved`, no `onHand`: reservar suma y liberar resta.
+  if (input.type === "LAYAWAY_RESERVE" && input.quantity < 0) {
+    throw new ValidationError("LAYAWAY_RESERVE must have a positive quantity");
+  }
+  if (input.type === "LAYAWAY_RELEASE" && input.quantity > 0) {
+    throw new ValidationError("LAYAWAY_RELEASE must have a negative quantity");
   }
   if (INBOUND.includes(input.type) && input.quantity < 0) {
     throw new ValidationError(`${input.type} must have a positive quantity`);
@@ -89,6 +92,9 @@ async function applyPurchaseCost(tx: Tx, input: MovementInput): Promise<number> 
  * toma el bloqueo de la fila. Si dos cajeros sacan la última prenda a la vez, el segundo espera, ve el
  * valor ya descontado y falla con `InsufficientStockError`. La fila se crea con `ON CONFLICT DO NOTHING`,
  * así dos primeras entradas simultáneas de una variante nueva tampoco se estorban.
+ *
+ * Una venta (`SALE_OUT`) solo puede sacar lo disponible (`onHand − reserved`): lo apartado es de otro cliente.
+ * Reservar (`LAYAWAY_RESERVE`) y liberar (`LAYAWAY_RELEASE`) cambian `reserved` y dejan `onHand` igual.
  */
 export async function recordMovement(tx: Tx, input: MovementInput): Promise<void> {
   assertSign(input);
@@ -113,16 +119,45 @@ export async function recordMovement(tx: Tx, input: MovementInput): Promise<void
     VALUES (gen_random_uuid()::text, ${input.variantId}, ${input.locationId}, 0, 0, now(), now())
     ON CONFLICT ("variantId", "locationId") DO NOTHING
   `;
-  const updated = await tx.$queryRaw<{ onHand: number }[]>`
-    UPDATE "StockLevel"
-    SET "onHand" = "onHand" + ${input.quantity}::int, "updatedAt" = now()
-    WHERE "variantId" = ${input.variantId}
-      AND "locationId" = ${input.locationId}
-      AND (${allowNegative}::boolean OR "onHand" + ${input.quantity}::int >= 0)
-    RETURNING "onHand"
-  `;
-  if (updated.length === 0) {
-    throw new InsufficientStockError(undefined, { variantId: input.variantId });
+  if (input.type === "LAYAWAY_RESERVE" || input.type === "LAYAWAY_RELEASE") {
+    // Reservar necesita que quede disponible (onHand − reserved ≥ 0); liberar no puede dejar `reserved` negativo.
+    const reserved = await tx.$queryRaw<{ reserved: number }[]>`
+      UPDATE "StockLevel"
+      SET "reserved" = "reserved" + ${input.quantity}::int, "updatedAt" = now()
+      WHERE "variantId" = ${input.variantId}
+        AND "locationId" = ${input.locationId}
+        AND "reserved" + ${input.quantity}::int >= 0
+        AND (
+          ${input.quantity}::int <= 0
+          OR ${allowNegative}::boolean
+          OR "onHand" - "reserved" - ${input.quantity}::int >= 0
+        )
+      RETURNING "reserved"
+    `;
+    if (reserved.length === 0) {
+      if (input.quantity < 0) {
+        throw new ValidationError("There is not that much stock reserved");
+      }
+      throw new InsufficientStockError(undefined, { variantId: input.variantId });
+    }
+  } else {
+    // Solo una venta está limitada por lo apartado; un ajuste o un conteo cuentan lo que de verdad hay en la tienda.
+    const respectReserved = input.type === "SALE_OUT";
+    const updated = await tx.$queryRaw<{ onHand: number }[]>`
+      UPDATE "StockLevel"
+      SET "onHand" = "onHand" + ${input.quantity}::int, "updatedAt" = now()
+      WHERE "variantId" = ${input.variantId}
+        AND "locationId" = ${input.locationId}
+        AND (
+          ${allowNegative}::boolean
+          OR "onHand" - (CASE WHEN ${respectReserved}::boolean THEN "reserved" ELSE 0 END)
+             + ${input.quantity}::int >= 0
+        )
+      RETURNING "onHand"
+    `;
+    if (updated.length === 0) {
+      throw new InsufficientStockError(undefined, { variantId: input.variantId });
+    }
   }
 
   await tx.stockMovement.create({

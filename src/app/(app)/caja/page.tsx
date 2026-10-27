@@ -51,6 +51,7 @@ export default async function CashPage() {
   const cards = [
     { label: copy.current.float, value: formatMoney(totals.openingFloatCents) },
     { label: copy.current.cashSales, value: formatMoney(totals.cashPaymentsCents) },
+    { label: copy.current.layawayCash, value: formatMoney(totals.layawayCashCents) },
     { label: copy.current.change, value: formatMoney(totals.changeGivenCents) },
     { label: copy.current.movementsIn, value: formatMoney(totals.movementsInCents) },
     { label: copy.current.movementsOut, value: formatMoney(totals.movementsOutCents) },

@@ -28,6 +28,7 @@ export const settingsPatchSchema = z
     "discount.maxPercent.CASHIER": SETTING_DEFS["discount.maxPercent.CASHIER"].schema,
     "returns.maxDays": SETTING_DEFS["returns.maxDays"].schema,
     "layaway.expiryDays": SETTING_DEFS["layaway.expiryDays"].schema,
+    "layaway.minDepositPercent": SETTING_DEFS["layaway.minDepositPercent"].schema,
     "ticket.footer": SETTING_DEFS["ticket.footer"].schema,
     "payments.enabled": SETTING_DEFS["payments.enabled"].schema,
     "barcode.internalPrefix": SETTING_DEFS["barcode.internalPrefix"].schema,

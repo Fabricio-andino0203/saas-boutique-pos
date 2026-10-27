@@ -224,6 +224,21 @@ export function SettingsForm({
                 defaultValue={values["layaway.expiryDays"]}
               />
             </FormField>
+            <FormField
+              label={copy.rules.layawayDeposit}
+              htmlFor="layawayDeposit"
+              hint={copy.rules.layawayDepositHint}
+            >
+              <Input
+                id="layawayDeposit"
+                name="layawayDeposit"
+                type="number"
+                min={0}
+                max={100}
+                inputMode="numeric"
+                defaultValue={values["layaway.minDepositPercent"]}
+              />
+            </FormField>
           </div>
           <Check
             name="allowNegativeStock"
