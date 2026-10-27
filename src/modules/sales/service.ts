@@ -1,4 +1,5 @@
 import type { Prisma, PrismaClient } from "@/generated/prisma/client";
+import type { PaymentMethod } from "@/generated/prisma/enums";
 import { audit } from "@/lib/audit";
 import { db } from "@/lib/db";
 import {
@@ -44,6 +45,8 @@ export type CompletedSale = {
   changeCents: number;
   /** Número de factura con CAI, si se emitió. */
   fiscalNumber: string | null;
+  /** Lo que se pagó con el crédito de una devolución (solo en un cambio). */
+  creditAppliedCents: number;
   /** `true` si el cobro ya se había registrado con ese `clientRequestId` y no se hizo nada nuevo. */
   replayed: boolean;
 };
@@ -95,6 +98,7 @@ async function findReplay(
       sale.fiscalNumber !== null && sale.fiscalRange
         ? formatFiscalNumber(sale.fiscalRange.prefix, sale.fiscalNumber)
         : null,
+    creditAppliedCents: 0,
     replayed: true,
   };
 }
@@ -149,12 +153,17 @@ export async function completeSale(
   }
 }
 
-async function runSale(
+/**
+ * Crea la venta dentro de una transacción que ya existe. Con `creditCents` (un cambio) el valor de lo devuelto se aplica
+ * primero, como un pago "Cambio", y `data.payments` cubre solo la diferencia.
+ */
+export async function runSale(
   tx: Tx,
   actor: Actor,
   data: SaleData,
   authorizer: SessionUser | null,
   issuer: FiscalDocumentIssuer,
+  options: { creditCents?: number } = {},
 ): Promise<CompletedSale> {
   const now = new Date();
 
@@ -259,7 +268,14 @@ async function runSale(
   if (data.payments.some((payment) => !enabled.includes(payment.method))) {
     throw new ValidationError("A payment method is not enabled");
   }
-  const { paidCents, changeCents } = settlePayments(priced.totalCents, data.payments);
+  const creditAppliedCents = Math.min(options.creditCents ?? 0, priced.totalCents);
+  const allPayments: { method: PaymentMethod; amountCents: number; reference?: string }[] = [
+    ...(creditAppliedCents > 0
+      ? [{ method: "EXCHANGE" as const, amountCents: creditAppliedCents }]
+      : []),
+    ...data.payments,
+  ];
+  const { paidCents, changeCents } = settlePayments(priced.totalCents, allPayments);
 
   if (data.customerId) {
     const customer = await tx.customer.findFirst({
@@ -319,7 +335,7 @@ async function runSale(
     })),
   });
   await tx.payment.createMany({
-    data: data.payments.map((payment) => ({
+    data: allPayments.map((payment) => ({
       saleId: sale.id,
       method: payment.method,
       amountCents: payment.amountCents,
@@ -367,6 +383,7 @@ async function runSale(
     paidCents,
     changeCents,
     fiscalNumber: invoice?.formattedNumber ?? null,
+    creditAppliedCents,
     replayed: false,
   };
 }
@@ -434,6 +451,10 @@ export async function voidSale(
       // Lo ya devuelto no se puede anular: la devolución es la corrección de esa venta.
       if ((await tx.returnDoc.count({ where: { saleId } })) > 0) {
         throw new SaleStateError("The sale has returns: it cannot be voided");
+      }
+      // La venta que nació de un cambio tampoco: anularla dejaría la devolución del cambio sin su venta.
+      if ((await tx.returnDoc.count({ where: { exchangeSaleId: saleId } })) > 0) {
+        throw new SaleStateError("The sale came from an exchange: use a return instead");
       }
       // El turno se bloquea igual que al vender: el cierre de caja no puede cruzarse con una anulación.
       const [session] = await tx.$queryRaw<{ status: string }[]>`

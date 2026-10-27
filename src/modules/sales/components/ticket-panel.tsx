@@ -8,7 +8,7 @@ import { messages } from "@/config/messages.es";
 import { formatMoney, formatPercentBps } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { CartItem, CartSummary } from "@/modules/sales/cart-logic";
-import type { PosConfig, QuickCustomer } from "@/modules/sales/pos-types";
+import type { ExchangeContext, PosConfig, QuickCustomer } from "@/modules/sales/pos-types";
 
 const copy = messages.pos;
 
@@ -56,6 +56,7 @@ type TicketPanelProps = {
   config: PosConfig;
   selectedId: string | null;
   customer: QuickCustomer | null;
+  exchange: ExchangeContext | null;
   onSelect: (id: string) => void;
   onQuantity: (id: string, quantity: number) => void;
   onRemove: (id: string) => void;
@@ -72,6 +73,7 @@ export function TicketPanel({
   config,
   selectedId,
   customer,
+  exchange,
   onSelect,
   onQuantity,
   onRemove,
@@ -82,6 +84,9 @@ export function TicketPanel({
 }: TicketPanelProps) {
   const { priced } = summary;
   const ticket = copy.ticket;
+  const total = priced?.totalCents ?? 0;
+  const credit = exchange?.valueCents ?? 0;
+  const difference = total - credit;
   const taxLabel = `${config.pricesIncludeTax ? ticket.taxIncluded : ticket.taxAdded} (${formatPercentBps(config.taxRateBps)} %)`;
 
   return (
@@ -224,9 +229,35 @@ export function TicketPanel({
         >
           <span className="text-lg font-semibold">{ticket.total}</span>
           <span className="text-3xl leading-tight font-bold tabular-nums">
-            {formatMoney(priced?.totalCents ?? 0)}
+            {formatMoney(total)}
           </span>
         </div>
+        {exchange ? (
+          <>
+            <div className="text-success flex justify-between px-1 text-sm">
+              <span>{messages.returns.exchange.credit}</span>
+              <span className="tabular-nums">−{formatMoney(credit)}</span>
+            </div>
+            <div
+              role="group"
+              aria-label={
+                difference >= 0
+                  ? messages.returns.exchange.toPay
+                  : messages.returns.exchange.inFavor
+              }
+              className="bg-primary text-primary-foreground flex items-baseline justify-between rounded-lg px-4 py-2"
+            >
+              <span className="font-semibold">
+                {difference >= 0
+                  ? messages.returns.exchange.toPay
+                  : messages.returns.exchange.inFavor}
+              </span>
+              <span className="text-2xl leading-tight font-bold tabular-nums">
+                {formatMoney(Math.abs(difference))}
+              </span>
+            </div>
+          </>
+        ) : null}
         <div className="grid grid-cols-[1fr_auto] gap-2">
           <Button type="button" variant="outline" className="h-10" onClick={onDiscount}>
             {copy.actions.discount} <kbd className="text-muted-foreground ml-1 text-xs">F4</kbd>
@@ -248,7 +279,8 @@ export function TicketPanel({
           disabled={!priced}
           onClick={onCharge}
         >
-          {copy.actions.charge} <kbd className="ml-2 text-sm opacity-80">F12</kbd>
+          {exchange && difference <= 0 ? messages.returns.exchange.submit : copy.actions.charge}{" "}
+          <kbd className="ml-2 text-sm opacity-80">F12</kbd>
         </Button>
       </footer>
     </section>

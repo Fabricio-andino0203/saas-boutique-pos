@@ -26,7 +26,7 @@ export default async function SaleDetailPage({ params }: { params: Promise<{ id:
   const voided = doc.status === "VOIDED";
   const returns = await listReturnsOfSale(doc.id);
   const rate = doc.items.find((item) => item.taxRate > 0)?.taxRate ?? 0;
-  const methods = messages.pos.charge.methods;
+  const methods = messages.cash.methods;
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -198,7 +198,7 @@ export default async function SaleDetailPage({ params }: { params: Promise<{ id:
             {doc.payments.map((payment, index) => (
               <div key={index} className="flex justify-between gap-4">
                 <dt>
-                  {methods[payment.method as keyof typeof methods] ?? payment.method}
+                  {methods[payment.method]}
                   {payment.reference ? ` · ${payment.reference}` : ""}
                 </dt>
                 <dd className="tabular-nums">{formatMoney(payment.amountCents)}</dd>

@@ -13,7 +13,7 @@ import {
   type StockRule,
 } from "@/modules/sales/cart-logic";
 import { newId } from "@/lib/client-id";
-import type { QuickCustomer } from "@/modules/sales/pos-types";
+import type { ExchangeContext, QuickCustomer } from "@/modules/sales/pos-types";
 import type { Discount } from "@/modules/sales/schemas";
 
 export type ParkedCart = {
@@ -37,6 +37,8 @@ type PosState = {
   parked: ParkedCart[];
   /** El último ticket cobrado en este navegador, para reimprimirlo con F9. */
   lastSaleId: string | null;
+  /** Si hay un cambio en curso, lo que se arma en el ticket es lo que el cliente se lleva a cambio. */
+  exchange: ExchangeContext | null;
   hydrated: boolean;
 
   addItem: (incoming: Omit<NewCartItem, "id">, rule: StockRule) => { capped: boolean };
@@ -49,6 +51,11 @@ type PosState = {
   /** Vacía el ticket (después de cobrar o descartar) y le da un identificador nuevo. */
   clearCart: () => void;
   setLastSale: (id: string) => void;
+  /** Empieza un cambio: el ticket que estaba armado pasa a espera y el cliente de la venta original queda elegido. */
+  startExchange: (context: ExchangeContext, customer: QuickCustomer | null) => void;
+  cancelExchange: () => void;
+  /** Después de registrar el cambio: ticket vacío y fin del cambio. */
+  finishExchange: (saleId: string) => void;
   parkCart: () => boolean;
   resumeParked: (id: string) => boolean;
   discardParked: (id: string) => void;
@@ -68,6 +75,7 @@ export const usePosStore = create<PosState>()(
       ...emptyCart(),
       parked: [],
       lastSaleId: null,
+      exchange: null,
       hydrated: false,
 
       addItem: (incoming, rule) => {
@@ -93,6 +101,12 @@ export const usePosStore = create<PosState>()(
       select: (selectedId) => set({ selectedId }),
       clearCart: () => set(emptyCart()),
       setLastSale: (id) => set({ lastSaleId: id }),
+      startExchange: (context, customer) => {
+        get().parkCart();
+        set({ exchange: context, customer });
+      },
+      cancelExchange: () => set({ exchange: null }),
+      finishExchange: (saleId) => set({ ...emptyCart(), exchange: null, lastSaleId: saleId }),
 
       parkCart: () => {
         const { items, discount, customer, parked } = get();
@@ -141,6 +155,7 @@ export const usePosStore = create<PosState>()(
         clientRequestId: state.clientRequestId,
         parked: state.parked,
         lastSaleId: state.lastSaleId,
+        exchange: state.exchange,
       }),
     },
   ),

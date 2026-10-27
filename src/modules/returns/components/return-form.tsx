@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 
 import { FormField } from "@/components/shared/form-field";
@@ -20,6 +21,7 @@ import {
   type RefundChoice,
   type ReturnCondition,
 } from "@/modules/returns/schemas";
+import { hydratePosStore, usePosStore } from "@/modules/sales/cart-store";
 import { CustomerDialog } from "@/modules/sales/components/pos-dialogs";
 import type { QuickCustomer } from "@/modules/sales/pos-types";
 
@@ -31,11 +33,19 @@ type ReturnFormProps = {
   canOverridePolicy: boolean;
   /** Puede reembolsar en efectivo sin autorización (gerente y propietario). */
   canRefundCash: boolean;
+  /** Puede vender (para cambiar la prenda por otra en la pantalla de venta). */
+  canExchange: boolean;
 };
 
 type Done = { id: string; number: string; refundCents: number; refundMethod: string };
 
-export function ReturnForm({ sale, canOverridePolicy, canRefundCash }: ReturnFormProps) {
+export function ReturnForm({
+  sale,
+  canOverridePolicy,
+  canRefundCash,
+  canExchange,
+}: ReturnFormProps) {
+  const router = useRouter();
   // Se genera una vez por pantalla: reintentar el envío con él no devuelve dos veces lo mismo.
   const [requestId] = useState(() => newId());
   const [quantities, setQuantities] = useState<Record<string, number>>({});
@@ -76,6 +86,40 @@ export function ReturnForm({ sale, canOverridePolicy, canRefundCash }: ReturnFor
 
   function setQuantity(saleItemId: string, value: number, max: number) {
     setQuantities((current) => ({ ...current, [saleItemId]: Math.max(0, Math.min(max, value)) }));
+  }
+
+  /** Pasa a la pantalla de venta con lo devuelto ya elegido: allí se arma lo que se lleva y se cobra la diferencia. */
+  async function startExchange() {
+    setError(null);
+    if (chosen.length === 0) {
+      setError(copy.errors.nothing);
+      return;
+    }
+    if (reason.trim().length < 3) {
+      setError(copy.errors.reason);
+      return;
+    }
+    // Se lee el ticket guardado antes de tocarlo: así el que estaba armado pasa a espera y no se pierde.
+    await hydratePosStore();
+    usePosStore.getState().startExchange(
+      {
+        requestId: newId(),
+        saleId: sale.id,
+        saleNumber: sale.number,
+        items: chosen.map(({ line, quantity }) => ({
+          saleItemId: line.saleItemId,
+          quantity,
+          condition: conditions[line.saleItemId] ?? "RESELLABLE",
+        })),
+        units,
+        reason: reason.trim(),
+        valueCents: refundCents,
+        refundMethod: method,
+        originalRefundable: sale.originalRefundable,
+      },
+      customer,
+    );
+    router.push("/vender");
   }
 
   function submit() {
@@ -419,6 +463,17 @@ export function ReturnForm({ sale, canOverridePolicy, canRefundCash }: ReturnFor
         <Link href="/devoluciones" className={buttonVariants({ variant: "ghost" })}>
           {copy.search.back}
         </Link>
+        {canExchange ? (
+          <Button
+            type="button"
+            variant="outline"
+            className="h-12 text-base"
+            disabled={pending}
+            onClick={() => void startExchange()}
+          >
+            {messages.returns.exchange.action}
+          </Button>
+        ) : null}
         <Button
           type="button"
           className="h-12 min-w-48 text-lg font-semibold"

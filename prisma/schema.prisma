@@ -97,6 +97,7 @@ enum PaymentMethod {
   TRANSFER
   STORE_CREDIT
   OTHER
+  EXCHANGE // crédito de una devolución aplicado a la venta del cambio
 }
 
 enum ReturnType {

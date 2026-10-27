@@ -32,6 +32,7 @@ import type {
 import type { Discount } from "@/modules/sales/schemas";
 
 const copy = messages.pos;
+const exchangeCopy = messages.returns.exchange;
 
 type DialogName = "discount" | "customer" | "parked" | "help" | "charge" | "switch";
 type Notice = { tone: "ok" | "warn"; text: string };
@@ -72,6 +73,7 @@ export function PosScreen({
   const customer = usePosStore((state) => state.customer);
   const selectedId = usePosStore((state) => state.selectedId);
   const parked = usePosStore((state) => state.parked);
+  const exchange = usePosStore((state) => state.exchange);
 
   const rule = useMemo(
     () => ({ allowNegativeStock: config.allowNegativeStock }),
@@ -383,6 +385,30 @@ export function PosScreen({
 
       <FiscalAlerts alerts={config.invoicing.alerts} />
 
+      {exchange ? (
+        <section
+          aria-label={exchangeCopy.banner}
+          className="bg-primary/5 border-primary/30 flex flex-wrap items-center justify-between gap-3 rounded-lg border px-4 py-2.5 text-sm"
+        >
+          <p>
+            <strong>
+              {exchangeCopy.banner} {exchange.saleNumber}
+            </strong>{" "}
+            · {exchange.units} {messages.returns.total.units} · {exchangeCopy.bannerValue}{" "}
+            <strong className="tabular-nums">{formatMoney(exchange.valueCents)}</strong>
+            <span className="text-muted-foreground block">{exchangeCopy.hint}</span>
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => usePosStore.getState().cancelExchange()}
+          >
+            {exchangeCopy.cancel}
+          </Button>
+        </section>
+      ) : null}
+
       <div className="grid gap-4 lg:h-[calc(100dvh-13rem)] lg:grid-cols-[minmax(0,1fr)_24rem]">
         <div className="flex min-h-0 flex-col gap-3">
           <form onSubmit={submitSearch} role="search" className="relative">
@@ -503,6 +529,7 @@ export function PosScreen({
           config={config}
           selectedId={selectedId}
           customer={customer}
+          exchange={exchange}
           onSelect={(id) => usePosStore.getState().select(id)}
           onQuantity={(id, quantity) => {
             const { capped } = usePosStore.getState().changeQuantity(id, quantity, rule);

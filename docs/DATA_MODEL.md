@@ -210,7 +210,7 @@ Anulación: solo mientras el turno de la venta sigue abierto; pone `status = VOI
 `saleId`, `variantId`, `quantity`, `unitPriceCents`, `unitCostCents` (promedio de la prenda; si nunca se compró, el costo del catálogo), `lineDiscountCents` (descuento propio **más** su parte prorrateada del descuento global), `taxRate` (basis points, p. ej. 1500), `taxCents`, `lineTotalCents`, y **copias de texto** `productName`, `sizeName`, `colorName`, `sku` (para que el recibo histórico no cambie si se renombra el producto).
 
 ### Payment
-`saleId`, `method enum (CASH, CARD, TRANSFER, STORE_CREDIT, OTHER)`, `amountCents` (en efectivo, lo que entregó el cliente: el vuelto se resta aparte en `Sale.changeCents`; solo el efectivo puede pasarse del total), `reference?` (últimos 4 / # autorización / # transferencia), `cashSessionId`.
+`saleId`, `method enum (CASH, CARD, TRANSFER, STORE_CREDIT, OTHER, EXCHANGE)` (`EXCHANGE`: el valor de lo devuelto en un cambio, aplicado a la venta nueva; no mueve el cajón), `amountCents` (en efectivo, lo que entregó el cliente: el vuelto se resta aparte en `Sale.changeCents`; solo el efectivo puede pasarse del total), `reference?` (últimos 4 / # autorización / # transferencia), `cashSessionId`.
 Datos de tarjeta **nunca**: solo monto y referencia.
 
 ### ParkedSale (venta en espera, opcional en servidor)
@@ -219,7 +219,7 @@ Datos de tarjeta **nunca**: solo monto y referencia.
 ## 7. Devoluciones, apartados, crédito
 
 ### ReturnDoc
-`number @unique`, `clientRequestId @unique` (idempotencia), `customerId?` (quien recibe el crédito de tienda), `saleId` (venta original), `type enum (RETURN, EXCHANGE)`, `exchangeSaleId?` (venta nueva si es cambio), `reason`, `refundMethod enum (ORIGINAL, CASH, STORE_CREDIT, NONE)`, `refundCents`, `cashSessionId`, `processedById`, `authorizedById?`, `fiscalNumber?`, `fiscalRangeId?` (nota de crédito, si aplica; `@@unique([fiscalRangeId, fiscalNumber])`), `createdAt`.
+`number @unique`, `clientRequestId @unique` (idempotencia), `customerId?` (quien recibe el crédito de tienda), `saleId` (venta original), `type enum (RETURN, EXCHANGE)`, `exchangeSaleId?` (venta nueva si es cambio), `reason`, `refundMethod enum (ORIGINAL, CASH, STORE_CREDIT, NONE)`, `refundCents` (el dinero que sale hacia el cliente; en un cambio, solo lo que sobra después de pagar la venta nueva, y `NONE` si no sobra nada), `cashSessionId`, `processedById`, `authorizedById?`, `fiscalNumber?`, `fiscalRangeId?` (nota de crédito, si aplica; `@@unique([fiscalRangeId, fiscalNumber])`), `createdAt`.
 ### ReturnItem
 `returnId`, `saleItemId`, `quantity`, `condition enum (RESELLABLE, DAMAGED)`, `refundCents`, `reason`.
 Invariante: Σ `ReturnItem.quantity` por `saleItemId` ≤ `SaleItem.quantity`.

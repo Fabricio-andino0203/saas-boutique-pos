@@ -269,6 +269,8 @@ describe("processReturn: a normal return to store credit", () => {
     expect(log.after).toEqual({
       number: "DV-000001",
       saleId: sale.id,
+      type: "RETURN",
+      valueCents: 11500,
       refundCents: 11500,
       refundMethod: "STORE_CREDIT",
       units: 1,

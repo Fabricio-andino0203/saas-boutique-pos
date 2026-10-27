@@ -1,6 +1,12 @@
 import { z } from "zod";
 
-import { managerOverrideSchema } from "@/modules/sales/schemas";
+import {
+  discountSchema,
+  invoiceSchema,
+  managerOverrideSchema,
+  paymentSchema,
+  saleLineSchema,
+} from "@/modules/sales/schemas";
 
 export const RETURN_CONDITIONS = ["RESELLABLE", "DAMAGED"] as const;
 export type ReturnCondition = (typeof RETURN_CONDITIONS)[number];
@@ -41,3 +47,33 @@ export const returnInputSchema = z
 
 export type ReturnInput = z.input<typeof returnInputSchema>;
 export type ReturnData = z.output<typeof returnInputSchema>;
+
+const uniqueLines = (value: { items: { saleItemId: string }[] }) =>
+  new Set(value.items.map((item) => item.saleItemId)).size === value.items.length;
+
+/**
+ * Un cambio: lo que se devuelve (como en una devolución) y lo que se lleva (como en una venta). Los pagos cubren solo
+ * la diferencia; pueden venir vacíos si lo devuelto vale lo mismo o más que lo nuevo.
+ */
+export const exchangeInputSchema = z
+  .object({
+    clientRequestId: z.string().min(8).max(64),
+    saleId: z.string().min(1).max(40),
+    items: z.array(returnItemSchema).min(1).max(100),
+    reason: z.string().trim().min(3).max(200),
+    newLines: z.array(saleLineSchema).min(1).max(200),
+    discount: discountSchema.optional(),
+    payments: z.array(paymentSchema).max(6),
+    /** Si lo devuelto vale más que lo nuevo, cómo se le devuelve lo que sobra (por defecto, crédito de tienda). */
+    refundMethod: z.enum(REFUND_METHODS).optional(),
+    customerId: z.string().min(1).max(40).optional(),
+    invoice: invoiceSchema.optional(),
+    managerOverride: managerOverrideSchema.optional(),
+  })
+  .refine(uniqueLines, {
+    path: ["items"],
+    message: "A garment line can only appear once in a return",
+  });
+
+export type ExchangeInput = z.input<typeof exchangeInputSchema>;
+export type ExchangeData = z.output<typeof exchangeInputSchema>;

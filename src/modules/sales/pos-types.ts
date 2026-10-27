@@ -1,4 +1,5 @@
 import type { InvoicingState } from "@/modules/fiscal/alerts";
+import type { RefundChoice, ReturnCondition } from "@/modules/returns/schemas";
 import type { SalePaymentMethod } from "@/modules/sales/schemas";
 
 /** Tipos que comparten el servidor y la pantalla del punto de venta (sin código de servidor). */
@@ -71,3 +72,28 @@ export type ChargeOutcome =
       code: "NEEDS_APPROVAL" | "PIN" | "ERROR";
       message: string;
     };
+
+/**
+ * Un cambio en curso: lo que el cliente devuelve, ya elegido en la pantalla de devoluciones, mientras en el POS se arma
+ * lo que se lleva. El valor es solo para mostrar: el servidor lo vuelve a calcular al registrar.
+ */
+export type ExchangeContext = {
+  /** Una vez por cambio: reintentar el registro con él no lo duplica. */
+  requestId: string;
+  saleId: string;
+  saleNumber: string;
+  items: { saleItemId: string; quantity: number; condition: ReturnCondition }[];
+  units: number;
+  reason: string;
+  /** Lo que valen las prendas que vuelven (con descuentos e ISV, prorrateado). */
+  valueCents: number;
+  /** Cómo se devuelve lo que sobre si lo nuevo vale menos. */
+  refundMethod: RefundChoice;
+  originalRefundable: boolean;
+};
+
+/** Lo que la pantalla necesita saber de un cambio recién registrado. */
+export type SoldExchange = {
+  doc: { id: string; number: string; refundCents: number; refundMethod: string };
+  creditAppliedCents: number;
+};

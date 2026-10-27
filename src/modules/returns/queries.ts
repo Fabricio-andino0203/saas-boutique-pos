@@ -160,10 +160,15 @@ export type ReturnDocument = {
   type: "RETURN" | "EXCHANGE";
   reason: string;
   refundMethod: RefundMethod;
+  /** El dinero que se le devolvió (en un cambio, solo lo que sobró de lo nuevo). */
   refundCents: number;
+  /** El valor de las prendas que volvieron (en un cambio, lo que se aplicó a la venta nueva más lo que sobró). */
+  valueCents: number;
   processedByName: string;
   authorizedByName: string | null;
   sale: { id: string; number: string };
+  /** Solo en un cambio: la venta con las prendas que se llevó. */
+  exchangeSale: { id: string; number: string } | null;
   customer: { name: string; phone: string | null; storeCreditCents: number } | null;
   items: {
     id: string;
@@ -187,6 +192,7 @@ export async function getReturnDocument(id: string): Promise<ReturnDocument | nu
       processedBy: { select: { name: true } },
       authorizedBy: { select: { name: true } },
       sale: { select: { id: true, number: true } },
+      exchangeSale: { select: { id: true, number: true } },
       customer: { select: { name: true, phone: true, storeCreditCents: true } },
       items: { orderBy: { id: "asc" }, include: { saleItem: true } },
     },
@@ -204,9 +210,11 @@ export async function getReturnDocument(id: string): Promise<ReturnDocument | nu
     reason: doc.reason,
     refundMethod: doc.refundMethod,
     refundCents: doc.refundCents,
+    valueCents: doc.items.reduce((sum, item) => sum + item.refundCents, 0),
     processedByName: doc.processedBy.name,
     authorizedByName: doc.authorizedBy?.name ?? null,
     sale: doc.sale,
+    exchangeSale: doc.exchangeSale,
     customer: doc.customer,
     items: doc.items.map((item) => ({
       id: item.id,

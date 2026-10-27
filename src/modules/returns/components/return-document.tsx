@@ -4,6 +4,7 @@ import { formatMoney } from "@/lib/format";
 import type { ReturnDocument } from "@/modules/returns/queries";
 
 const copy = messages.returns.doc;
+const exchangeCopy = messages.returns.exchange;
 
 function Row({ left, right, bold }: { left: string; right: string; bold?: boolean }) {
   return (
@@ -17,6 +18,7 @@ function Row({ left, right, bold }: { left: string; right: string; bold?: boolea
 /** El comprobante de una devolución, de 80 mm como el ticket: qué volvió, cuánto se devolvió y cómo. */
 export function ReturnDocumentSheet({ doc }: { doc: ReturnDocument }) {
   const name = doc.business.tradeName || doc.business.legalName;
+  const title = `${doc.type === "EXCHANGE" ? copy.exchangeTitle : copy.title} ${doc.number}`;
   return (
     <>
       <style>{`
@@ -32,7 +34,7 @@ export function ReturnDocumentSheet({ doc }: { doc: ReturnDocument }) {
         .ticket .sub { padding-left: 8px; font-size: 10px; }
         @media print { body { background: #fff; } }
       `}</style>
-      <article className="ticket" aria-label={`${copy.title} ${doc.number}`}>
+      <article className="ticket" aria-label={title}>
         <div className="center">
           <div className="title">{name}</div>
           {doc.business.taxId ? (
@@ -42,8 +44,11 @@ export function ReturnDocumentSheet({ doc }: { doc: ReturnDocument }) {
           {doc.business.phone ? <div>{doc.business.phone}</div> : null}
         </div>
         <hr />
-        <div className="bold">{`${copy.title} ${doc.number}`}</div>
+        <div className="bold">{title}</div>
         <div>{`${copy.originalTicket}: ${doc.sale.number}`}</div>
+        {doc.exchangeSale ? (
+          <div>{`${exchangeCopy.newTicket}: ${doc.exchangeSale.number}`}</div>
+        ) : null}
         <div>{`${copy.date}: ${formatLocalDateTime(doc.createdAt)}`}</div>
         <div>{`${copy.attendedBy}: ${doc.processedByName}`}</div>
         {doc.authorizedByName ? <div>{`${copy.authorizedBy}: ${doc.authorizedByName}`}</div> : null}
@@ -64,14 +69,36 @@ export function ReturnDocumentSheet({ doc }: { doc: ReturnDocument }) {
         <hr />
         <div className="row bold big">
           <span>{copy.total}</span>
-          <span>{formatMoney(doc.refundCents)}</span>
+          <span>{formatMoney(doc.valueCents)}</span>
         </div>
-        <Row
-          left={copy.method}
-          right={
-            messages.returns.methods[doc.refundMethod as keyof typeof messages.returns.methods]
-          }
-        />
+        {doc.type === "EXCHANGE" ? (
+          <>
+            <Row
+              left={exchangeCopy.appliedToNew}
+              right={formatMoney(doc.valueCents - doc.refundCents)}
+            />
+            {doc.refundCents > 0 ? (
+              <>
+                <Row left={exchangeCopy.leftover} right={formatMoney(doc.refundCents)} />
+                <Row
+                  left={copy.method}
+                  right={
+                    messages.returns.methods[
+                      doc.refundMethod as keyof typeof messages.returns.methods
+                    ]
+                  }
+                />
+              </>
+            ) : null}
+          </>
+        ) : (
+          <Row
+            left={copy.method}
+            right={
+              messages.returns.methods[doc.refundMethod as keyof typeof messages.returns.methods]
+            }
+          />
+        )}
         {doc.refundMethod === "STORE_CREDIT" && doc.customer ? (
           <Row left={copy.creditBalance} right={formatMoney(doc.customer.storeCreditCents)} />
         ) : null}

@@ -48,6 +48,7 @@ export default async function ReturnsPage({
           sale={sale}
           canOverridePolicy={hasCapability(user.role, "return.overridePolicy")}
           canRefundCash={hasCapability(user.role, "return.refundCash")}
+          canExchange={hasCapability(user.role, "sale.create")}
         />
       </div>
     );

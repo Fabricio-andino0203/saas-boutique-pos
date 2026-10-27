@@ -7,9 +7,7 @@ const copy = messages.salesDoc;
 
 /** Los pagos tal como se ven en el ticket: "Tarjeta · 4242". */
 function paymentLabel(payment: SaleDocument["payments"][number]): string {
-  const method =
-    messages.pos.charge.methods[payment.method as keyof typeof messages.pos.charge.methods] ??
-    payment.method;
+  const method = messages.cash.methods[payment.method];
   return payment.reference ? `${method} · ${payment.reference}` : method;
 }
 

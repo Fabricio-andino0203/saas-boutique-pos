@@ -36,6 +36,11 @@ export type ManagerOverride = z.infer<typeof managerOverrideSchema>;
 const blankToUndefined = (value: unknown) =>
   typeof value === "string" && value.trim() === "" ? undefined : value;
 
+export const invoiceSchema = z.object({
+  taxId: z.preprocess(blankToUndefined, z.string().trim().max(30).optional()),
+  name: z.preprocess(blankToUndefined, z.string().trim().max(120).optional()),
+});
+
 export const saleInputSchema = z.object({
   /** Lo genera el cliente una vez por venta: reintentar el cobro con el mismo valor no duplica nada. */
   clientRequestId: z.string().min(8).max(64),
@@ -45,12 +50,7 @@ export const saleInputSchema = z.object({
   payments: z.array(paymentSchema).min(1).max(6),
   customerId: z.string().min(1).max(40).optional(),
   /** Si viene, se emite factura con CAI (aunque vacío, es "consumidor final"). */
-  invoice: z
-    .object({
-      taxId: z.preprocess(blankToUndefined, z.string().trim().max(30).optional()),
-      name: z.preprocess(blankToUndefined, z.string().trim().max(120).optional()),
-    })
-    .optional(),
+  invoice: invoiceSchema.optional(),
   managerOverride: managerOverrideSchema.optional(),
 });
 

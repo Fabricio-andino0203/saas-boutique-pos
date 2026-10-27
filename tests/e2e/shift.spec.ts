@@ -789,3 +789,102 @@ test("the cashier returns to store credit, a manager's PIN approves a cash refun
 
   await closeLeftoverCash(page);
 });
+
+// ───────────── Cambios ─────────────
+
+test("the cashier exchanges a garment for a pricier one and only pays the difference", async ({
+  page,
+  browser,
+}) => {
+  test.slow();
+  const stamp = Date.now();
+  const cheap = `E2E CambioA ${stamp}`;
+  const pricey = `E2E CambioB ${stamp}`;
+  const baseURL = test.info().project.use.baseURL as string;
+  await createStockedProduct(browser, baseURL, cheap, "100", "L 100.00", "3");
+  await createStockedProduct(browser, baseURL, pricey, "180", "L 180.00", "3");
+
+  // Vende la prenda barata en efectivo
+  await openCashAndSell(page);
+  await addToTicket(page, cheap, "L 100.00");
+  await page.keyboard.press("F12");
+  await page.getByRole("button", { name: `${charge.submit} L 100.00` }).click();
+  await expect(page.getByRole("heading", { name: charge.done.title })).toBeVisible();
+  const number = (
+    await page
+      .getByText(new RegExp(`^${charge.done.ticket} T-\\d+`))
+      .first()
+      .innerText()
+  ).match(/T-\d+/)?.[0] as string;
+  await page.getByRole("button", { name: charge.done.newSale }).click();
+
+  // En devoluciones elige la prenda y pasa al cambio
+  await page.keyboard.press("F8");
+  await expect(page).toHaveURL(/\/devoluciones$/);
+  const searchBox = page.getByLabel(ret.search.label, { exact: true });
+  await expect(async () => {
+    await searchBox.fill(number);
+    await expect(searchBox).toHaveValue(number);
+  }).toPass();
+  await searchBox.press("Enter");
+  await page.getByRole("link", { name: `${ret.search.choose} ${number}` }).click();
+  await page.getByRole("button", { name: `+ ${cheap}` }).click();
+  await page.getByLabel(ret.reason.label, { exact: true }).fill("E2E talla incorrecta");
+  await page.getByRole("button", { name: ret.exchange.action }).click();
+
+  // El POS recuerda el cambio: lo devuelto vale L 100, así que la prenda de L 180 deja L 80 por pagar
+  await expect(page).toHaveURL(/\/vender$/);
+  await expect(page.getByRole("region", { name: ret.exchange.banner })).toContainText(number);
+  await addToTicket(page, pricey, "L 180.00");
+  await expect(page.getByRole("group", { name: ret.exchange.toPay })).toContainText("L 80.00");
+
+  // Cobra solo la diferencia: con L 100 en efectivo, L 20 de cambio
+  await page.keyboard.press("F12");
+  await expect(page.getByRole("heading", { name: ret.exchange.banner })).toBeVisible();
+  await page.getByRole("button", { name: "L 100.00", exact: true }).click();
+  await expect(page.getByRole("status").filter({ hasText: charge.change })).toContainText(
+    "L 20.00",
+  );
+  await page.getByRole("button", { name: `${charge.submit} L 80.00` }).click();
+
+  await expect(page.getByRole("heading", { name: ret.exchange.done.title })).toBeVisible();
+  await expect(page.getByRole("status").filter({ hasText: charge.done.change })).toContainText(
+    "L 20.00",
+  );
+  const newNumber = (
+    await page
+      .getByText(new RegExp(`^${charge.done.ticket} T-\\d+`))
+      .first()
+      .innerText()
+  ).match(/T-\d+/)?.[0] as string;
+  expect(newNumber).not.toBe(number);
+
+  // El comprobante del cambio dice qué volvió y cuál es el ticket nuevo
+  const printHref = (await page
+    .getByRole("link", { name: ret.exchange.done.printReturn })
+    .getAttribute("href")) as string;
+  expect(printHref).toMatch(/^\/imprimir\/devolucion\/[a-z0-9]+\?auto=1$/);
+  await page.getByRole("button", { name: charge.done.newSale }).click();
+  await expect(page.getByRole("region", { name: ret.exchange.banner })).toHaveCount(0);
+  await page.goto(printHref.replace("?auto=1", ""));
+  const receipt = page.getByRole("article", { name: new RegExp(`^${ret.doc.exchangeTitle} DV-`) });
+  await expect(receipt).toContainText(cheap);
+  await expect(receipt).toContainText(`${ret.exchange.newTicket}: ${newNumber}`);
+  await expect(receipt).toContainText("L 100.00");
+
+  // En el cajón entraron los L 100 de la primera venta y los L 80 de la diferencia
+  await page.goto("/caja");
+  await expect(page.getByRole("group", { name: messages.cash.current.expected })).toContainText(
+    "L 180.00",
+  );
+
+  // La venta nueva muestra el crédito por cambio como una forma de pago
+  await page.goto("/ventas");
+  await page
+    .getByRole("row", { name: new RegExp(newNumber) })
+    .getByRole("link", { name: newNumber })
+    .click();
+  await expect(page.getByText(messages.cash.methods.EXCHANGE).first()).toBeVisible();
+
+  await closeLeftoverCash(page);
+});
