@@ -1883,6 +1883,7 @@ export const messages = {
         printTicket: "Imprimir ticket",
         change: "Cambio a entregar",
         noChange: "Sin cambio",
+        close: "Listo",
       },
     },
     cancel: {

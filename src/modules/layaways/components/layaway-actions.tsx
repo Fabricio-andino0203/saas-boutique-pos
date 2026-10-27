@@ -272,7 +272,8 @@ function SettleForm({
         changeCents: result.sale.changeCents,
         fiscalNumber: result.fiscalNumber,
       });
-      router.refresh();
+      // La página no se recarga todavía: al saldarse, el apartado deja de mostrar estas acciones y la
+      // confirmación (con el cambio a entregar) desaparecería antes de que alguien la vea.
     });
   }
 
@@ -298,6 +299,9 @@ function SettleForm({
         >
           {t.done.printTicket}
         </a>
+        <Button type="button" className="ml-2" onClick={() => router.refresh()}>
+          {t.done.close}
+        </Button>
       </section>
     );
   }
