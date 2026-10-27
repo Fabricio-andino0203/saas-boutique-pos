@@ -178,9 +178,10 @@ Al confirmar: crea `StockMovement PURCHASE_IN`, actualiza `StockLevel`, recalcul
 ### CashSession (turno de caja)
 `terminalId`, `userId`, `openedAt`, `openingFloatCents`, `closedAt?`, `expectedCashCents?`, `countedCashCents?`, `differenceCents?`, `status enum (OPEN, CLOSED_PENDING_APPROVAL, CLOSED)`, `approvedById?`, `notes?`.
 Restricción: máximo una sesión `OPEN` por usuario y por terminal (índice parcial).
+Ciclo: `OPEN` → (el cajero cierra con arqueo: guarda `expectedCashCents`, `countedCashCents`, `differenceCents`; si la diferencia no es 0, `notes` es obligatorio) `CLOSED_PENDING_APPROVAL` → (gerente o propietario aprueba: `approvedById`) `CLOSED`. El desglose por billetes y monedas, si se usó, queda en el `after` del `AuditLog` `CASH_SESSION_CLOSED`. Mientras está `OPEN`, lo esperado se calcula al momento; al cerrar se congela.
 
 ### CashMovement
-Entradas/salidas manuales: `cashSessionId`, `type (IN, OUT)`, `amountCents`, `reason`, `userId`.
+Entradas/salidas manuales: `cashSessionId`, `type (IN, OUT)`, `amountCents` (> 0), `reason` (obligatorio, ≥ 3 caracteres), `userId`. Una salida no puede superar el efectivo esperado en ese momento (la sesión se bloquea con `FOR UPDATE` mientras se decide).
 
 ### Sale
 | Campo | Notas |
@@ -246,7 +247,7 @@ Al crear: `StockLevel.reserved += qty` (movimiento `LAYAWAY_RESERVE`). Al cancel
 3. `Σ ReturnItem.quantity ≤ SaleItem.quantity` por línea.
 4. Los correlativos fiscales no tienen saltos ni repeticiones y están dentro del rango vigente.
 5. `Customer.storeCreditCents = Σ StoreCreditEntry.amountCents`.
-6. `CashSession.expectedCash = opening + Σ pagos en efectivo + Σ CashMovement IN − Σ CashMovement OUT − reembolsos en efectivo`.
+6. `CashSession.expectedCash = opening + Σ Payment CASH − Σ Sale.changeCents + Σ CashMovement IN − Σ CashMovement OUT − reembolsos en efectivo`, solo con ventas `COMPLETED` (las anuladas no cuentan). `Payment.amountCents` en efectivo es lo que entregó el cliente (vuelto incluido); el vuelto se resta aparte. Función pura: `src/modules/cash/expected.ts`.
 7. Una venta `VOIDED` revierte exactamente sus movimientos de stock y de pago.
 
 ## 10. Datos de ejemplo (seed)

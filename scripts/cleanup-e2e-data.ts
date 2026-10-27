@@ -17,6 +17,21 @@ async function main(): Promise<void> {
   const client = new PrismaClient({ adapter: new PrismaPg({ connectionString }) });
   try {
     const named = { name: { startsWith: "E2E " } };
+
+    // Turnos de caja de prueba: los que dejaron un comentario o un movimiento que empieza por "E2E".
+    const testShifts = {
+      OR: [
+        { notes: { startsWith: "E2E" } },
+        { movements: { some: { reason: { startsWith: "E2E" } } } },
+      ],
+    };
+    // Los ids se leen antes de borrar: sin sus movimientos, la sesión ya no se reconocería como de prueba.
+    const shiftIds = (
+      await client.cashSession.findMany({ where: testShifts, select: { id: true } })
+    ).map((shift) => shift.id);
+    await client.cashMovement.deleteMany({ where: { cashSessionId: { in: shiftIds } } });
+    await client.cashSession.deleteMany({ where: { id: { in: shiftIds } } });
+
     await client.user.deleteMany({ where: { username: { startsWith: "e2e-" } } });
 
     // Conteos de las categorías de prueba (sus prendas se cuentan solo ahí).

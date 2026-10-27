@@ -3,7 +3,9 @@ import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { messages } from "@/config/messages.es";
 import { requireSession } from "@/lib/auth";
+import { formatLocalDateTime } from "@/lib/dates";
 import { hasCapability } from "@/lib/permissions";
+import { countPendingApprovals, getOpenSessionOf } from "@/modules/cash/queries";
 import { listReorderAlerts } from "@/modules/inventory/reorder";
 import { getSettingsSnapshot } from "@/modules/settings/service";
 
@@ -15,6 +17,11 @@ export default async function HomePage() {
   const banner = messages.settings.onboarding;
   const alerts = hasCapability(user.role, "stock.adjust") ? await listReorderAlerts() : null;
   const reorder = messages.reorder.card;
+  const cashCopy = messages.cash.card;
+  const myCash = hasCapability(user.role, "cash.open") ? await getOpenSessionOf(user.id) : null;
+  const pendingCloses = hasCapability(user.role, "cash.closeApprove")
+    ? await countPendingApprovals()
+    : 0;
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -22,6 +29,32 @@ export default async function HomePage() {
         <h1 className="text-2xl font-semibold tracking-tight">{messages.home.title}</h1>
         <p className="text-muted-foreground">{messages.home.description}</p>
       </div>
+      {hasCapability(user.role, "cash.open") ? (
+        <section aria-labelledby="cash-title" className="bg-card space-y-3 rounded-lg border p-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 id="cash-title" className="font-medium">
+              {cashCopy.title}
+            </h2>
+            <Link href="/caja" className="text-primary text-sm underline underline-offset-4">
+              {myCash ? cashCopy.goToCash : cashCopy.open}
+            </Link>
+          </div>
+          <p className="text-sm">
+            {myCash
+              ? `${cashCopy.openSince} ${formatLocalDateTime(myCash.openedAt)} · ${myCash.terminalName}`
+              : cashCopy.noSession}
+          </p>
+          {pendingCloses > 0 ? (
+            <p className="text-warning text-sm">
+              <span className="font-semibold tabular-nums">{pendingCloses}</span>{" "}
+              {pendingCloses === 1 ? messages.cash.list.pendingOne : messages.cash.list.pending}.{" "}
+              <Link href="/caja/cierres" className="underline underline-offset-4">
+                {cashCopy.review}
+              </Link>
+            </p>
+          ) : null}
+        </section>
+      ) : null}
       {alerts ? (
         <section
           aria-labelledby="reorder-title"

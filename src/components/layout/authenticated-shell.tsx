@@ -1,4 +1,5 @@
 import {
+  Banknote,
   Barcode,
   Boxes,
   CalendarRange,
@@ -7,6 +8,7 @@ import {
   LogOut,
   PackageCheck,
   Palette,
+  ReceiptText,
   Ruler,
   ScanBarcode,
   ScrollText,
@@ -47,6 +49,18 @@ type NavGroup = { label: string; items: readonly NavItem[] };
 
 const homeItem: NavItem = { href: "/", label: messages.nav.home, icon: House };
 const navGroups: readonly NavGroup[] = [
+  {
+    label: messages.nav.groups.sales,
+    items: [
+      { href: "/caja", label: messages.nav.cash, icon: Banknote, capability: "cash.open" },
+      {
+        href: "/caja/cierres",
+        label: messages.nav.cashClosings,
+        icon: ReceiptText,
+        capability: "cash.open",
+      },
+    ],
+  },
   {
     label: messages.nav.groups.merchandise,
     items: [

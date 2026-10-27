@@ -6,6 +6,9 @@ export const APP_ERROR_CODES = [
   "CONFLICT",
   "INSUFFICIENT_STOCK",
   "CASH_SESSION_CLOSED",
+  "CASH_SESSION_OPEN",
+  "CASH_SESSION_STATE",
+  "INSUFFICIENT_CASH",
   "FISCAL_RANGE_EXHAUSTED",
   "INVALID_CREDENTIALS",
   "ACCOUNT_LOCKED",
@@ -79,6 +82,24 @@ export class InsufficientStockError extends AppError {
 export class CashSessionClosedError extends AppError {
   constructor(message = "Cash session is closed", options?: AppErrorOptions) {
     super("CASH_SESSION_CLOSED", 409, message, options);
+  }
+}
+
+export class CashSessionOpenError extends AppError {
+  constructor(message = "A cash session is already open", options?: AppErrorOptions) {
+    super("CASH_SESSION_OPEN", 409, message, options);
+  }
+}
+
+export class CashSessionStateError extends AppError {
+  constructor(message = "The cash session does not allow this action", options?: AppErrorOptions) {
+    super("CASH_SESSION_STATE", 409, message, options);
+  }
+}
+
+export class InsufficientCashError extends AppError {
+  constructor(message = "Not enough cash in the drawer", options?: AppErrorOptions) {
+    super("INSUFFICIENT_CASH", 409, message, options);
   }
 }
 
