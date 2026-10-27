@@ -42,3 +42,24 @@ export async function createSimpleProduct(
     .innerText();
   return description.replace(/^Código: /, "").trim();
 }
+
+/** Da existencias a un producto con un ajuste de inventario (con motivo), como lo haría el propietario. */
+export async function addStock(page: Page, name: string, quantity: string): Promise<void> {
+  const adjust = messages.inventory.adjust;
+  await page.goto(`/inventario?q=${encodeURIComponent(name)}`);
+  await page.getByRole("button", { name: `${messages.inventory.showSizes}: ${name}` }).click();
+  await page
+    .getByRole("link", { name: new RegExp(`^${messages.inventory.matrix.kardexOf} `) })
+    .click();
+  const field = page.getByLabel(adjust.quantity, { exact: true });
+  await expect(async () => {
+    await page.getByRole("radio", { name: adjust.modes.in }).check();
+    await field.fill(quantity);
+    await page
+      .getByLabel(adjust.reason, { exact: true })
+      .selectOption({ label: adjust.reasons.COUNT_ERROR });
+    await expect(field).toHaveValue(quantity);
+  }).toPass();
+  await page.getByRole("button", { name: adjust.submit }).click();
+  await expect(page.getByText(adjust.done)).toBeVisible();
+}

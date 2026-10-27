@@ -89,6 +89,7 @@ async function main(): Promise<void> {
     await tryDelete(() => client.size.deleteMany({ where: named }));
     await tryDelete(() => client.color.deleteMany({ where: named }));
     await tryDelete(() => client.supplier.deleteMany({ where: named }));
+    await tryDelete(() => client.customer.deleteMany({ where: named }));
     await tryDelete(() => client.category.deleteMany({ where: named }));
     // Las que todavía usan productos archivados se archivan para que no ensucien el catálogo.
     await client.category.updateMany({ where: named, data: { archivedAt: new Date() } });
