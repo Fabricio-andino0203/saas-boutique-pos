@@ -97,7 +97,7 @@ export default async function CashPage() {
       {detail.movements.length > 0 ? (
         <section aria-labelledby="turn-movements" className="space-y-2">
           <h2 id="turn-movements" className="text-lg font-medium">
-            {copy.movements.title}
+            {copy.movements.listTitle}
           </h2>
           <ul className="divide-y rounded-lg border text-sm">
             {detail.movements.map((movement) => (

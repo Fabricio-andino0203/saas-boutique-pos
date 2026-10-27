@@ -52,8 +52,12 @@ export function CloseCashForm() {
 
   function check() {
     setError(null);
+    if (countedCents === null) {
+      setError(copy.invalidCount);
+      return;
+    }
     startTransition(async () => {
-      const result = await previewCashCloseAction(countedCents ?? Number.NaN);
+      const result = await previewCashCloseAction(countedCents);
       if ("error" in result) {
         setError(result.error);
       } else {
@@ -145,7 +149,7 @@ export function CloseCashForm() {
       )}
 
       {preview === null ? (
-        <Button type="button" disabled={pending || countedCents === null} onClick={check}>
+        <Button type="button" disabled={pending} onClick={check}>
           {pending ? copy.checking : copy.check}
         </Button>
       ) : (

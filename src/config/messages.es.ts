@@ -1159,6 +1159,7 @@ export const messages = {
       saved: "Movimiento registrado.",
       invalidAmount: "Escribe un monto mayor que cero.",
       invalidReason: "Escribe el motivo (al menos 3 letras).",
+      listTitle: "Movimientos del turno",
       empty: "Aún no hay entradas ni salidas en este turno.",
       columns: { time: "Hora", type: "Tipo", amount: "Monto", reason: "Motivo", by: "Registró" },
     },
