@@ -98,6 +98,13 @@ export type ExchangeContext = {
 
 /** Lo que la pantalla necesita saber de un cambio recién registrado. */
 export type SoldExchange = {
-  doc: { id: string; number: string; refundCents: number; refundMethod: string };
+  doc: {
+    id: string;
+    number: string;
+    refundCents: number;
+    refundMethod: string;
+    creditNote: string | null;
+    creditNoteMissing: boolean;
+  };
   creditAppliedCents: number;
 };

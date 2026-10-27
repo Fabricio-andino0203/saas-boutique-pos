@@ -5,6 +5,7 @@ import type { ReturnDocument } from "@/modules/returns/queries";
 
 const copy = messages.returns.doc;
 const exchangeCopy = messages.returns.exchange;
+const noteCopy = messages.returns.creditNote;
 
 function Row({ left, right, bold }: { left: string; right: string; bold?: boolean }) {
   return (
@@ -101,6 +102,25 @@ export function ReturnDocumentSheet({ doc }: { doc: ReturnDocument }) {
         )}
         {doc.refundMethod === "STORE_CREDIT" && doc.customer ? (
           <Row left={copy.creditBalance} right={formatMoney(doc.customer.storeCreditCents)} />
+        ) : null}
+        {doc.creditNote ? (
+          <>
+            <hr />
+            <div className="bold">{noteCopy.title}</div>
+            <div>{`${noteCopy.number} ${doc.creditNote.number}`}</div>
+            <div>{`${noteCopy.cai}: ${doc.creditNote.cai}`}</div>
+            <div>{`${noteCopy.range}: ${doc.creditNote.rangeStart} al ${doc.creditNote.rangeEnd}`}</div>
+            <div>{`${noteCopy.deadline}: ${formatLocalDateTime(doc.creditNote.deadline).slice(0, 10)}`}</div>
+            {doc.creditNote.originalInvoice ? (
+              <div>{`${noteCopy.originalInvoice}: ${doc.creditNote.originalInvoice}`}</div>
+            ) : null}
+            {doc.creditNote.customerName ? (
+              <div>{`${noteCopy.customer}: ${doc.creditNote.customerName}`}</div>
+            ) : null}
+            {doc.creditNote.customerTaxId ? (
+              <div>{`${noteCopy.taxId}: ${doc.creditNote.customerTaxId}`}</div>
+            ) : null}
+          </>
         ) : null}
         <hr />
         <div style={{ marginTop: 18 }}>{copy.signature}</div>

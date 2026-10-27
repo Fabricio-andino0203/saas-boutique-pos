@@ -219,7 +219,7 @@ Datos de tarjeta **nunca**: solo monto y referencia.
 ## 7. Devoluciones, apartados, crédito
 
 ### ReturnDoc
-`number @unique`, `clientRequestId @unique` (idempotencia), `customerId?` (quien recibe el crédito de tienda), `saleId` (venta original), `type enum (RETURN, EXCHANGE)`, `exchangeSaleId?` (venta nueva si es cambio), `reason`, `refundMethod enum (ORIGINAL, CASH, STORE_CREDIT, NONE)`, `refundCents` (el dinero que sale hacia el cliente; en un cambio, solo lo que sobra después de pagar la venta nueva, y `NONE` si no sobra nada), `cashSessionId`, `processedById`, `authorizedById?`, `fiscalNumber?`, `fiscalRangeId?` (nota de crédito, si aplica; `@@unique([fiscalRangeId, fiscalNumber])`), `createdAt`.
+`number @unique`, `clientRequestId @unique` (idempotencia), `customerId?` (quien recibe el crédito de tienda), `saleId` (venta original), `type enum (RETURN, EXCHANGE)`, `exchangeSaleId?` (venta nueva si es cambio), `reason`, `refundMethod enum (ORIGINAL, CASH, STORE_CREDIT, NONE)`, `refundCents` (el dinero que sale hacia el cliente; en un cambio, solo lo que sobra después de pagar la venta nueva, y `NONE` si no sobra nada), `cashSessionId`, `processedById`, `authorizedById?`, `fiscalNumber?`, `fiscalRangeId?` (la nota de crédito, solo si la venta original tuvo factura y había un rango `CREDIT_NOTE` vigente; `@@unique([fiscalRangeId, fiscalNumber])`), `createdAt`.
 ### ReturnItem
 `returnId`, `saleItemId`, `quantity`, `condition enum (RESELLABLE, DAMAGED)`, `refundCents`, `reason`.
 Invariante: Σ `ReturnItem.quantity` por `saleItemId` ≤ `SaleItem.quantity`.

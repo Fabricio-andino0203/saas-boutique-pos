@@ -617,6 +617,16 @@ function SoldView({
                 }
               </p>
             ) : null}
+            {exchange.doc.creditNote ? (
+              <p className="text-sm font-medium">
+                {messages.returns.creditNote.issued} {exchange.doc.creditNote}
+              </p>
+            ) : null}
+            {exchange.doc.creditNoteMissing ? (
+              <p role="alert" className="text-warning text-sm">
+                {messages.returns.creditNote.missing}
+              </p>
+            ) : null}
           </>
         ) : (
           <p className="text-muted-foreground text-sm tabular-nums">

@@ -5,7 +5,7 @@ import { FiscalRangeExhaustedError } from "@/lib/errors";
 type Tx = Prisma.TransactionClient;
 
 export type IssuedFiscalDocument = {
-  type: "INVOICE";
+  type: "INVOICE" | "CREDIT_NOTE";
   rangeId: string;
   /** Número dentro del rango (el que se guarda en la venta). */
   number: number;
@@ -14,7 +14,12 @@ export type IssuedFiscalDocument = {
   cai: string;
 };
 
-export type FiscalDocumentRequest = { terminalId: string; now: Date };
+/** `type` por defecto es la factura; una devolución de una venta facturada pide la nota de crédito. */
+export type FiscalDocumentRequest = {
+  terminalId: string;
+  now: Date;
+  type?: "INVOICE" | "CREDIT_NOTE";
+};
 
 /**
  * Quien emite los documentos fiscales (ARCHITECTURE §8). Hoy es el rango CAI local; si algún día se exige
@@ -39,16 +44,16 @@ type LockedRange = {
 };
 
 /**
- * Emite la siguiente factura del rango CAI activo (el de la terminal, o el general si no tiene uno propio).
+ * Emite la siguiente factura (o nota de crédito) del rango CAI activo (el de la terminal, o el general si no tiene uno propio).
  * El rango se bloquea mientras se toma el número, así dos cajas nunca reciben el mismo. No emite si el rango
  * venció (vale hasta el final del día de su fecha límite) o se agotó.
  */
 export const caiRangeIssuer: FiscalDocumentIssuer = {
-  async issue(tx, { terminalId, now }) {
+  async issue(tx, { terminalId, now, type = "INVOICE" }) {
     const [range] = await tx.$queryRaw<LockedRange[]>`
       SELECT "id", "prefix", "cai", "rangeEnd", "nextNumber", "expiresAt"
       FROM "FiscalRange"
-      WHERE "documentType" = 'INVOICE'
+      WHERE "documentType" = ${type}::"FiscalDocumentType"
         AND "isActive"
         AND ("terminalId" = ${terminalId} OR "terminalId" IS NULL)
       ORDER BY ("terminalId" IS NULL) ASC
@@ -56,20 +61,20 @@ export const caiRangeIssuer: FiscalDocumentIssuer = {
       FOR UPDATE
     `;
     if (!range) {
-      throw new FiscalRangeExhaustedError("There is no active invoice range");
+      throw new FiscalRangeExhaustedError(`There is no active ${type} range`);
     }
     if (now > endOfLocalDay(range.expiresAt)) {
-      throw new FiscalRangeExhaustedError("The invoice range has expired");
+      throw new FiscalRangeExhaustedError(`The ${type} range has expired`);
     }
     if (range.nextNumber > range.rangeEnd) {
-      throw new FiscalRangeExhaustedError("The invoice range is exhausted");
+      throw new FiscalRangeExhaustedError(`The ${type} range is exhausted`);
     }
     await tx.fiscalRange.update({
       where: { id: range.id },
       data: { nextNumber: range.nextNumber + 1 },
     });
     return {
-      type: "INVOICE",
+      type,
       rangeId: range.id,
       number: range.nextNumber,
       formattedNumber: formatFiscalNumber(range.prefix, range.nextNumber),

@@ -16,6 +16,9 @@ export type SaleRow = {
   status: SaleStatus;
   fiscalNumber: string | null;
   methods: PaymentMethod[];
+  /** Prendas vendidas y cuántas ya se devolvieron (para marcar la venta con devoluciones). */
+  soldUnits: number;
+  returnedUnits: number;
 };
 
 export type SaleList = {
@@ -93,6 +96,30 @@ export async function listSales(
     }),
   ]);
 
+  // Lo devuelto de las ventas de esta página: dos consultas cortas, no una por venta.
+  const pageItems = await db.saleItem.findMany({
+    where: { saleId: { in: records.map((sale) => sale.id) } },
+    select: { id: true, saleId: true, quantity: true },
+  });
+  const returnedRows = await db.returnItem.groupBy({
+    by: ["saleItemId"],
+    where: { saleItemId: { in: pageItems.map((item) => item.id) } },
+    _sum: { quantity: true },
+  });
+  const returnedByItem = new Map(
+    returnedRows.map((row) => [row.saleItemId, row._sum.quantity ?? 0]),
+  );
+  const unitsOf = (saleId: string) =>
+    pageItems
+      .filter((item) => item.saleId === saleId)
+      .reduce(
+        (sum, item) => ({
+          sold: sum.sold + item.quantity,
+          returned: sum.returned + (returnedByItem.get(item.id) ?? 0),
+        }),
+        { sold: 0, returned: 0 },
+      );
+
   return {
     rows: records.map((sale) => ({
       id: sale.id,
@@ -107,6 +134,8 @@ export async function listSales(
           ? formatFiscalNumber(sale.fiscalRange.prefix, sale.fiscalNumber)
           : null,
       methods: [...new Set(sale.payments.map((payment) => payment.method))],
+      soldUnits: unitsOf(sale.id).sold,
+      returnedUnits: unitsOf(sale.id).returned,
     })),
     total,
     page,

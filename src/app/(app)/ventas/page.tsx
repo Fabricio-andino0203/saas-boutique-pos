@@ -195,6 +195,13 @@ export default async function SalesHistoryPage({
                     >
                       {copy.status[sale.status]}
                     </span>
+                    {sale.returnedUnits > 0 ? (
+                      <span className="bg-warning/15 text-warning ml-1 rounded px-1.5 py-0.5 text-xs font-medium">
+                        {sale.returnedUnits >= sale.soldUnits
+                          ? copy.returned.all
+                          : copy.returned.partial}
+                      </span>
+                    ) : null}
                   </TableCell>
                   <TableCell className="text-xs tabular-nums">{sale.fiscalNumber ?? "—"}</TableCell>
                 </TableRow>

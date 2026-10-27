@@ -8,6 +8,7 @@ import {
   CashSessionClosedError,
   ConflictError,
   CustomerRequiredError,
+  FiscalRangeExhaustedError,
   InsufficientCashError,
   NotFoundError,
   OverReturnError,
@@ -23,7 +24,12 @@ import type { Actor } from "@/modules/catalog/service";
 import { expectedCashCents } from "@/modules/cash/expected";
 import { getDefaultTerminal, loadCashTotals } from "@/modules/cash/service";
 import { applyStoreCredit } from "@/modules/credit/service";
-import { caiRangeIssuer, type FiscalDocumentIssuer } from "@/modules/fiscal/issuer";
+import {
+  caiRangeIssuer,
+  formatFiscalNumber,
+  type FiscalDocumentIssuer,
+  type IssuedFiscalDocument,
+} from "@/modules/fiscal/issuer";
 import { recordMovement } from "@/modules/inventory/service";
 import { valueOfUnits } from "@/modules/returns/calc";
 import { evaluateReturnPolicy } from "@/modules/returns/policy";
@@ -59,6 +65,10 @@ export type ProcessedReturn = {
   refundMethod: RefundMethod;
   /** Solo en un cambio: la venta nueva. */
   exchange: ExchangeSale | null;
+  /** La nota de crédito (con CAI) que se emitió, si la venta original tenía factura y había rango disponible. */
+  creditNote: string | null;
+  /** La venta tenía factura pero no se pudo emitir la nota de crédito (no hay rango activo, venció o se agotó). */
+  creditNoteMissing: boolean;
   /** `true` si ya estaba registrada con ese `clientRequestId` y no se hizo nada nuevo. */
   replayed: boolean;
 };
@@ -71,10 +81,11 @@ function isUniqueViolation(error: unknown): boolean {
 }
 
 async function findReplay(
-  client: Pick<PrismaClient, "returnDoc" | "payment">,
+  client: Pick<PrismaClient, "returnDoc" | "payment" | "sale" | "fiscalRange">,
   clientRequestId: string,
   actorId: string,
 ): Promise<ProcessedReturn | null> {
+  // Una consulta por tabla y en fila: dentro de una transacción una sola conexión no atiende dos a la vez.
   const doc = await client.returnDoc.findUnique({
     where: { clientRequestId },
     select: {
@@ -83,17 +94,10 @@ async function findReplay(
       refundCents: true,
       refundMethod: true,
       processedById: true,
-      exchangeSale: {
-        select: {
-          id: true,
-          number: true,
-          totalCents: true,
-          paidCents: true,
-          changeCents: true,
-          fiscalNumber: true,
-          fiscalRange: { select: { prefix: true } },
-        },
-      },
+      saleId: true,
+      exchangeSaleId: true,
+      fiscalNumber: true,
+      fiscalRangeId: true,
     },
   });
   if (!doc) {
@@ -102,21 +106,55 @@ async function findReplay(
   if (doc.processedById !== actorId) {
     throw new ConflictError();
   }
+  const original = await client.sale.findUnique({
+    where: { id: doc.saleId },
+    select: { fiscalNumber: true },
+  });
+  const noteRange = doc.fiscalRangeId
+    ? await client.fiscalRange.findUnique({
+        where: { id: doc.fiscalRangeId },
+        select: { prefix: true },
+      })
+    : null;
+
   let exchange: ExchangeSale | null = null;
-  if (doc.exchangeSale) {
-    const credit = await client.payment.findFirst({
-      where: { saleId: doc.exchangeSale.id, method: "EXCHANGE" },
-      select: { amountCents: true },
+  if (doc.exchangeSaleId) {
+    const sale = await client.sale.findUnique({
+      where: { id: doc.exchangeSaleId },
+      select: {
+        id: true,
+        number: true,
+        totalCents: true,
+        paidCents: true,
+        changeCents: true,
+        fiscalNumber: true,
+        fiscalRangeId: true,
+      },
     });
-    const { fiscalRange, fiscalNumber, ...sale } = doc.exchangeSale;
-    exchange = {
-      ...sale,
-      creditAppliedCents: credit?.amountCents ?? 0,
-      fiscalNumber:
-        fiscalNumber !== null && fiscalRange
-          ? `${fiscalRange.prefix}${String(fiscalNumber).padStart(8, "0")}`
-          : null,
-    };
+    if (sale) {
+      const credit = await client.payment.findFirst({
+        where: { saleId: sale.id, method: "EXCHANGE" },
+        select: { amountCents: true },
+      });
+      const saleRange = sale.fiscalRangeId
+        ? await client.fiscalRange.findUnique({
+            where: { id: sale.fiscalRangeId },
+            select: { prefix: true },
+          })
+        : null;
+      exchange = {
+        id: sale.id,
+        number: sale.number,
+        totalCents: sale.totalCents,
+        paidCents: sale.paidCents,
+        changeCents: sale.changeCents,
+        creditAppliedCents: credit?.amountCents ?? 0,
+        fiscalNumber:
+          sale.fiscalNumber !== null && saleRange
+            ? formatFiscalNumber(saleRange.prefix, sale.fiscalNumber)
+            : null,
+      };
+    }
   }
   return {
     id: doc.id,
@@ -124,13 +162,25 @@ async function findReplay(
     refundCents: doc.refundCents,
     refundMethod: doc.refundMethod,
     exchange,
+    creditNote:
+      doc.fiscalNumber !== null && noteRange
+        ? formatFiscalNumber(noteRange.prefix, doc.fiscalNumber)
+        : null,
+    creditNoteMissing: original?.fiscalNumber != null && doc.fiscalNumber === null,
     replayed: true,
   };
 }
 
 /** Lo que se necesita saber de una devolución ya validada, para reembolsarla o aplicarla a un cambio. */
 type ReturnContext = {
-  sale: { id: string; createdAt: Date; customerId: string | null; locationId: string };
+  sale: {
+    id: string;
+    createdAt: Date;
+    customerId: string | null;
+    locationId: string;
+    /** La venta tiene factura con CAI: su devolución pide nota de crédito. */
+    hasInvoice: boolean;
+  };
   session: { id: string };
   lines: {
     requested: ReturnData["items"][number];
@@ -169,9 +219,10 @@ async function loadReturnContext(
       createdAt: Date;
       customerId: string | null;
       locationId: string;
+      fiscalNumber: number | null;
     }[]
   >`
-    SELECT "id", "status", "createdAt", "customerId", "locationId"
+    SELECT "id", "status", "createdAt", "customerId", "locationId", "fiscalNumber"
     FROM "Sale" WHERE "id" = ${data.saleId} FOR UPDATE
   `;
   if (!sale) {
@@ -250,6 +301,7 @@ async function loadReturnContext(
       createdAt: sale.createdAt,
       customerId: sale.customerId,
       locationId: sale.locationId,
+      hasInvoice: sale.fiscalNumber !== null,
     },
     session,
     lines,
@@ -320,6 +372,31 @@ async function settleRefund(
   return { customerId, usedAuthorizer };
 }
 
+/**
+ * La nota de crédito de una devolución de una venta facturada. Si no se puede emitir (no hay rango de notas de crédito
+ * activo, venció o se agotó) la devolución sigue adelante sin ella: el cliente no debe quedarse sin su devolución por un
+ * trámite pendiente. El rango se bloquea mientras se toma el número y, si algo falla después, el número no se consume.
+ */
+async function issueCreditNote(
+  tx: Tx,
+  ctx: ReturnContext,
+  issuer: FiscalDocumentIssuer,
+  now: Date,
+): Promise<IssuedFiscalDocument | null> {
+  if (!ctx.sale.hasInvoice) {
+    return null;
+  }
+  const terminal = await getDefaultTerminal(tx);
+  try {
+    return await issuer.issue(tx, { terminalId: terminal.id, now, type: "CREDIT_NOTE" });
+  } catch (error) {
+    if (error instanceof FiscalRangeExhaustedError) {
+      return null;
+    }
+    throw error;
+  }
+}
+
 /** Escribe el comprobante, devuelve las prendas al inventario (o a merma), acredita y audita. */
 async function persistReturn(
   tx: Tx,
@@ -335,6 +412,7 @@ async function persistReturn(
     customerId: string | null;
     usedAuthorizer: boolean;
     exchangeSaleId?: string;
+    creditNote: IssuedFiscalDocument | null;
   },
 ): Promise<string> {
   const created = await tx.returnDoc.create({
@@ -351,6 +429,8 @@ async function persistReturn(
       cashSessionId: ctx.session.id,
       processedById: actor.id,
       authorizedById: doc.usedAuthorizer && ctx.authorizer ? ctx.authorizer.id : null,
+      fiscalNumber: doc.creditNote?.number,
+      fiscalRangeId: doc.creditNote?.rangeId,
     },
     select: { id: true },
   });
@@ -422,6 +502,11 @@ async function persistReturn(
       refundMethod: doc.refundMethod,
       units: ctx.lines.reduce((sum, line) => sum + line.requested.quantity, 0),
       ...(doc.exchangeSaleId ? { exchangeSaleId: doc.exchangeSaleId } : {}),
+      ...(doc.creditNote
+        ? { creditNote: doc.creditNote.formattedNumber }
+        : ctx.sale.hasInvoice
+          ? { creditNoteMissing: true }
+          : {}),
     },
     reason: doc.reason,
   });
@@ -465,6 +550,7 @@ export async function processReturn(
   input: unknown,
   client: PrismaClient = db,
   now: Date = new Date(),
+  issuer: FiscalDocumentIssuer = caiRangeIssuer,
 ): Promise<ProcessedReturn> {
   requireCapability(actor, "return.create");
   const parsed = returnInputSchema.safeParse(input);
@@ -498,6 +584,7 @@ export async function processReturn(
           cents: ctx.valueCents,
         });
         const number = await nextDocumentNumber(tx, "RETURN");
+        const creditNote = await issueCreditNote(tx, ctx, issuer, now);
         const id = await persistReturn(tx, actor, ctx, {
           number,
           clientRequestId: data.clientRequestId,
@@ -507,6 +594,7 @@ export async function processReturn(
           refundCents: ctx.valueCents,
           customerId: settled.customerId,
           usedAuthorizer: settled.usedAuthorizer,
+          creditNote,
         });
         return {
           id,
@@ -514,6 +602,8 @@ export async function processReturn(
           refundCents: ctx.valueCents,
           refundMethod: data.refundMethod,
           exchange: null,
+          creditNote: creditNote?.formattedNumber ?? null,
+          creditNoteMissing: ctx.sale.hasInvoice && creditNote === null,
           replayed: false,
         };
       },
@@ -602,6 +692,7 @@ export async function processExchange(
           customerId: data.customerId,
           cents: leftoverCents,
         });
+        const creditNote = await issueCreditNote(tx, ctx, issuer, now);
         const id = await persistReturn(tx, actor, ctx, {
           number,
           clientRequestId: data.clientRequestId,
@@ -612,6 +703,7 @@ export async function processExchange(
           customerId: settled.customerId,
           usedAuthorizer: settled.usedAuthorizer,
           exchangeSaleId: sale.id,
+          creditNote,
         });
         return {
           id,
@@ -627,6 +719,8 @@ export async function processExchange(
             creditAppliedCents: sale.creditAppliedCents,
             fiscalNumber: sale.fiscalNumber,
           },
+          creditNote: creditNote?.formattedNumber ?? null,
+          creditNoteMissing: ctx.sale.hasInvoice && creditNote === null,
           replayed: false,
         };
       },

@@ -1105,3 +1105,111 @@ test("the cashier reserves a garment with a deposit, receives another, settles i
 
   await closeLeftoverCash(page);
 });
+
+// ───────────── Notas de crédito ─────────────
+
+test("returning an invoiced sale issues a credit note with CAI, and warns when there is no range for it", async ({
+  page,
+  browser,
+}) => {
+  test.slow();
+  const stamp = Date.now();
+  const name = `E2E Nota ${stamp}`;
+  const invoicePrefix = `E2E-F${String(stamp).slice(-6)}-`;
+  const notePrefix = `E2E-N${String(stamp).slice(-6)}-`;
+  const customerName = `E2E Cliente Nota ${stamp}`;
+  const baseURL = test.info().project.use.baseURL as string;
+  await createStockedProduct(browser, baseURL, name, "100", "L 100.00", "4");
+
+  const ownerContext = await browser.newContext({ baseURL });
+  const owner = await ownerContext.newPage();
+  await loginAs(owner, "owner");
+  await createInvoiceRange(owner, invoicePrefix);
+
+  // Vende dos prendas con factura
+  await openCashAndSell(page);
+  await addToTicket(page, name, "L 100.00");
+  await page.getByRole("button", { name: `${pos.ticket.increase}: ${name}` }).click();
+  await page.keyboard.press("F12");
+  await page.getByRole("checkbox", { name: charge.invoice }).check();
+  await page.getByRole("button", { name: `${charge.submit} L 200.00` }).click();
+  await expect(page.getByRole("heading", { name: charge.done.title })).toBeVisible();
+  const number = (
+    await page
+      .getByText(new RegExp(`^${charge.done.ticket} T-\\d+`))
+      .first()
+      .innerText()
+  ).match(/T-\d+/)?.[0] as string;
+  await page.getByRole("button", { name: charge.done.newSale }).click();
+
+  // Primera devolución: todavía no hay rango de notas de crédito, la devolución se hace y se avisa
+  const startReturn = async (reason: string) => {
+    await page.goto(`/devoluciones?q=${number}`);
+    await page.getByRole("link", { name: `${ret.search.choose} ${number}` }).click();
+    await page.getByRole("button", { name: `+ ${name}` }).click();
+    await page.getByLabel(ret.reason.label, { exact: true }).fill(reason);
+    // La venta no tiene cliente: el crédito de tienda necesita uno (se repite el mismo)
+    await page.getByRole("button", { name: ret.refund.chooseCustomer }).click();
+    await page.getByLabel(pos.customer.name, { exact: true }).fill(customerName);
+    await page.getByLabel(pos.customer.phone, { exact: true }).fill(`5${String(stamp).slice(-7)}`);
+    await page.getByRole("button", { name: pos.customer.save }).click();
+    await expect(page.getByText(customerName)).toBeVisible();
+  };
+  await startReturn("E2E sin rango");
+  await page.getByRole("button", { name: ret.submit }).click();
+  await expect(page.getByRole("heading", { name: ret.done.title })).toBeVisible();
+  await expect(page.getByText(ret.creditNote.missing)).toBeVisible();
+
+  // El propietario registra el rango de notas de crédito y la segunda devolución sale con nota
+  await owner.goto("/configuracion/cai");
+  await owner
+    .getByLabel(messages.settings.fiscal.fields.type, { exact: true })
+    .selectOption("CREDIT_NOTE");
+  await owner
+    .getByLabel(messages.settings.fiscal.fields.terminal, { exact: true })
+    .selectOption({ label: "Caja 1" });
+  for (const [label, value] of [
+    [messages.settings.fiscal.fields.cai, "e2e001-e2e002-e2e003-e2e004-e2e005-e7"],
+    [messages.settings.fiscal.fields.prefix, notePrefix],
+    [messages.settings.fiscal.fields.start, "1"],
+    [messages.settings.fiscal.fields.end, "100"],
+    [messages.settings.fiscal.fields.expires, "2099-12-31"],
+  ] as const) {
+    await expect(async () => {
+      const field = owner.getByLabel(label, { exact: true });
+      await field.fill(value);
+      await expect(field).toHaveValue(value);
+    }).toPass();
+  }
+  await owner.getByRole("button", { name: messages.settings.fiscal.create }).click();
+  await expect(owner.getByText(messages.settings.fiscal.created)).toBeVisible();
+
+  await startReturn("E2E con rango");
+  await page.getByRole("button", { name: ret.submit }).click();
+  await expect(page.getByRole("heading", { name: ret.done.title })).toBeVisible();
+  await expect(page.getByText(`${ret.creditNote.issued} ${notePrefix}00000001`)).toBeVisible();
+
+  // El comprobante lleva la nota de crédito con sus datos fiscales
+  const printHref = (await page
+    .getByRole("link", { name: ret.done.print })
+    .getAttribute("href")) as string;
+  await page.goto(printHref.replace("?auto=1", ""));
+  const receipt = page.getByRole("article", { name: new RegExp(`^${ret.doc.title} DV-`) });
+  await expect(receipt).toContainText(ret.creditNote.title);
+  await expect(receipt).toContainText(`${notePrefix}00000001`);
+  await expect(receipt).toContainText("E2E001-E2E002-E2E003-E2E004-E2E005-E7");
+  await expect(receipt).toContainText(`${invoicePrefix}00000001`);
+
+  // El historial marca la venta como devuelta
+  await page.goto("/ventas");
+  await expect(
+    page
+      .getByRole("row", { name: new RegExp(number) })
+      .getByText(messages.salesHistory.returned.all),
+  ).toBeVisible();
+
+  await deactivateInvoiceRange(owner, invoicePrefix);
+  await deactivateInvoiceRange(owner, notePrefix);
+  await ownerContext.close();
+  await closeLeftoverCash(page);
+});

@@ -1499,6 +1499,7 @@ export const messages = {
     descriptionOwn: "Tus ventas con su detalle. Filtra por fecha o estado.",
     finalConsumer: "Consumidor final",
     status: { COMPLETED: "Completada", VOIDED: "Anulada" },
+    returned: { partial: "Con devolución", all: "Devuelta" },
     filters: {
       from: "Desde",
       to: "Hasta",
@@ -1726,6 +1727,19 @@ export const messages = {
         toPay: "Diferencia cobrada",
         change: "Cambio a entregar",
       },
+    },
+    creditNote: {
+      title: "NOTA DE CRÉDITO",
+      number: "No.",
+      cai: "CAI",
+      range: "Rango autorizado",
+      deadline: "Fecha límite de emisión",
+      originalInvoice: "Factura original",
+      customer: "Cliente",
+      taxId: "RTN",
+      issued: "Nota de crédito",
+      missing:
+        "La venta tenía factura, pero no hay un rango de notas de crédito vigente: la devolución quedó registrada sin nota de crédito. Pídele al propietario que registre el rango en Configuración · Facturación.",
     },
     detail: {
       title: "Devoluciones de esta venta",

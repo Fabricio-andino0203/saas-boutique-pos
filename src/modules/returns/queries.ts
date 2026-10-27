@@ -2,6 +2,7 @@ import type { PaymentMethod, RefundMethod, ReturnItemCondition } from "@/generat
 import { startOfLocalDay } from "@/lib/dates";
 import { db } from "@/lib/db";
 import { getSetting } from "@/lib/settings";
+import { formatFiscalNumber } from "@/modules/fiscal/issuer";
 import { evaluateReturnPolicy } from "@/modules/returns/policy";
 import { getBusinessProfile } from "@/modules/settings/service";
 
@@ -169,6 +170,19 @@ export type ReturnDocument = {
   sale: { id: string; number: string };
   /** Solo en un cambio: la venta con las prendas que se llevó. */
   exchangeSale: { id: string; number: string } | null;
+  /** La nota de crédito con CAI, si la venta original tenía factura y se pudo emitir. */
+  creditNote: {
+    number: string;
+    cai: string;
+    rangeStart: string;
+    rangeEnd: string;
+    deadline: Date;
+    originalInvoice: string | null;
+    customerTaxId: string | null;
+    customerName: string | null;
+  } | null;
+  /** La venta tenía factura pero no se emitió la nota de crédito (faltaba un rango activo). */
+  creditNoteMissing: boolean;
   customer: { name: string; phone: string | null; storeCreditCents: number } | null;
   items: {
     id: string;
@@ -191,7 +205,18 @@ export async function getReturnDocument(id: string): Promise<ReturnDocument | nu
     include: {
       processedBy: { select: { name: true } },
       authorizedBy: { select: { name: true } },
-      sale: { select: { id: true, number: true } },
+      fiscalRange: true,
+      sale: {
+        select: {
+          id: true,
+          number: true,
+          fiscalNumber: true,
+          customerTaxId: true,
+          customerNameOnInvoice: true,
+          fiscalRange: { select: { prefix: true } },
+          customer: { select: { name: true } },
+        },
+      },
       exchangeSale: { select: { id: true, number: true } },
       customer: { select: { name: true, phone: true, storeCreditCents: true } },
       items: { orderBy: { id: "asc" }, include: { saleItem: true } },
@@ -213,8 +238,25 @@ export async function getReturnDocument(id: string): Promise<ReturnDocument | nu
     valueCents: doc.items.reduce((sum, item) => sum + item.refundCents, 0),
     processedByName: doc.processedBy.name,
     authorizedByName: doc.authorizedBy?.name ?? null,
-    sale: doc.sale,
+    sale: { id: doc.sale.id, number: doc.sale.number },
     exchangeSale: doc.exchangeSale,
+    creditNote:
+      doc.fiscalNumber !== null && doc.fiscalRange
+        ? {
+            number: formatFiscalNumber(doc.fiscalRange.prefix, doc.fiscalNumber),
+            cai: doc.fiscalRange.cai,
+            rangeStart: formatFiscalNumber(doc.fiscalRange.prefix, doc.fiscalRange.rangeStart),
+            rangeEnd: formatFiscalNumber(doc.fiscalRange.prefix, doc.fiscalRange.rangeEnd),
+            deadline: doc.fiscalRange.expiresAt,
+            originalInvoice:
+              doc.sale.fiscalNumber !== null && doc.sale.fiscalRange
+                ? formatFiscalNumber(doc.sale.fiscalRange.prefix, doc.sale.fiscalNumber)
+                : null,
+            customerTaxId: doc.sale.customerTaxId,
+            customerName: doc.sale.customerNameOnInvoice ?? doc.sale.customer?.name ?? null,
+          }
+        : null,
+    creditNoteMissing: doc.sale.fiscalNumber !== null && doc.fiscalNumber === null,
     customer: doc.customer,
     items: doc.items.map((item) => ({
       id: item.id,

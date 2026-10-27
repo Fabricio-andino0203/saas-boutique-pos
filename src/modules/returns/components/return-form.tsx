@@ -37,7 +37,14 @@ type ReturnFormProps = {
   canExchange: boolean;
 };
 
-type Done = { id: string; number: string; refundCents: number; refundMethod: string };
+type Done = {
+  id: string;
+  number: string;
+  refundCents: number;
+  refundMethod: string;
+  creditNote: string | null;
+  creditNoteMissing: boolean;
+};
 
 export function ReturnForm({
   sale,
@@ -180,6 +187,16 @@ export function ReturnForm({
             {copy.done.method}: {copy.methods[done.refundMethod as keyof typeof copy.methods]}
           </p>
         </div>
+        {done.creditNote ? (
+          <p className="text-sm font-medium">
+            {copy.creditNote.issued} {done.creditNote}
+          </p>
+        ) : null}
+        {done.creditNoteMissing ? (
+          <p role="alert" className="text-warning text-sm">
+            {copy.creditNote.missing}
+          </p>
+        ) : null}
         <div className="flex flex-wrap justify-center gap-2">
           <a
             href={`/imprimir/devolucion/${done.id}?auto=1`}

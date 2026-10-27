@@ -21,7 +21,14 @@ const copy = messages.returns;
 export type ReturnOutcome =
   | {
       ok: true;
-      doc: { id: string; number: string; refundCents: number; refundMethod: string };
+      doc: {
+        id: string;
+        number: string;
+        refundCents: number;
+        refundMethod: string;
+        creditNote: string | null;
+        creditNoteMissing: boolean;
+      };
     }
   | {
       ok: false;
@@ -33,7 +40,14 @@ export type ReturnOutcome =
 export type ExchangeOutcome =
   | {
       ok: true;
-      doc: { id: string; number: string; refundCents: number; refundMethod: string };
+      doc: {
+        id: string;
+        number: string;
+        refundCents: number;
+        refundMethod: string;
+        creditNote: string | null;
+        creditNoteMissing: boolean;
+      };
       sale: {
         id: string;
         number: string;
@@ -129,6 +143,8 @@ export async function processReturnAction(input: ReturnInput): Promise<ReturnOut
         number: result.number,
         refundCents: result.refundCents,
         refundMethod: result.refundMethod,
+        creditNote: result.creditNote,
+        creditNoteMissing: result.creditNoteMissing,
       },
     };
   } catch (error) {
@@ -151,6 +167,8 @@ export async function processExchangeAction(input: ExchangeInput): Promise<Excha
         number: result.number,
         refundCents: result.refundCents,
         refundMethod: result.refundMethod,
+        creditNote: result.creditNote,
+        creditNoteMissing: result.creditNoteMissing,
       },
       sale: {
         id: result.exchange.id,
