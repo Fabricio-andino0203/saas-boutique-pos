@@ -1,3 +1,5 @@
+import type { SalePaymentMethod } from "@/modules/sales/schemas";
+
 /** Tipos que comparten el servidor y la pantalla del punto de venta (sin código de servidor). */
 
 export type SellableVariant = {
@@ -37,6 +39,8 @@ export type PosConfig = {
   taxRateBps: number;
   pricesIncludeTax: boolean;
   allowNegativeStock: boolean;
+  /** Formas de pago que el negocio tiene activas (ajuste `payments.enabled`). */
+  enabledPaymentMethods: SalePaymentMethod[];
   /** Límite de descuento del cajero, en porcentaje (10 = 10 %). */
   cashierDiscountPercent: number;
   /** Gerente y propietario descuentan sin límite. */
@@ -44,3 +48,23 @@ export type PosConfig = {
 };
 
 export type PosActionError = { error: string };
+
+/** Lo que la pantalla necesita saber de una venta recién cobrada. */
+export type SoldSale = {
+  id: string;
+  number: string;
+  totalCents: number;
+  paidCents: number;
+  changeCents: number;
+  /** Número de factura con CAI, si se emitió. */
+  fiscalNumber: string | null;
+};
+
+export type ChargeOutcome =
+  | { ok: true; sale: SoldSale }
+  | {
+      ok: false;
+      /** `NEEDS_APPROVAL`: pedir el PIN de un gerente; `PIN`: el PIN falló; `ERROR`: cualquier otro motivo. */
+      code: "NEEDS_APPROVAL" | "PIN" | "ERROR";
+      message: string;
+    };

@@ -42,6 +42,8 @@ type PosState = {
   selectedId: string | null;
   /** Ventas en espera de este navegador (por terminal, hoy hay una sola). */
   parked: ParkedCart[];
+  /** El último ticket cobrado en este navegador, para reimprimirlo con F9. */
+  lastSaleId: string | null;
   hydrated: boolean;
 
   addItem: (incoming: Omit<NewCartItem, "id">, rule: StockRule) => { capped: boolean };
@@ -53,6 +55,7 @@ type PosState = {
   select: (id: string | null) => void;
   /** Vacía el ticket (después de cobrar o descartar) y le da un identificador nuevo. */
   clearCart: () => void;
+  setLastSale: (id: string) => void;
   parkCart: () => boolean;
   resumeParked: (id: string) => boolean;
   discardParked: (id: string) => void;
@@ -71,6 +74,7 @@ export const usePosStore = create<PosState>()(
     (set, get) => ({
       ...emptyCart(),
       parked: [],
+      lastSaleId: null,
       hydrated: false,
 
       addItem: (incoming, rule) => {
@@ -95,6 +99,7 @@ export const usePosStore = create<PosState>()(
       setCustomer: (customer) => set({ customer }),
       select: (selectedId) => set({ selectedId }),
       clearCart: () => set(emptyCart()),
+      setLastSale: (id) => set({ lastSaleId: id }),
 
       parkCart: () => {
         const { items, discount, customer, parked } = get();
@@ -142,6 +147,7 @@ export const usePosStore = create<PosState>()(
         customer: state.customer,
         clientRequestId: state.clientRequestId,
         parked: state.parked,
+        lastSaleId: state.lastSaleId,
       }),
     },
   ),

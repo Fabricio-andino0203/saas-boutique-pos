@@ -1,9 +1,14 @@
 import { AUTH_LIMITS } from "@/config/constants";
 import type { PrismaClient } from "@/generated/prisma/client";
 import { db } from "@/lib/db";
-import { AccountLockedError, InvalidCredentialsError, ValidationError } from "@/lib/errors";
+import {
+  AccountLockedError,
+  ForbiddenError,
+  InvalidCredentialsError,
+  ValidationError,
+} from "@/lib/errors";
 import { hashSecret, verifySecret } from "@/lib/password";
-import type { Role } from "@/lib/permissions";
+import { hasCapability, type Role } from "@/lib/permissions";
 import { pinSchema } from "@/modules/auth/schemas";
 import { generateSessionToken, hashSessionToken } from "@/modules/auth/token";
 
@@ -201,4 +206,57 @@ export async function verifyPin(
   }
   await checkSecret(user, user.pinHash, pin, now, client);
   return { id: user.id, name: user.name, username: user.username, role: user.role };
+}
+
+export type SwitchUserInput = {
+  username: string;
+  pin: string;
+  /** La sesión que se está usando: se cierra al entrar la otra persona. */
+  currentSessionId?: string;
+  ip?: string;
+  userAgent?: string;
+  now?: Date;
+};
+
+/**
+ * Cambio rápido de cajero en el mostrador: quien entra escribe su usuario y su PIN (con el mismo bloqueo por
+ * intentos que la contraseña) y recibe su propia sesión; la anterior se cierra. Solo para quien puede vender.
+ */
+export async function switchUserWithPin(
+  input: SwitchUserInput,
+  client: AuthDb = db,
+): Promise<LoginResult> {
+  const now = input.now ?? new Date();
+  const user = await client.user.findUnique({
+    where: { username: input.username.trim().toLowerCase() },
+  });
+  if (!user || !user.isActive) {
+    await verifySecret(await getDummyHash(), input.pin);
+    throw new InvalidCredentialsError();
+  }
+  await checkSecret(user, user.pinHash, input.pin, now, client);
+  if (!hasCapability(user.role, "sale.create")) {
+    throw new ForbiddenError(`Role ${user.role} lacks capability sale.create`);
+  }
+
+  const token = generateSessionToken();
+  const expires = new Date(now.getTime() + AUTH_LIMITS.sessionHours * HOUR_MS);
+  await client.session.create({
+    data: {
+      sessionToken: hashSessionToken(token),
+      userId: user.id,
+      expires,
+      ip: input.ip,
+      userAgent: input.userAgent,
+    },
+  });
+  if (input.currentSessionId) {
+    await client.session.deleteMany({ where: { id: input.currentSessionId } });
+  }
+  await client.user.update({ where: { id: user.id }, data: { lastLoginAt: now } });
+  return {
+    token,
+    expires,
+    user: { id: user.id, name: user.name, username: user.username, role: user.role },
+  };
 }

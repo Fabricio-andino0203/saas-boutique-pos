@@ -38,6 +38,7 @@ export default async function PosPage() {
     taxRateBps: settings["tax.rate"],
     pricesIncludeTax: settings["tax.pricesIncludeTax"],
     allowNegativeStock: settings["sales.allowNegativeStock"],
+    enabledPaymentMethods: settings["payments.enabled"],
     cashierDiscountPercent: settings["discount.maxPercent.CASHIER"],
     canDiscountBeyondLimit: hasCapability(user.role, "discount.applyBeyondLimit"),
   };

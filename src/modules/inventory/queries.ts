@@ -200,6 +200,15 @@ async function resolveDocuments(
       });
     }
   }
+  const sales = ids("Sale");
+  if (sales.length > 0) {
+    for (const row of await client.sale.findMany({
+      where: { id: { in: sales } },
+      select: { id: true, number: true },
+    })) {
+      found.set(`Sale:${row.id}`, { label: row.number, href: `/ventas/${row.id}` });
+    }
+  }
   const counts = ids("StockCount");
   if (counts.length > 0) {
     for (const row of await client.stockCount.findMany({

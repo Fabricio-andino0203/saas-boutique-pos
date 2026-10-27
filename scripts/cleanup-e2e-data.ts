@@ -25,9 +25,26 @@ async function main(): Promise<void> {
         { movements: { some: { reason: { startsWith: "E2E" } } } },
       ],
     };
+    // Un turno con ventas no se puede borrar (las ventas no se borran): se deja aprobado para que no quede como
+    // pendiente en la lista del gerente. Los demás se borran con sus movimientos.
+    const owner = await client.user.findFirst({
+      where: { role: "OWNER", isActive: true },
+      select: { id: true },
+    });
+    if (owner) {
+      await client.cashSession.updateMany({
+        where: {
+          AND: [testShifts, { sales: { some: {} } }, { status: "CLOSED_PENDING_APPROVAL" }],
+        },
+        data: { status: "CLOSED", approvedById: owner.id },
+      });
+    }
     // Los ids se leen antes de borrar: sin sus movimientos, la sesión ya no se reconocería como de prueba.
     const shiftIds = (
-      await client.cashSession.findMany({ where: testShifts, select: { id: true } })
+      await client.cashSession.findMany({
+        where: { AND: [testShifts, { sales: { none: {} } }] },
+        select: { id: true },
+      })
     ).map((shift) => shift.id);
     await client.cashMovement.deleteMany({ where: { cashSessionId: { in: shiftIds } } });
     await client.cashSession.deleteMany({ where: { id: { in: shiftIds } } });
@@ -68,7 +85,6 @@ async function main(): Promise<void> {
     await client.variant.deleteMany({ where: ofProducts });
     await client.product.deleteMany({ where: { id: { in: deletable } } });
 
-    await client.fiscalRange.deleteMany({ where: { prefix: { startsWith: "E2E-" } } });
     // Si algún producto archivado todavía usa un catálogo de prueba, ese catálogo se queda.
     const tryDelete = async (run: () => Promise<unknown>): Promise<void> => {
       try {
@@ -84,6 +100,10 @@ async function main(): Promise<void> {
         }
       }
     };
+    // Un rango con facturas emitidas no se puede borrar (las ventas no se borran): solo se desactiva.
+    const testRanges = { prefix: { startsWith: "E2E-" } };
+    await client.fiscalRange.updateMany({ where: testRanges, data: { isActive: false } });
+    await tryDelete(() => client.fiscalRange.deleteMany({ where: testRanges }));
     await tryDelete(() => client.brand.deleteMany({ where: named }));
     await tryDelete(() => client.season.deleteMany({ where: named }));
     await tryDelete(() => client.size.deleteMany({ where: named }));

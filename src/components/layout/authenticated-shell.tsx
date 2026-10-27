@@ -4,6 +4,7 @@ import {
   Boxes,
   CalendarRange,
   ClipboardList,
+  History,
   House,
   LogOut,
   PackageCheck,
@@ -54,6 +55,12 @@ const navGroups: readonly NavGroup[] = [
     label: messages.nav.groups.sales,
     items: [
       { href: "/vender", label: messages.nav.sell, icon: ShoppingCart, capability: "sale.create" },
+      {
+        href: "/ventas",
+        label: messages.nav.salesHistory,
+        icon: History,
+        capability: "sale.create",
+      },
       { href: "/caja", label: messages.nav.cash, icon: Banknote, capability: "cash.open" },
       {
         href: "/caja/cierres",

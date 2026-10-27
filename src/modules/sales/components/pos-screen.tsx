@@ -1,6 +1,6 @@
 "use client";
 
-import { Keyboard, Pause, Search } from "lucide-react";
+import { Keyboard, Pause, Search, UserRoundCog } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -10,12 +10,14 @@ import { formatMoney } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { labelOfVariant, summarizeCart } from "@/modules/sales/cart-logic";
 import { hydratePosStore, usePosStore } from "@/modules/sales/cart-store";
+import { ChargeDialog } from "@/modules/sales/components/charge-dialog";
 import { DiscountDialog } from "@/modules/sales/components/discount-dialog";
 import {
   CustomerDialog,
   ParkedDialog,
   ShortcutsDialog,
 } from "@/modules/sales/components/pos-dialogs";
+import { SwitchCashierDialog } from "@/modules/sales/components/switch-cashier-dialog";
 import { TicketPanel } from "@/modules/sales/components/ticket-panel";
 import { VariantPicker } from "@/modules/sales/components/variant-picker";
 import { lookupCodeAction, searchPosAction } from "@/modules/sales/pos-actions";
@@ -29,7 +31,7 @@ import type { Discount } from "@/modules/sales/schemas";
 
 const copy = messages.pos;
 
-type DialogName = "discount" | "customer" | "parked" | "help";
+type DialogName = "discount" | "customer" | "parked" | "help" | "charge" | "switch";
 type Notice = { tone: "ok" | "warn"; text: string };
 
 /** Las dos primeras palabras con peso: "Blusa de lino" es BL, no BD. */
@@ -238,7 +240,17 @@ export function PosScreen({
 
   const charge = () => {
     if (summary.priced) {
-      setNotice({ tone: "warn", text: copy.actions.chargeSoon });
+      setDialog("charge");
+    }
+  };
+
+  /** Reimprime el último ticket cobrado en este navegador, en otra pestaña. */
+  const reprint = () => {
+    const id = usePosStore.getState().lastSaleId;
+    if (id) {
+      window.open(`/imprimir/ticket/${id}?auto=1`, "_blank", "noopener");
+    } else {
+      setNotice({ tone: "warn", text: copy.charge.noReprint });
     }
   };
 
@@ -253,12 +265,21 @@ export function PosScreen({
   };
 
   // Atajos de teclado y escáner: los controladores se leen del último render sin volver a registrar el evento.
-  const live = useRef({ openDialog, focusSearch, charge, runLookup, selected, blocked: false });
+  const live = useRef({
+    openDialog,
+    focusSearch,
+    charge,
+    reprint,
+    runLookup,
+    selected,
+    blocked: false,
+  });
   useEffect(() => {
     live.current = {
       openDialog,
       focusSearch,
       charge,
+      reprint,
       runLookup,
       selected,
       blocked: dialog !== null || picker !== null,
@@ -285,14 +306,10 @@ export function PosScreen({
       if (key === "F3") return shortcut(() => current.openDialog("customer"));
       if (key === "F4") return shortcut(() => current.openDialog("discount"));
       if (key === "F6") return shortcut(() => current.openDialog("parked"));
-      if (key === "F8" || key === "F9") {
-        return shortcut(() =>
-          setNotice({
-            tone: "warn",
-            text: key === "F8" ? (copy.help.rows[5]?.[1] ?? "") : (copy.help.rows[6]?.[1] ?? ""),
-          }),
-        );
+      if (key === "F8") {
+        return shortcut(() => setNotice({ tone: "warn", text: copy.help.rows[5]?.[1] ?? "" }));
       }
+      if (key === "F9") return shortcut(current.reprint);
       if (key === "F12") return shortcut(current.charge);
       if (isTyping(event.target)) {
         return;
@@ -344,6 +361,10 @@ export function PosScreen({
               </span>
             ) : null}
             <kbd className="text-muted-foreground text-xs">F6</kbd>
+          </Button>
+          <Button type="button" variant="outline" onClick={() => openDialog("switch")}>
+            <UserRoundCog aria-hidden="true" />
+            {copy.switch.button}
           </Button>
           <Button type="button" variant="outline" onClick={() => openDialog("help")}>
             <Keyboard aria-hidden="true" />
@@ -527,6 +548,13 @@ export function PosScreen({
         onDiscard={(id) => usePosStore.getState().discardParked(id)}
         onClose={closeDialog}
       />
+      <ChargeDialog
+        open={dialog === "charge"}
+        summary={summary}
+        config={config}
+        onClose={closeDialog}
+      />
+      <SwitchCashierDialog open={dialog === "switch"} onClose={closeDialog} />
       <ShortcutsDialog open={dialog === "help"} onClose={closeDialog} />
     </div>
   );
