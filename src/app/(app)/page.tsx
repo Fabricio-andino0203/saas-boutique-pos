@@ -5,10 +5,18 @@ import { messages } from "@/config/messages.es";
 import { requireSession } from "@/lib/auth";
 import { formatLocalDateTime } from "@/lib/dates";
 import { hasCapability } from "@/lib/permissions";
-import { countPendingApprovals, getOpenSessionOf, getTerminalStatus } from "@/modules/cash/queries";
+import {
+  countPendingApprovals,
+  getCashSessionDetail,
+  getOpenSessionOf,
+  getTerminalStatus,
+} from "@/modules/cash/queries";
 import { getInvoicingState } from "@/modules/fiscal/alerts";
 import { FiscalAlerts } from "@/modules/fiscal/components/fiscal-alerts";
 import { listReorderAlerts } from "@/modules/inventory/reorder";
+import { reportAccess } from "@/modules/reports/access";
+import { DashboardView } from "@/modules/reports/components/dashboard-view";
+import { getDashboard } from "@/modules/reports/dashboard";
 import { getSettingsSnapshot } from "@/modules/settings/service";
 
 export default async function HomePage() {
@@ -27,13 +35,30 @@ export default async function HomePage() {
   const pendingCloses = hasCapability(user.role, "cash.closeApprove")
     ? await countPendingApprovals()
     : 0;
+  const dashboard = hasCapability(user.role, "report.view")
+    ? await getDashboard(reportAccess(user))
+    : null;
+  const expectedCash = myCash
+    ? ((await getCashSessionDetail(myCash.id))?.expectedCents ?? null)
+    : null;
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
+    <div className="mx-auto max-w-5xl space-y-6">
       <div className="space-y-2">
         <h1 className="text-2xl font-semibold tracking-tight">{messages.home.title}</h1>
         <p className="text-muted-foreground">{messages.home.description}</p>
       </div>
+      {dashboard ? (
+        <DashboardView
+          dashboard={dashboard}
+          lowStock={alerts ? alerts.length : null}
+          cash={
+            hasCapability(user.role, "cash.open")
+              ? { open: myCash !== null, expectedCents: expectedCash }
+              : null
+          }
+        />
+      ) : null}
       {hasCapability(user.role, "cash.open") ? (
         <section aria-labelledby="cash-title" className="bg-card space-y-3 rounded-lg border p-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
