@@ -15,6 +15,7 @@ import { messages } from "@/config/messages.es";
 import { requirePageCapability } from "@/lib/auth";
 import { formatLocalDateTime } from "@/lib/dates";
 import { formatMoney } from "@/lib/format";
+import { ExportLinks } from "@/modules/reports/components/export-links";
 import { RangeFilter } from "@/modules/reports/components/range-filter";
 import { StatCard } from "@/modules/reports/components/stat-card";
 import { getCashClosings } from "@/modules/reports/queries";
@@ -42,7 +43,20 @@ export default async function ClosingsReportPage({
 
   return (
     <div className="space-y-6">
-      <PageHeader title={copy.title} description={messages.reports.index.closings.description} />
+      <PageHeader
+        title={copy.title}
+        description={messages.reports.index.closings.description}
+        actions={
+          <ExportLinks
+            kind="cierres"
+            params={{
+              rango: range.preset ?? undefined,
+              desde: range.preset ? undefined : range.fromKey,
+              hasta: range.preset ? undefined : range.toKey,
+            }}
+          />
+        }
+      />
       <RangeFilter path="/reportes/cierres" range={range} />
 
       <section aria-label={copy.title} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">

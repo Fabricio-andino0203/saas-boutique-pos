@@ -16,6 +16,7 @@ import { requirePageCapability } from "@/lib/auth";
 import { formatMoney } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { reportAccess } from "@/modules/reports/access";
+import { ExportLinks } from "@/modules/reports/components/export-links";
 import { RangeFilter } from "@/modules/reports/components/range-filter";
 import { listProductSales, rankProducts } from "@/modules/reports/queries";
 import { daysInRange, parseRange } from "@/modules/reports/ranges";
@@ -58,7 +59,21 @@ export default async function ProductsReportPage({
 
   return (
     <div className="space-y-6">
-      <PageHeader title={copy.products.title} description={copy.index.products.description} />
+      <PageHeader
+        title={copy.products.title}
+        description={copy.index.products.description}
+        actions={
+          <ExportLinks
+            kind="productos"
+            params={{
+              orden: order === "best" ? "mas" : "menos",
+              rango: range.preset ?? undefined,
+              desde: range.preset ? undefined : range.fromKey,
+              hasta: range.preset ? undefined : range.toKey,
+            }}
+          />
+        }
+      />
       {access.seesEveryone ? null : (
         <p role="status" className="bg-muted rounded-lg border px-4 py-2 text-sm">
           {copy.onlyMine}

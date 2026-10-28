@@ -14,6 +14,7 @@ import {
 import { messages } from "@/config/messages.es";
 import { requirePageCapability } from "@/lib/auth";
 import { reportAccess } from "@/modules/reports/access";
+import { ExportLinks } from "@/modules/reports/components/export-links";
 import { RangeFilter } from "@/modules/reports/components/range-filter";
 import { getSizeColorMatrix, listReportCategories } from "@/modules/reports/queries";
 import { parseRange } from "@/modules/reports/ranges";
@@ -47,7 +48,21 @@ export default async function SizesReportPage({
 
   return (
     <div className="space-y-6">
-      <PageHeader title={copy.title} description={messages.reports.index.sizes.description} />
+      <PageHeader
+        title={copy.title}
+        description={messages.reports.index.sizes.description}
+        actions={
+          <ExportLinks
+            kind="tallas"
+            params={{
+              categoria: categoryId || undefined,
+              rango: range.preset ?? undefined,
+              desde: range.preset ? undefined : range.fromKey,
+              hasta: range.preset ? undefined : range.toKey,
+            }}
+          />
+        }
+      />
       {access.seesEveryone ? null : (
         <p role="status" className="bg-muted rounded-lg border px-4 py-2 text-sm">
           {messages.reports.onlyMine}

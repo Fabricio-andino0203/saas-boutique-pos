@@ -1,4 +1,7 @@
+import { readFileSync } from "node:fs";
+
 import { expect, test } from "@playwright/test";
+import ExcelJS from "exceljs";
 
 import { messages } from "../../src/config/messages.es";
 
@@ -130,4 +133,89 @@ test("the warehouse has no reports menu and cannot open the screens", async ({ p
     await page.goto(path);
     await expect(page.getByRole("heading", { name: messages.states.notFound.title })).toBeVisible();
   }
+});
+
+// ───────────── Exportación e impresión ─────────────
+
+test("a manager downloads a report as Excel and as CSV, and prints the valuation", async ({
+  page,
+}) => {
+  test.slow();
+  await loginAs(page, "manager");
+  await page.goto("/reportes/ventas?rango=year&por=categoria");
+  await expect(page.getByRole("table", { name: copy.sales.by.category })).toBeVisible();
+
+  const [excel] = await Promise.all([
+    page.waitForEvent("download"),
+    page.getByRole("link", { name: copy.export.excel }).click(),
+  ]);
+  expect(excel.suggestedFilename()).toMatch(
+    /^reporte-ventas-categoria-\d{4}-\d{2}-\d{2}_\d{4}-\d{2}-\d{2}\.xlsx$/,
+  );
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.readFile((await excel.path()) as string);
+  expect(workbook.worksheets.map((sheet) => sheet.name)).toEqual([
+    "Resumen",
+    copy.sales.by.category,
+  ]);
+  const sheet = workbook.getWorksheet(copy.sales.by.category) as ExcelJS.Worksheet;
+  expect(sheet.getRow(1).getCell(1).value).toBe(copy.sales.columns.category);
+  expect(sheet.getRow(1).values).toContain(copy.sales.columns.profit);
+  expect(sheet.getRow(2).getCell(3).numFmt).toContain("#,##0.00");
+
+  const [csv] = await Promise.all([
+    page.waitForEvent("download"),
+    page.getByRole("link", { name: copy.export.csv, exact: true }).click(),
+  ]);
+  expect(csv.suggestedFilename()).toMatch(/\.csv$/);
+  const text = readFileSync((await csv.path()) as string, "utf8");
+  expect(text.startsWith("\uFEFF")).toBe(true);
+  expect(text.split("\r\n")[0]).toContain(copy.sales.columns.profit);
+
+  // La valoración en hoja imprimible
+  await page.goto("/imprimir/valoracion");
+  await expect(page.getByRole("article", { name: copy.inventory.valuation.title })).toBeVisible();
+  await expect(page.getByRole("table", { name: copy.inventory.valuation.title })).toBeVisible();
+});
+
+test("a cashier's exports never carry costs and the manager-only reports are not there", async ({
+  page,
+  browser,
+}) => {
+  test.slow();
+  await loginAs(page, "cashier");
+  const csv = await page.request.get(
+    "/api/reportes/ventas/exportar?formato=csv&rango=year&por=categoria",
+  );
+  expect(csv.status()).toBe(200);
+  expect(csv.headers()["content-disposition"]).toContain("attachment");
+  const body = await csv.text();
+  for (const word of ["Costo", "Utilidad", "Margen", "Ingreso sin ISV"]) {
+    expect(body, word).not.toContain(word);
+  }
+  const xlsx = await page.request.get("/api/reportes/productos/exportar?formato=xlsx&rango=year");
+  expect(xlsx.status()).toBe(200);
+  expect(xlsx.headers()["content-type"]).toContain("spreadsheetml");
+
+  for (const path of [
+    "/api/reportes/cierres/exportar?formato=csv",
+    "/api/reportes/inventario/exportar?formato=csv",
+    "/api/reportes/nada/exportar",
+  ]) {
+    expect((await page.request.get(path)).status(), path).toBe(404);
+  }
+  await page.goto("/imprimir/valoracion");
+  await expect(page.getByRole("heading", { name: messages.states.notFound.title })).toBeVisible();
+
+  // Sin sesión tampoco
+  const anonymous = await browser.newContext({
+    baseURL: test.info().project.use.baseURL as string,
+  });
+  // El sistema manda a iniciar sesión (o responde que no existe): en ningún caso entrega el archivo
+  const denied = await anonymous.request.get("/api/reportes/ventas/exportar?formato=csv", {
+    maxRedirects: 0,
+  });
+  expect([302, 303, 307, 308, 404]).toContain(denied.status());
+  expect(denied.headers()["content-disposition"] ?? "").not.toContain("attachment");
+  await anonymous.close();
 });

@@ -16,6 +16,8 @@ import { messages } from "@/config/messages.es";
 import { requirePageCapability } from "@/lib/auth";
 import { formatLocalDateTime } from "@/lib/dates";
 import { formatMoney } from "@/lib/format";
+import { buttonVariants } from "@/components/ui/button";
+import { ExportLinks } from "@/modules/reports/components/export-links";
 import { getDeadStock, getInventoryValuation } from "@/modules/reports/queries";
 
 const copy = messages.reports.inventory;
@@ -40,7 +42,23 @@ export default async function InventoryReportPage({
 
   return (
     <div className="space-y-8">
-      <PageHeader title={copy.title} description={messages.reports.index.inventory.description} />
+      <PageHeader
+        title={copy.title}
+        description={messages.reports.index.inventory.description}
+        actions={
+          <>
+            <ExportLinks kind="inventario" params={{ dias: String(days) }} />
+            <a
+              href={`/imprimir/valoracion?dias=${days}&auto=1`}
+              target="_blank"
+              rel="noreferrer"
+              className={buttonVariants({ variant: "outline", size: "sm" })}
+            >
+              {messages.reports.export.print}
+            </a>
+          </>
+        }
+      />
 
       <section aria-labelledby="valuation-title" className="space-y-3">
         <h2 id="valuation-title" className="text-lg font-medium">

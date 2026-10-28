@@ -1780,6 +1780,13 @@ export const messages = {
     title: "Reportes",
     description: "Para decidir con datos: qué se vende, qué no se mueve y cuánto se gana.",
     onlyMine: "Estás viendo solo tus ventas.",
+    export: {
+      title: "Exportar",
+      excel: "Excel (.xlsx)",
+      csv: "CSV",
+      print: "Imprimir o guardar como PDF",
+      days: "días sin venderse",
+    },
     dashboard: {
       title: "Hoy",
       viewReports: "Ver reportes",

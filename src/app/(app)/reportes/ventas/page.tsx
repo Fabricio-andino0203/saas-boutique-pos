@@ -13,6 +13,7 @@ import {
   MethodBreakdown,
   PeriodBreakdown,
 } from "@/modules/reports/components/sales-breakdown";
+import { ExportLinks } from "@/modules/reports/components/export-links";
 import { RangeFilter } from "@/modules/reports/components/range-filter";
 import { StatCard } from "@/modules/reports/components/stat-card";
 import {
@@ -73,7 +74,21 @@ export default async function SalesReportPage({
 
   return (
     <div className="space-y-6">
-      <PageHeader title={copy.sales.title} description={copy.description} />
+      <PageHeader
+        title={copy.sales.title}
+        description={copy.description}
+        actions={
+          <ExportLinks
+            kind="ventas"
+            params={{
+              por: view,
+              rango: range.preset ?? undefined,
+              desde: range.preset ? undefined : range.fromKey,
+              hasta: range.preset ? undefined : range.toKey,
+            }}
+          />
+        }
+      />
       {access.seesEveryone ? null : (
         <p role="status" className="bg-muted rounded-lg border px-4 py-2 text-sm">
           {copy.onlyMine}
