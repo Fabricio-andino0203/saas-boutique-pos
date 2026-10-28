@@ -70,8 +70,8 @@ afterAll(async () => {
 
 describe("the generated year", () => {
   it("is big enough to mean something", () => {
-    expect(history.lines).toBeGreaterThan(15_000);
-    expect(history.sales).toBeGreaterThan(5_000);
+    expect(history.lines).toBeGreaterThan(19_000);
+    expect(history.sales).toBeGreaterThan(7_000);
     expect(history.returns).toBeGreaterThan(100);
     expect(history.sessions).toBeGreaterThan(300);
     expect(daysInRange(wholeYear)).toBe(365);

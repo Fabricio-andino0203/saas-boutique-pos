@@ -7,7 +7,7 @@ import { generateHistory } from "./seed/history";
 
 /**
  * Carga un año de ventas de prueba para probar los reportes (`pnpm db:seed:history`). Solo para desarrollo: agrega
- * unas 6 500 ventas, devoluciones, turnos de caja cerrados y 40 productos "HIST-". Para quitarlo: `pnpm db:reset`.
+ * unas 8 700 ventas, devoluciones, turnos de caja cerrados y 40 productos "HIST-". Para quitarlo: `pnpm db:reset`.
  */
 async function main(): Promise<void> {
   const connectionString = process.env.DATABASE_URL;

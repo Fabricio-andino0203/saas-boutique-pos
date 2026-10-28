@@ -123,7 +123,7 @@ export async function generateHistory(
     throw new Error("La historia de prueba no se carga con NODE_ENV=production");
   }
   const months = options.months ?? 12;
-  const salesPerDay = options.salesPerDay ?? 18;
+  const salesPerDay = options.salesPerDay ?? 24;
   const productCount = options.products ?? 40;
   const random = mulberry32(options.seed ?? 0x5eed);
   const int = (min: number, max: number) => min + Math.floor(random() * (max - min + 1));
