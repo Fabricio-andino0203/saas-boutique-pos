@@ -1,5 +1,6 @@
 import {
   Banknote,
+  ChartColumn,
   Barcode,
   Boxes,
   CalendarRange,
@@ -75,6 +76,12 @@ const navGroups: readonly NavGroup[] = [
         label: messages.nav.layaways,
         icon: Bookmark,
         capability: "layaway.manage",
+      },
+      {
+        href: "/reportes",
+        label: messages.nav.reports,
+        icon: ChartColumn,
+        capability: "report.view",
       },
       { href: "/caja", label: messages.nav.cash, icon: Banknote, capability: "cash.open" },
       {

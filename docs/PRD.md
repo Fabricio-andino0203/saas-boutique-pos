@@ -50,7 +50,8 @@ Contabilidad completa, nómina, e-commerce público, integración con marketplac
 | Recibir compras | ✓ | ✓ | – | ✓ |
 | Ajustes de inventario | ✓ | ✓ | – | ✓ (con motivo) |
 | Aprobar y aplicar un conteo físico | ✓ | ✓ | – | – (cuenta, no aprueba) |
-| Reportes financieros | ✓ | ✓ | – | – |
+| Ver reportes y el dashboard de ventas (el cajero, solo sus ventas y sin costos) | ✓ | ✓ | ✓ | – |
+| Reportes financieros (utilidad, márgenes, valoración, cierres de todos) | ✓ | ✓ | – | – |
 | Usuarios y configuración | ✓ | – | – | – |
 
 > Los permisos se definen como una lista de "capacidades" en `src/lib/permissions.ts` y los roles son conjuntos de capacidades. Así se pueden ajustar sin tocar la lógica.

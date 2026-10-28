@@ -19,7 +19,8 @@ import type { ReportRange } from "@/modules/reports/ranges";
 
 export type ReportScope = { onlySellerId?: string };
 
-type Client = Pick<PrismaClient, "$queryRaw">;
+export type ReportClient = Pick<PrismaClient, "$queryRaw">;
+type Client = ReportClient;
 
 const TZ = APP_TIME_ZONE;
 
@@ -788,4 +789,15 @@ export async function getInventoryValuation(client: Client = db): Promise<{
     costValueCents: mapped.reduce((sum, row) => sum + row.costValueCents, 0),
     retailValueCents: mapped.reduce((sum, row) => sum + row.retailValueCents, 0),
   };
+}
+
+/** Las categorías para el filtro de la matriz de tallas (por orden alfabético). */
+export async function listReportCategories(
+  client: Pick<PrismaClient, "category"> = db,
+): Promise<{ id: string; name: string }[]> {
+  return client.category.findMany({
+    where: { archivedAt: null },
+    orderBy: { name: "asc" },
+    select: { id: true, name: true },
+  });
 }
