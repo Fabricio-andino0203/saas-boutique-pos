@@ -16,6 +16,7 @@
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "db:seed": "prisma db seed",
+    "db:seed:history": "tsx prisma/seed-history.ts",
     "db:reset": "prisma migrate reset --force && pnpm db:seed",
     "db:reconcile": "tsx scripts/reconcile-stock.ts",
     "test": "vitest run",

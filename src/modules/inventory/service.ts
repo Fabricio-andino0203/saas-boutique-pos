@@ -175,6 +175,18 @@ export async function recordMovement(tx: Tx, input: MovementInput): Promise<void
   });
 }
 
+/**
+ * Carga masiva de existencias de prendas que todavía no tienen acumulado, para la historia de prueba
+ * (`prisma/seed/history.ts`): esa carga inserta por su cuenta los movimientos que explican cada cantidad, así que el
+ * acumulado queda igual a la suma de sus movimientos. Nunca lo usa una operación de la tienda.
+ */
+export async function createStockLevels(
+  tx: Tx,
+  levels: { id: string; variantId: string; locationId: string; onHand: number }[],
+): Promise<void> {
+  await tx.stockLevel.createMany({ data: levels });
+}
+
 /** Existencia actual de una variante en una ubicación, con la fila bloqueada hasta que termine la transacción. */
 export async function lockOnHand(tx: Tx, variantId: string, locationId: string): Promise<number> {
   const rows = await tx.$queryRaw<{ onHand: number }[]>`

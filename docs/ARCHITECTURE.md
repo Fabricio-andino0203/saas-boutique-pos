@@ -157,6 +157,13 @@ boutique-pos/
 - **Cajón de dinero:** suele abrirse por el pulso de la impresora; se documenta como configuración de la impresora, no del software.
 - **Etiquetas:** PDF/HTML con `bwip-js`; plantillas configurables (tamaño de rollo o de hoja A4 con N columnas).
 - **Reportes:** vista en pantalla + exportación CSV/XLSX; PDF para cierre de caja y valoración.
+- **Consultas de reportes (`src/modules/reports/queries.ts`):** una consulta tipada por reporte, agregada en la base (SQL directo, no filas sumadas en memoria). Reglas comunes:
+  - Solo cuentan las ventas `COMPLETED`; lo devuelto se resta **por la fecha de la devolución** (ventas netas = ventas − devoluciones; en un cambio, la venta nueva suma y lo devuelto resta, así que queda la diferencia).
+  - **Utilidad bruta** = ingreso sin ISV − costo. Ingreso sin ISV = lo cobrado − el ISV de sus líneas (y de lo devuelto, en proporción: `ROUND(reembolso × ISV de la línea ÷ total de la línea)`); el costo es el copiado en cada línea al vender. Una devolución revendible devuelve su costo al estante; una dañada es merma y su costo se pierde.
+  - **Costos solo con `withCosts`** (capacidad `report.financial`): sin ella las consultas ni siquiera piden costo ni utilidad (`financial: null`), así que no pueden llegar a una pantalla ni a una exportación. Un cajero consulta con `scope.onlySellerId` (sus ventas y las devoluciones que él hizo).
+  - Las fechas se agrupan **en hora de Honduras**. Las columnas son `timestamp` en UTC sin zona: la conversión correcta es `(col AT TIME ZONE 'UTC') AT TIME ZONE 'America/Tegucigalpa'` (sin el primer paso la hora sale al revés).
+  - Los periodos salen de `ranges.ts` (atajos Hoy / Ayer / Esta semana [lunes] / Este mes / 30 días / Este año; máximo 732 días).
+- **Historia de prueba (`pnpm db:seed:history`, `prisma/seed/history.ts`):** un año de ventas realistas (más de 20 000 líneas, devoluciones, turnos cerrados, 40 productos `HIST-`) que deja los libros cuadrados (stock = Σ movimientos, efectivo esperado de cada turno, correlativos continuos, devoluciones ≤ vendido). Solo desarrollo y pruebas; no se puede cargar dos veces; `pnpm db:reset` la quita. Medido con ella en la base de pruebas: cada reporte tarda entre 6 y 60 ms (criterio: < 2 s), por eso **no se agregó ningún índice** (las consultas usan `Sale(createdAt)`, `SaleItem(saleId)`, `SaleItem(variantId)`, `ReturnItem(saleItemId)`).
 
 ## 8. Fiscal (aislado)
 
@@ -234,6 +241,7 @@ Cada decisión relevante nueva se agrega aquí con fecha, contexto y consecuenci
 | 2026-10-27 | Al saldar, los abonos pagan la venta con un pago `LAYAWAY` y no vuelven a contar en el cajón | El efectivo del abono entró en su propio turno; contarlo otra vez al saldar descuadraría la caja |
 | 2026-10-27 | Un apartado vencido o cancelado devuelve lo abonado como crédito de tienda; solo un gerente puede retener una parte | El dinero del cliente no se pierde sin una decisión autorizada y auditada |
 | 2026-10-27 | La nota de crédito solo se emite si la venta original tuvo factura y hay un rango de notas de crédito vigente; si no, la devolución se registra igual y se avisa | Un trámite fiscal pendiente no debe dejar al cliente sin su devolución; el aviso permite regularizarlo |
+| 2026-10-28 | Ventas netas = ventas completadas − lo devuelto por fecha de devolución; utilidad bruta sobre ingreso sin ISV; los costos y la utilidad solo se consultan con `report.financial` y el cajero ve solo sus ventas | Es lo que el dueño espera ver (lo que de verdad se queda) y evita que un cajero vea costos por una pantalla o una exportación |
 | 2026-10-28 | Clientes: cualquiera que venda crea y edita la ficha (`customer.write`); archivar o restaurar es de gerente (`customer.archive`); el teléfono es único también entre archivados y un cliente con apartados activos no se archiva | El cajero ya crea clientes en la caja; ocultar a alguien de las búsquedas es una decisión del gerente, y un apartado activo necesita a su cliente |
 | 2026-10-27 | Una venta que nació de un cambio no se anula | El cambio se corrige con una devolución de la venta nueva; anularla dejaría la devolución sin su venta |
 | 2026-10-27 | `ReturnDoc` gana `clientRequestId` (único) y `customerId` | Un doble clic no debe devolver dos veces las mismas prendas; el crédito de tienda necesita saber a quién va |
