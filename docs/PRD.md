@@ -167,7 +167,7 @@ Contabilidad, planillas, CRM de marketing, integración bancaria. **Claude Code 
 - **RF-REP-5** Matriz de ventas por talla/color (para decidir recompras).
 - **RF-REP-6** Cierre de caja histórico y diferencias.
 - **RF-REP-7** Valoración de inventario.
-- **RF-REP-8** Exportar a CSV/Excel y a PDF los reportes principales.
+- **RF-REP-8** Exportar a CSV/Excel los reportes principales (con los mismos filtros y permisos que la pantalla: el cajero nunca recibe costos ni utilidad). El "PDF" es la hoja imprimible del navegador ("Guardar como PDF"): valoración de inventario y cierre de caja.
 
 ### 4.11 Configuración (CFG)
 

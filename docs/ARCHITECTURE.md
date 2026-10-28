@@ -202,6 +202,8 @@ Implementación inicial: `caiRangeIssuer` en `src/modules/fiscal/issuer.ts` (cor
 
 CI (GitHub Actions): lint → typecheck → test (con Postgres de servicio) → build → e2e en `main`.
 
+**E2E y la caja abierta:** Playwright usa la base que indique `DATABASE_URL` (por omisión, la de desarrollo) y hay una sola terminal ("Caja 1"). Si alguien dejó un turno abierto en esa base, los specs de caja (`shift.spec.ts`) no pueden abrir el suyo. En vez de cerrar ese turno, se corre el E2E completo contra una base aparte: crear `boutique_pos_e2e` (con las extensiones `pg_trgm` y `unaccent`), y con `DATABASE_URL` apuntando a ella ejecutar `pnpm db:deploy`, `pnpm db:seed`, `pnpm db:seed:history` y `pnpm test:e2e`. El proceso hijo debe heredar solo el entorno original más `DATABASE_URL`: si se le pasa lo que carga `dotenv` (`NODE_ENV=development`), `next build` falla.
+
 ## 11. Seguridad (checklist)
 
 - Hash de contraseñas/PIN; nunca en logs. Rate limiting. Bloqueo por intentos.
@@ -242,8 +244,8 @@ Cada decisión relevante nueva se agrega aquí con fecha, contexto y consecuenci
 | 2026-10-27 | Al saldar, los abonos pagan la venta con un pago `LAYAWAY` y no vuelven a contar en el cajón | El efectivo del abono entró en su propio turno; contarlo otra vez al saldar descuadraría la caja |
 | 2026-10-27 | Un apartado vencido o cancelado devuelve lo abonado como crédito de tienda; solo un gerente puede retener una parte | El dinero del cliente no se pierde sin una decisión autorizada y auditada |
 | 2026-10-27 | La nota de crédito solo se emite si la venta original tuvo factura y hay un rango de notas de crédito vigente; si no, la devolución se registra igual y se avisa | Un trámite fiscal pendiente no debe dejar al cliente sin su devolución; el aviso permite regularizarlo |
-| 2026-10-28 | Ventas netas = ventas completadas − lo devuelto por fecha de devolución; utilidad bruta sobre ingreso sin ISV; los costos y la utilidad solo se consultan con `report.financial` y el cajero ve solo sus ventas | Es lo que el dueño espera ver (lo que de verdad se queda) y evita que un cajero vea costos por una pantalla o una exportación |
-| 2026-10-28 | Clientes: cualquiera que venda crea y edita la ficha (`customer.write`); archivar o restaurar es de gerente (`customer.archive`); el teléfono es único también entre archivados y un cliente con apartados activos no se archiva | El cajero ya crea clientes en la caja; ocultar a alguien de las búsquedas es una decisión del gerente, y un apartado activo necesita a su cliente |
+| 2026-10-27 | Ventas netas = ventas completadas − lo devuelto por fecha de devolución; utilidad bruta sobre ingreso sin ISV; los costos y la utilidad solo se consultan con `report.financial` y el cajero ve solo sus ventas | Es lo que el dueño espera ver (lo que de verdad se queda) y evita que un cajero vea costos por una pantalla o una exportación |
+| 2026-10-27 | Clientes: cualquiera que venda crea y edita la ficha (`customer.write`); archivar o restaurar es de gerente (`customer.archive`); el teléfono es único también entre archivados y un cliente con apartados activos no se archiva | El cajero ya crea clientes en la caja; ocultar a alguien de las búsquedas es una decisión del gerente, y un apartado activo necesita a su cliente |
 | 2026-10-27 | Una venta que nació de un cambio no se anula | El cambio se corrige con una devolución de la venta nueva; anularla dejaría la devolución sin su venta |
 | 2026-10-27 | `ReturnDoc` gana `clientRequestId` (único) y `customerId` | Un doble clic no debe devolver dos veces las mismas prendas; el crédito de tienda necesita saber a quién va |
 | 2026-10-26 | `recordMovement` con SQL directo (`UPDATE` condicionado + `ON CONFLICT`) y sentido del movimiento validado por tipo | El `upsert` de Prisma dentro de una transacción no tolera la carrera de la primera entrada (un error aborta la transacción); un `UPDATE` condicionado hace atómica la validación de no-negativo |

@@ -1244,7 +1244,41 @@ test("the cashier finds an existing customer by typing their name at the counter
   await page.getByRole("button", { name }).click();
   await page.getByLabel(pos.customer.searchLabel, { exact: true }).fill("Zzzz Nadie Asi");
   await expect(page.getByText(pos.customer.noMatches)).toBeVisible();
-  await page.getByRole("button", { name: messages.common.close }).click();
+  // El diálogo trae dos botones "Cerrar" (el del pie y la X de la esquina): cualquiera sirve
+  await page.getByRole("button", { name: messages.common.close }).first().click();
+  await expect(page.getByLabel(pos.customer.searchLabel, { exact: true })).toHaveCount(0);
 
   await closeLeftoverCash(page);
+});
+
+// ───────────── Aceptación de la Fase 5 ─────────────
+
+// Va al final de este archivo porque aquí se hacen todas las ventas de prueba (hay una sola terminal) y el archivo corre en
+// fila: mientras se comparan las dos pantallas nadie más está vendiendo hoy.
+test("acceptance: the home dashboard and the sales report of the same day show the same figures", async ({
+  page,
+}) => {
+  test.slow();
+  const dashboard = messages.reports.dashboard;
+  const summary = messages.reports.summary;
+  // El segundo párrafo de cada tarjeta es la cifra grande
+  const figure = (label: string) =>
+    page.getByRole("group", { name: label, exact: true }).locator("p").nth(1);
+
+  await loginAs(page, "manager");
+  await expect(page.getByRole("group", { name: dashboard.sales, exact: true })).toBeVisible();
+  const home = {
+    sales: await figure(dashboard.sales).innerText(),
+    tickets: await figure(dashboard.tickets).innerText(),
+    average: await figure(dashboard.average).innerText(),
+  };
+  expect(Number(home.tickets), "las pruebas anteriores de este archivo venden hoy").toBeGreaterThan(
+    0,
+  );
+
+  await page.goto("/reportes/ventas?rango=today");
+  await expect(page.getByRole("group", { name: summary.sales, exact: true })).toBeVisible();
+  await expect(figure(summary.sales)).toHaveText(home.sales);
+  await expect(figure(summary.tickets)).toHaveText(home.tickets);
+  await expect(figure(summary.average)).toHaveText(home.average);
 });
