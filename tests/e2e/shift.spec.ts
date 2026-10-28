@@ -1213,3 +1213,38 @@ test("returning an invoiced sale issues a credit note with CAI, and warns when t
   await ownerContext.close();
   await closeLeftoverCash(page);
 });
+
+// ───────────── Clientes en la caja ─────────────
+
+test("the cashier finds an existing customer by typing their name at the counter", async ({
+  page,
+}) => {
+  test.slow();
+  const stamp = Date.now();
+  const name = `E2E Clienta Caja ${stamp}`;
+  const found = messages.customers;
+
+  await openCashAndSell(page);
+  await page.goto("/clientes/nuevo");
+  await page.getByLabel(found.form.fields.name, { exact: true }).fill(name);
+  await page
+    .getByLabel(found.form.fields.phone, { exact: true })
+    .fill(`3${String(stamp).slice(-7)}`);
+  await page.getByRole("button", { name: found.form.create }).click();
+  await expect(page.getByRole("heading", { name, level: 1 })).toBeVisible();
+
+  await page.goto("/vender");
+  await expect(page.getByRole("heading", { name: pos.title, level: 1 })).toBeVisible();
+  await page.getByRole("button", { name: pos.ticket.customerNone }).click();
+  await page.getByLabel(pos.customer.searchLabel, { exact: true }).fill("E2E Clienta Caja");
+  await page.getByRole("button", { name: new RegExp(`^${name}`) }).click();
+  await expect(page.getByRole("button", { name })).toBeVisible();
+
+  // Escribir algo que no existe lo dice y deja crear al cliente nuevo
+  await page.getByRole("button", { name }).click();
+  await page.getByLabel(pos.customer.searchLabel, { exact: true }).fill("Zzzz Nadie Asi");
+  await expect(page.getByText(pos.customer.noMatches)).toBeVisible();
+  await page.getByRole("button", { name: messages.common.close }).click();
+
+  await closeLeftoverCash(page);
+});

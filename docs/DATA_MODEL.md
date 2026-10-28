@@ -173,7 +173,7 @@ Al confirmar: crea `StockMovement PURCHASE_IN`, actualiza `StockLevel`, recalcul
 ## 6. Ventas
 
 ### Customer
-`name`, `phone? @unique(nullable)`, `email?`, `taxId?`, `notes?`, `preferredSizes?` (texto libre), `storeCreditCents` (**derivado/cacheado** del libro `StoreCreditEntry`), `archivedAt?`.
+`name`, `phone? @unique(nullable)` (único también entre archivados; la ficha completa la crean y editan `customer.write`, y la archiva `customer.archive`, con `AuditLog` en cada cambio), `email?`, `taxId?`, `notes?`, `preferredSizes?` (texto libre), `storeCreditCents` (**derivado/cacheado** del libro `StoreCreditEntry`), `archivedAt?`.
 
 ### CashSession (turno de caja)
 `terminalId`, `userId`, `openedAt`, `openingFloatCents`, `closedAt?`, `expectedCashCents?`, `countedCashCents?`, `differenceCents?`, `status enum (OPEN, CLOSED_PENDING_APPROVAL, CLOSED)`, `approvedById?`, `notes?`.

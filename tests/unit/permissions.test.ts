@@ -24,6 +24,8 @@ const matrix: ReadonlyArray<readonly [Capability, boolean, boolean, boolean, boo
   ["return.refundCash", true, true, false, false],
   ["return.overridePolicy", true, true, false, false],
   ["customer.view", true, true, true, false],
+  ["customer.write", true, true, true, false],
+  ["customer.archive", true, true, false, false],
   ["credit.adjust", true, true, false, false],
   ["layaway.manage", true, true, true, false],
   ["layaway.cancel", true, true, false, false],

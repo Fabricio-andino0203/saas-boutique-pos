@@ -4,7 +4,7 @@ import { messages } from "@/config/messages.es";
 import { toActionResult } from "@/lib/action-result";
 import { requireUserCapability } from "@/lib/auth";
 import { quickCustomerSchema, type QuickCustomerInput } from "@/modules/customers/schemas";
-import { getCustomerCreditCents } from "@/modules/customers/queries";
+import { getCustomerCreditCents, searchCustomers } from "@/modules/customers/queries";
 import { quickCustomer } from "@/modules/customers/service";
 import { lookupCode, searchSellable } from "@/modules/sales/pos-queries";
 import type {
@@ -62,4 +62,13 @@ export async function getCustomerCreditAction(
     return { error: result.error.message };
   }
   return { creditCents: result.data ?? 0 };
+}
+
+/** Los clientes que coinciden con lo escrito en la caja (nombre o teléfono). */
+export async function searchCustomersAction(
+  q: string,
+): Promise<{ customers: QuickCustomer[] } | PosActionError> {
+  await requireUserCapability("sale.create");
+  const result = await toActionResult(() => searchCustomers(String(q)), messages.errors);
+  return result.ok ? { customers: result.data } : { error: result.error.message };
 }

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { PageHeader } from "@/components/shared/page-header";
+import { buttonVariants } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -17,6 +18,7 @@ import { formatLocalDateTime } from "@/lib/dates";
 import { formatMoney } from "@/lib/format";
 import { hasCapability } from "@/lib/permissions";
 import { AdjustCreditForm } from "@/modules/customers/components/adjust-credit-form";
+import { ArchiveCustomerButton } from "@/modules/customers/components/archive-customer-button";
 import { getCustomerFicha } from "@/modules/customers/queries";
 import { listCustomerLayaways } from "@/modules/layaways/queries";
 
@@ -37,6 +39,7 @@ export default async function CustomerPage({ params }: { params: Promise<{ id: s
     [copy.fields.phone, customer.phone],
     [copy.fields.email, customer.email],
     [copy.fields.taxId, customer.taxId],
+    [copy.form.fields.preferredSizes, customer.preferredSizes],
     [copy.fields.notes, customer.notes],
   ] as const;
 
@@ -45,7 +48,30 @@ export default async function CustomerPage({ params }: { params: Promise<{ id: s
       <PageHeader
         title={customer.name}
         description={`${copy.since} ${formatLocalDateTime(customer.createdAt)}${customer.archived ? ` · ${copy.archived}` : ""}`}
+        actions={
+          <>
+            <Link href="/clientes" className={buttonVariants({ variant: "ghost" })}>
+              {copy.actions.back}
+            </Link>
+            {hasCapability(user.role, "customer.write") ? (
+              <Link
+                href={`/clientes/${customer.id}/editar`}
+                className={buttonVariants({ variant: "outline" })}
+              >
+                {copy.actions.edit}
+              </Link>
+            ) : null}
+          </>
+        }
       />
+      {customer.archived ? (
+        <p role="status" className="bg-muted rounded-lg border px-4 py-2 text-sm">
+          {copy.actions.archivedNote}
+        </p>
+      ) : null}
+      {hasCapability(user.role, "customer.archive") ? (
+        <ArchiveCustomerButton id={customer.id} archived={customer.archived} />
+      ) : null}
 
       <dl className="grid gap-x-8 gap-y-1 text-sm sm:grid-cols-2">
         {details.map(([label, value]) =>

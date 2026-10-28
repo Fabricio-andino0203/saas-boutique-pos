@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 
 import { FormField } from "@/components/shared/form-field";
 import { Button } from "@/components/ui/button";
@@ -17,7 +17,7 @@ import { formatLocalDateTime } from "@/lib/dates";
 import { formatMoney } from "@/lib/format";
 import { summarizeCart } from "@/modules/sales/cart-logic";
 import type { ParkedCart } from "@/modules/sales/cart-store";
-import { quickCustomerAction } from "@/modules/sales/pos-actions";
+import { quickCustomerAction, searchCustomersAction } from "@/modules/sales/pos-actions";
 import type { PosConfig, QuickCustomer } from "@/modules/sales/pos-types";
 
 /* ───────────── Cliente rápido ───────────── */
@@ -44,6 +44,27 @@ function CustomerForm({ current, onSelect, onClose }: CustomerDialogProps) {
   const [phone, setPhone] = useState(current?.phone ?? "");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const [term, setTerm] = useState("");
+  const [matches, setMatches] = useState<QuickCustomer[] | null>(null);
+
+  // Busca entre los clientes que ya existen mientras se escribe (con una pausa corta).
+  useEffect(() => {
+    if (term.trim().length < 2) {
+      return;
+    }
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      const result = await searchCustomersAction(term);
+      if (!cancelled) {
+        setMatches("error" in result ? [] : result.customers);
+      }
+    }, 250);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [term]);
+  const shown = term.trim().length >= 2 ? matches : null;
 
   function save() {
     setError(null);
@@ -63,10 +84,46 @@ function CustomerForm({ current, onSelect, onClose }: CustomerDialogProps) {
         <DialogTitle>{customerCopy.title}</DialogTitle>
         <DialogDescription>{customerCopy.description}</DialogDescription>
       </DialogHeader>
+      <FormField label={customerCopy.searchLabel} htmlFor="customer-search">
+        <Input
+          id="customer-search"
+          autoFocus
+          autoComplete="off"
+          placeholder={customerCopy.searchPlaceholder}
+          value={term}
+          onChange={(event) => setTerm(event.target.value)}
+        />
+      </FormField>
+      {shown !== null ? (
+        shown.length > 0 ? (
+          <ul aria-label={customerCopy.searchLabel} className="divide-y rounded-lg border text-sm">
+            {shown.map((candidate) => (
+              <li key={candidate.id}>
+                <button
+                  type="button"
+                  onClick={() => onSelect(candidate)}
+                  className="hover:bg-muted focus-visible:ring-ring/50 flex w-full items-center justify-between gap-2 px-3 py-2 text-left outline-none focus-visible:ring-3"
+                >
+                  <span className="font-medium">{candidate.name}</span>
+                  <span className="text-muted-foreground tabular-nums">
+                    {candidate.phone ?? ""}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p role="status" className="text-muted-foreground text-sm">
+            {customerCopy.noMatches}
+          </p>
+        )
+      ) : null}
+      <p className="text-muted-foreground border-t pt-3 text-sm font-medium">
+        {customerCopy.createNew}
+      </p>
       <FormField label={customerCopy.name} htmlFor="customer-name">
         <Input
           id="customer-name"
-          autoFocus
           autoComplete="off"
           maxLength={80}
           value={name}

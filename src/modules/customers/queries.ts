@@ -23,6 +23,7 @@ export type CustomerFicha = {
   email: string | null;
   taxId: string | null;
   notes: string | null;
+  preferredSizes: string | null;
   createdAt: Date;
   archived: boolean;
   storeCreditCents: number;
@@ -109,6 +110,7 @@ export async function getCustomerFicha(id: string): Promise<CustomerFicha | null
     email: customer.email,
     taxId: customer.taxId,
     notes: customer.notes,
+    preferredSizes: customer.preferredSizes,
     createdAt: customer.createdAt,
     archived: customer.archivedAt !== null,
     storeCreditCents: customer.storeCreditCents,
@@ -141,4 +143,116 @@ export async function getCustomerFicha(id: string): Promise<CustomerFicha | null
     })),
     returns,
   };
+}
+
+const LIST_PAGE_SIZE = 25;
+
+export type CustomerListRow = {
+  id: string;
+  name: string;
+  phone: string | null;
+  email: string | null;
+  archived: boolean;
+  storeCreditCents: number;
+  /** Compras completadas y la fecha de la última. */
+  salesCount: number;
+  lastSaleAt: Date | null;
+};
+
+export type CustomerList = {
+  rows: CustomerListRow[];
+  total: number;
+  page: number;
+  pageSize: number;
+};
+
+/** Condición de búsqueda por nombre, teléfono o correo (sin distinguir mayúsculas). */
+function searchWhere(q: string) {
+  const term = q.trim();
+  return term
+    ? {
+        OR: [
+          { name: { contains: term, mode: "insensitive" as const } },
+          { phone: { contains: term } },
+          { email: { contains: term, mode: "insensitive" as const } },
+        ],
+      }
+    : {};
+}
+
+/** Los clientes por nombre, con lo que ha comprado. Los archivados solo se ven si se piden. */
+export async function listCustomers(params: {
+  q?: string;
+  includeArchived?: boolean;
+  page?: number;
+}): Promise<CustomerList> {
+  const page = Math.max(1, Math.trunc(params.page ?? 1));
+  const where = {
+    ...searchWhere(params.q ?? ""),
+    ...(params.includeArchived ? {} : { archivedAt: null }),
+  };
+  const total = await db.customer.count({ where });
+  const customers = await db.customer.findMany({
+    where,
+    orderBy: [{ name: "asc" }, { id: "asc" }],
+    skip: (page - 1) * LIST_PAGE_SIZE,
+    take: LIST_PAGE_SIZE,
+  });
+  const sales = await db.sale.groupBy({
+    by: ["customerId"],
+    where: { customerId: { in: customers.map((customer) => customer.id) }, status: "COMPLETED" },
+    _count: { _all: true },
+    _max: { createdAt: true },
+  });
+  const byCustomer = new Map(sales.map((row) => [row.customerId, row]));
+  return {
+    rows: customers.map((customer) => ({
+      id: customer.id,
+      name: customer.name,
+      phone: customer.phone,
+      email: customer.email,
+      archived: customer.archivedAt !== null,
+      storeCreditCents: customer.storeCreditCents,
+      salesCount: byCustomer.get(customer.id)?._count._all ?? 0,
+      lastSaleAt: byCustomer.get(customer.id)?._max.createdAt ?? null,
+    })),
+    total,
+    page,
+    pageSize: LIST_PAGE_SIZE,
+  };
+}
+
+/** Los clientes activos que coinciden con lo escrito en la caja (hasta 8, con su saldo de crédito). */
+export async function searchCustomers(
+  q: string,
+  limit = 8,
+): Promise<{ id: string; name: string; phone: string | null }[]> {
+  const term = q.trim();
+  if (term.length < 2) {
+    return [];
+  }
+  const found = await db.customer.findMany({
+    where: { archivedAt: null, ...searchWhere(term) },
+    orderBy: [{ name: "asc" }, { id: "asc" }],
+    take: limit,
+    select: { id: true, name: true, phone: true },
+  });
+  return found;
+}
+
+/** Los datos para editar un cliente. */
+export async function getCustomerForEdit(id: string) {
+  return db.customer.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      name: true,
+      phone: true,
+      email: true,
+      taxId: true,
+      notes: true,
+      preferredSizes: true,
+      archivedAt: true,
+    },
+  });
 }

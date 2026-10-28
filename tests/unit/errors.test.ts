@@ -13,11 +13,13 @@ import {
   SaleStateError,
   ReturnPolicyError,
   OverReturnError,
+  CustomerInUseError,
   CustomerRequiredError,
   ApprovalRequiredError,
   InsufficientCreditError,
   LayawayDepositError,
   LayawayStateError,
+  PhoneTakenError,
   ActiveRangeExistsError,
   CountInProgressError,
   CountStateError,
@@ -78,6 +80,8 @@ const table = [
   { create: () => new InsufficientCreditError(), code: "INSUFFICIENT_CREDIT", status: 409 },
   { create: () => new LayawayStateError(), code: "LAYAWAY_STATE", status: 409 },
   { create: () => new LayawayDepositError(), code: "LAYAWAY_DEPOSIT", status: 422 },
+  { create: () => new PhoneTakenError(), code: "PHONE_TAKEN", status: 409 },
+  { create: () => new CustomerInUseError(), code: "CUSTOMER_IN_USE", status: 409 },
 ] as const;
 
 describe("AppError subclasses", () => {

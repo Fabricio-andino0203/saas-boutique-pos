@@ -4,6 +4,7 @@ import {
   Boxes,
   CalendarRange,
   ClipboardList,
+  Contact,
   History,
   House,
   LogOut,
@@ -169,6 +170,12 @@ const navGroups: readonly NavGroup[] = [
   {
     label: messages.nav.groups.people,
     items: [
+      {
+        href: "/clientes",
+        label: messages.nav.customers,
+        icon: Contact,
+        capability: "customer.view",
+      },
       {
         href: "/catalogos/suppliers",
         label: messages.catalog.entities.suppliers.plural,

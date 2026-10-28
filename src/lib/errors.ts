@@ -34,6 +34,8 @@ export const APP_ERROR_CODES = [
   "INSUFFICIENT_CREDIT",
   "LAYAWAY_STATE",
   "LAYAWAY_DEPOSIT",
+  "PHONE_TAKEN",
+  "CUSTOMER_IN_USE",
 ] as const;
 
 export type ErrorCode = (typeof APP_ERROR_CODES)[number];
@@ -266,5 +268,17 @@ export class LayawayStateError extends AppError {
 export class LayawayDepositError extends AppError {
   constructor(message = "The initial deposit is below the minimum", options?: AppErrorOptions) {
     super("LAYAWAY_DEPOSIT", 422, message, options);
+  }
+}
+
+export class PhoneTakenError extends AppError {
+  constructor(message = "A customer with that phone already exists", options?: AppErrorOptions) {
+    super("PHONE_TAKEN", 409, message, options);
+  }
+}
+
+export class CustomerInUseError extends AppError {
+  constructor(message = "The customer still has active layaways", options?: AppErrorOptions) {
+    super("CUSTOMER_IN_USE", 409, message, options);
   }
 }

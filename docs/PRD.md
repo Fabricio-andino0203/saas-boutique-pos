@@ -37,6 +37,8 @@ Contabilidad completa, nómina, e-commerce público, integración con marketplac
 | Reembolsar en efectivo una devolución | ✓ | ✓ | PIN de gerente | – |
 | Devolución fuera de política (plazo o categoría) | ✓ | ✓ | PIN de gerente | – |
 | Ver clientes y su crédito de tienda | ✓ | ✓ | ✓ | – |
+| Crear y editar clientes | ✓ | ✓ | ✓ | – |
+| Archivar o restaurar un cliente | ✓ | ✓ | – | – |
 | Ajustar a mano el crédito de tienda de un cliente (con motivo) | ✓ | ✓ | – | – |
 | Apartados: crear, abonar y saldar | ✓ | ✓ | ✓ | – |
 | Cancelar un apartado | ✓ | ✓ | PIN de gerente | – |
