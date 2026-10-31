@@ -1,6 +1,6 @@
 # Producción: base de datos + app + Caddy (HTTPS). Siempre con el archivo de variables:
 #   docker compose --env-file .env.production -f docker-compose.prod.yml up -d --build
-# Plantilla del archivo: .env.production.example. La contraseña de la base debe ser apta para una URL (p. ej. `openssl rand -hex 24`).
+# Plantilla del archivo: .env.production.example (compose solo le pasa a la app lo que necesita). La contraseña de la base debe ser apta para una URL (p. ej. `openssl rand -hex 24`).
 name: boutique-pos-prod
 
 x-logging: &logging
@@ -37,12 +37,50 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    env_file:
-      - .env.production
+    # Solo lo que la app necesita (nada de la clave de respaldos ni de la contraseña de otros servicios).
     environment:
+      NODE_ENV: production
+      DEPLOYMENT: ${DEPLOYMENT:-production}
+      TZ: ${TZ:-America/Tegucigalpa}
+      APP_URL: ${APP_URL:?define APP_URL en .env.production}
+      AUTH_SECRET: ${AUTH_SECRET:?define AUTH_SECRET en .env.production}
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-boutique_pos}?schema=public
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      LOGIN_RATE_LIMIT_MAX: ${LOGIN_RATE_LIMIT_MAX:-20}
     expose:
       - "3000"
+    logging: *logging
+
+  backup:
+    build: ./docker/backup
+    image: boutique-pos-backup:latest
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGHOST: db
+      PGUSER: ${POSTGRES_USER}
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      PGDATABASE: ${POSTGRES_DB:-boutique_pos}
+      BACKUP_PASSPHRASE: ${BACKUP_PASSPHRASE:?define BACKUP_PASSPHRASE en .env.production}
+      BACKUP_TIME: ${BACKUP_TIME:-02:00}
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-30}
+      TZ: ${TZ:-America/Tegucigalpa}
+    volumes:
+      # Una carpeta normal del servidor: ahí quedan los archivos cifrados para copiarlos fuera del equipo.
+      - ${BACKUP_PATH:-./backups}:/backups
+    healthcheck:
+      # "Sano" = hay un respaldo de las últimas 26 horas. Si los respaldos se detienen, `docker compose ps` lo muestra.
+      test:
+        [
+          "CMD-SHELL",
+          "find /backups -maxdepth 1 -name 'boutique-*.dump.enc' -mmin -1560 | grep -q .",
+        ]
+      interval: 1h
+      timeout: 10s
+      retries: 1
+      start_period: 10m
     logging: *logging
 
   caddy:

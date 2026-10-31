@@ -202,7 +202,12 @@ export async function generateHistory(
     for (const size of pool) {
       for (const color of palette.slice(0, 1 + (index % 3))) {
         barcodeCounter += 1;
-        const sku = `${code}-${size?.name ?? "U"}-${color.name.slice(0, 3).toUpperCase()}`;
+        // El nombre completo del color (sin tildes ni espacios): con tres letras "Azul" y "Azul marino" chocaban.
+        const colorCode = color.name
+          .normalize("NFD")
+          .replace(/[^A-Za-z]/g, "")
+          .toUpperCase();
+        const sku = `${code}-${size?.name ?? "U"}-${colorCode}`;
         const id = randomUUID();
         variantRows.push({
           id,

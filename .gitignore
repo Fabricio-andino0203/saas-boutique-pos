@@ -20,6 +20,9 @@
 # production
 /build
 
+# respaldos cifrados de producción (nunca al repositorio)
+/backups/
+
 # misc
 .DS_Store
 *.pem

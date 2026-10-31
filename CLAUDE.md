@@ -58,6 +58,7 @@ pnpm db:seed        # datos de demo
 pnpm db:reset       # reset + migrate + seed (solo local)
 pnpm admin:create-owner   # primer arranque de una instalación real: crea al propietario (sin usuarios de demo)
 pnpm job:expire-layaways  # tarea diaria: vence apartados con el plazo cumplido
+pnpm db:verify         # revisa que los libros cuadran (después de restaurar un respaldo; VERIFY_DATABASE=<base>)
 ```
 
 Antes de dar una tarea por terminada deben pasar: `lint`, `typecheck` y `test`.
