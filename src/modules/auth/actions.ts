@@ -5,11 +5,19 @@ import { redirect } from "next/navigation";
 
 import { messages } from "@/config/messages.es";
 import { toActionResult } from "@/lib/action-result";
+import { clientIpFrom } from "@/lib/client-ip";
 import { clearSession, requireSession, requireUserCapability, setSessionCookie } from "@/lib/auth";
 import { safeNextPath } from "@/lib/session-cookie";
 import { changePasswordSchema, loginSchema, type FormState } from "@/modules/auth/schemas";
-import { AccountLockedError, ForbiddenError, InvalidCredentialsError } from "@/lib/errors";
+import {
+  AccountLockedError,
+  ForbiddenError,
+  InvalidCredentialsError,
+  TooManyAttemptsError,
+} from "@/lib/errors";
 import { changePassword, login, switchUserWithPin } from "@/modules/auth/service";
+import { assertNotThrottled, recordFailedAttempt } from "@/modules/auth/throttle";
+import { logger } from "@/lib/logger";
 
 export async function loginAction(_previous: FormState, formData: FormData): Promise<FormState> {
   const parsed = loginSchema.safeParse({
@@ -21,15 +29,22 @@ export async function loginAction(_previous: FormState, formData: FormData): Pro
   }
 
   const requestHeaders = await headers();
-  const result = await toActionResult(
-    () =>
-      login({
+  const ip = clientIpFrom(requestHeaders);
+  const result = await toActionResult(async () => {
+    assertNotThrottled(ip);
+    try {
+      return await login({
         ...parsed.data,
-        ip: requestHeaders.get("x-forwarded-for")?.split(",")[0]?.trim() || undefined,
+        ip,
         userAgent: requestHeaders.get("user-agent") ?? undefined,
-      }),
-    messages.errors,
-  );
+      });
+    } catch (error) {
+      if (error instanceof InvalidCredentialsError || error instanceof AccountLockedError) {
+        recordFailedAttempt(ip, error.code);
+      }
+      throw error;
+    }
+  }, messages.errors);
   if (!result.ok) {
     return { error: result.error.message };
   }
@@ -86,27 +101,34 @@ export async function switchCashierAction(input: {
   }
   const { sessionId } = await requireUserCapability("sale.create");
   const requestHeaders = await headers();
+  const ip = clientIpFrom(requestHeaders);
   try {
+    assertNotThrottled(ip);
     const result = await switchUserWithPin({
       username,
       pin,
       currentSessionId: sessionId,
-      ip: requestHeaders.get("x-forwarded-for")?.split(",")[0]?.trim() || undefined,
+      ip,
       userAgent: requestHeaders.get("user-agent") ?? undefined,
     });
     await setSessionCookie(result.token, result.expires);
     return { ok: true };
   } catch (error) {
+    if (error instanceof TooManyAttemptsError) {
+      return { ok: false, message: messages.errors.RATE_LIMITED };
+    }
     if (error instanceof InvalidCredentialsError) {
+      recordFailedAttempt(ip, error.code);
       return { ok: false, message: copy.invalid };
     }
     if (error instanceof AccountLockedError) {
+      recordFailedAttempt(ip, error.code);
       return { ok: false, message: messages.errors.ACCOUNT_LOCKED };
     }
     if (error instanceof ForbiddenError) {
       return { ok: false, message: copy.cannotSell };
     }
-    console.error("Error inesperado al cambiar de cajero", error);
+    logger.error("auth.switch_cashier_unexpected", { error });
     return { ok: false, message: messages.errors.UNEXPECTED };
   }
 }

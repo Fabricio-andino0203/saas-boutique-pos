@@ -4,3 +4,7 @@ allowBuilds:
   prisma: false
   sharp: false
   unrs-resolver: false
+
+# exceljs trae uuid 8 (aviso GHSA-w5hq-g745-h8pq, corregido desde la 11.1.1). Solo usa v4 sin buffer, pero se sube igual.
+overrides:
+  "exceljs>uuid": 11.1.1

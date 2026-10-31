@@ -26,6 +26,7 @@ describe("ci.yml", () => {
 
   it.each([
     "pnpm install --frozen-lockfile",
+    "pnpm audit --prod --audit-level=high",
     "pnpm db:generate",
     "pnpm db:seed",
     "pnpm lint",

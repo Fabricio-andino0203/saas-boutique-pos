@@ -1,4 +1,5 @@
 import { AppError, type ErrorCode } from "@/lib/errors";
+import { logger } from "@/lib/logger";
 
 export type ActionErrorCode = ErrorCode | "UNEXPECTED";
 
@@ -17,7 +18,7 @@ export function fail(code: ActionErrorCode, message: string): ActionResult<never
 }
 
 function logUnexpected(error: unknown): void {
-  console.error("Error inesperado en una acción", error);
+  logger.error("action.unexpected", { error });
 }
 
 export async function toActionResult<T>(

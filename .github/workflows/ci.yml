@@ -46,6 +46,7 @@ jobs:
         with:
           node-version: 24
       - run: pnpm install --frozen-lockfile
+      - run: pnpm audit --prod --audit-level=high
       - run: pnpm db:generate
       - name: Create databases and extensions
         env:

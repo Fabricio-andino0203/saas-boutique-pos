@@ -14,6 +14,7 @@ export const APP_ERROR_CODES = [
   "FISCAL_RANGE_EXHAUSTED",
   "INVALID_CREDENTIALS",
   "ACCOUNT_LOCKED",
+  "RATE_LIMITED",
   "USERNAME_TAKEN",
   "LAST_OWNER",
   "SELF_ACTION",
@@ -145,6 +146,19 @@ export class InvalidCredentialsError extends AppError {
 export class AccountLockedError extends AppError {
   constructor(message = "Account temporarily locked", options?: AppErrorOptions) {
     super("ACCOUNT_LOCKED", 423, message, options);
+  }
+}
+
+export class TooManyAttemptsError extends AppError {
+  /** Segundos que faltan para que se pueda volver a intentar. */
+  readonly retryAfterSeconds: number;
+
+  constructor(
+    message = "Too many failed attempts",
+    options?: AppErrorOptions & { retryAfterSeconds?: number },
+  ) {
+    super("RATE_LIMITED", 429, message, options);
+    this.retryAfterSeconds = options?.retryAfterSeconds ?? 0;
   }
 }
 

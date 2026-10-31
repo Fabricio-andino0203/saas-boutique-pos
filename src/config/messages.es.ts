@@ -2358,6 +2358,8 @@ export const messages = {
     INSUFFICIENT_CASH:
       "No hay tanto efectivo en la caja. Revisa el monto: el efectivo esperado no puede quedar en negativo.",
     FISCAL_RANGE_EXHAUSTED: "El rango de facturas se agotó o ya venció. Solicita uno nuevo al SAR.",
+    RATE_LIMITED:
+      "Hubo demasiados intentos fallidos desde este equipo. Espera unos minutos e inténtalo de nuevo.",
     USERNAME_TAKEN: "Ese usuario ya existe. Elige otro nombre de usuario.",
     LAST_OWNER: "Debe quedar al menos un Propietario activo.",
     SELF_ACTION: "No puedes hacer esto con tu propio usuario.",

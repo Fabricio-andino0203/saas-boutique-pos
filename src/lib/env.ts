@@ -25,6 +25,8 @@ const envSchema = z
     AUTH_SECRET: z.string().min(32, "AUTH_SECRET debe tener al menos 32 caracteres"),
     APP_URL: z.url(),
     TZ: z.string().default("America/Tegucigalpa"),
+    /** Intentos fallidos de inicio de sesión por IP cada 15 minutos antes de bloquear (el E2E lo sube porque comparte IP). */
+    LOGIN_RATE_LIMIT_MAX: z.coerce.number().int().min(1).default(20),
   })
   .superRefine((value, context) => {
     if (value.DEPLOYMENT !== "production") {

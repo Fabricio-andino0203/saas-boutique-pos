@@ -7,6 +7,8 @@ const exclude = ["**/node_modules/**", "blueprints/**"];
 const sharedEnv = {
   AUTH_SECRET: "vitest-only-secret-with-at-least-32-characters",
   APP_URL: "http://localhost:3000",
+  // Las pruebas no necesitan el ruido del registro; las del logger lo activan a propósito.
+  LOG_LEVEL: "silent",
 };
 
 export default defineConfig({

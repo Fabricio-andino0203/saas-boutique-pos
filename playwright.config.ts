@@ -21,6 +21,7 @@ export default defineConfig({
     url: `${baseURL}/api/health`,
     reuseExistingServer: !isCI,
     timeout: 240_000,
-    env: { NEXT_PUBLIC_COMPONENT_GALLERY: "enabled" },
+    // Todas las pruebas inician sesión desde la misma IP: el límite de intentos fallidos por IP se sube para no estorbarles.
+    env: { NEXT_PUBLIC_COMPONENT_GALLERY: "enabled", LOGIN_RATE_LIMIT_MAX: "1000" },
   },
 });
