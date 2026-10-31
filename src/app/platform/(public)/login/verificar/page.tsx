@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import { platformMessages } from "@/config/messages.platform.es";
 import { getPlatformLoginState } from "@/lib/platform-auth";
 import { CodeForm } from "@/modules/platform/components/code-form";
-import { platformLogoutAction } from "@/modules/platform/actions";
+import { LogoutButton } from "@/modules/platform/components/logout-button";
 
 export default function PlatformVerifyPage() {
   return (
@@ -37,11 +37,7 @@ async function VerifyCard() {
         <p className="text-muted-foreground text-sm">{copy.description}</p>
       </div>
       <CodeForm mode="verify" />
-      <form action={platformLogoutAction} className="text-center">
-        <button type="submit" className="text-muted-foreground text-sm underline">
-          {copy.back}
-        </button>
-      </form>
+      <LogoutButton label={copy.back} variant="link" />
     </div>
   );
 }

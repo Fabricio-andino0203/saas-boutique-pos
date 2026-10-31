@@ -5,7 +5,16 @@ import { platformMessages } from "@/config/messages.platform.es";
 
 const copy = platformMessages.validation;
 
-export type PlatformFormState = { error?: string; success?: string } | undefined;
+/** Resultado de un formulario del panel. `redirectTo`: a dónde debe navegar el navegador (ver `actions.ts`). */
+export type PlatformFormState =
+  | {
+      error?: string;
+      success?: string;
+      redirectTo?: string;
+      /** Lo escrito en los campos que no son secretos, para no borrarlo cuando hay un error (React reinicia el formulario). */
+      values?: Record<string, string>;
+    }
+  | undefined;
 
 export const platformLoginSchema = z.object({
   username: z.string().trim().min(1, platformMessages.login.required),

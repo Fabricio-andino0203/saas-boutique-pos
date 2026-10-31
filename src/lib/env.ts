@@ -61,6 +61,12 @@ const envSchema = z
       context.addIssue({ code: "custom", path: [path], message });
 
     if (value.PLATFORM_HOST) {
+      if (value.TENANCY_MODE !== "multi") {
+        problem(
+          "PLATFORM_HOST",
+          "PLATFORM_HOST solo se admite con TENANCY_MODE=multi (ver src/lib/tenancy/host.ts)",
+        );
+      }
       if (!PLATFORM_HOST_PATTERN.test(value.PLATFORM_HOST)) {
         problem(
           "PLATFORM_HOST",

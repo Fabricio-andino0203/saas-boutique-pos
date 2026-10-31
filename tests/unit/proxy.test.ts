@@ -14,6 +14,8 @@ function request(url: string, init: { cookie?: string } = {}): NextRequest {
 const saved = { mode: process.env.TENANCY_MODE, platform: process.env.PLATFORM_HOST };
 
 beforeEach(() => {
+  // El panel de la plataforma solo existe en modo multi-negocio (ver src/lib/tenancy/host.ts).
+  process.env.TENANCY_MODE = "multi";
   process.env.PLATFORM_HOST = "admin.localhost";
   setTenantDirectory(
     staticDirectory({ "a.localhost": { id: "a", databaseUrl: "postgresql://a" } }),
@@ -118,11 +120,23 @@ describe("proxy — business hosts", () => {
     }
   });
 
-  it("without PLATFORM_HOST the admin address is just another host", () => {
-    delete process.env.PLATFORM_HOST;
+  it("in single mode the platform host is ignored: the admin address is just another host", () => {
     process.env.TENANCY_MODE = "single";
     const response = proxy(request("http://admin.localhost:3000/login"));
     expect(response.headers.get("x-middleware-rewrite")).toBeNull();
     expect(response.status).toBe(200);
+  });
+
+  it("without PLATFORM_HOST the admin address is unknown in multi mode", () => {
+    delete process.env.PLATFORM_HOST;
+    expect(proxy(request("http://admin.localhost:3000/login")).status).toBe(404);
+  });
+
+  it("the loopback origin Next uses for internal fetches gets a 404, so the browser navigates itself", () => {
+    // Si devolviera la pantalla de un negocio, Next la mostraría dentro del panel tras cerrar sesión o entrar.
+    expect(proxy(request("http://localhost:3000/login")).status).toBe(404);
+    expect(proxy(request("http://localhost:3000/", { cookie: "boutique_platform=t" })).status).toBe(
+      404,
+    );
   });
 });

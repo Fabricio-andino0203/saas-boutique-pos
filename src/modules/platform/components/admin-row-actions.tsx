@@ -11,6 +11,7 @@ import {
   resetPlatformUserTwoFactorAction,
   unlockPlatformUserAction,
 } from "@/modules/platform/actions";
+import { useRefreshOnSuccess } from "@/modules/platform/components/use-redirect-on-state";
 import type { PlatformFormState } from "@/modules/platform/schemas";
 
 const copy = platformMessages.admins.actions;
@@ -30,6 +31,7 @@ function RowActionForm({
   destructive?: boolean;
 }) {
   const [state, formAction, pending] = useActionState(action, undefined);
+  useRefreshOnSuccess(state);
   const fieldId = `confirm-${label}-${userId}`;
 
   return (
@@ -86,6 +88,7 @@ export function AdminRowActions({
     <div className="flex flex-col gap-2">
       {isActive ? (
         <RowActionForm
+          key="deactivate"
           userId={userId}
           label={copy.deactivate}
           action={deactivatePlatformUserAction}
@@ -93,18 +96,25 @@ export function AdminRowActions({
         />
       ) : (
         <RowActionForm
+          key="reactivate"
           userId={userId}
           label={copy.reactivate}
           action={reactivatePlatformUserAction}
         />
       )}
       <RowActionForm
+        key="reset2fa"
         userId={userId}
         label={copy.reset2fa}
         action={resetPlatformUserTwoFactorAction}
       />
       {isLocked ? (
-        <RowActionForm userId={userId} label={copy.unlock} action={unlockPlatformUserAction} />
+        <RowActionForm
+          key="unlock"
+          userId={userId}
+          label={copy.unlock}
+          action={unlockPlatformUserAction}
+        />
       ) : null}
     </div>
   );

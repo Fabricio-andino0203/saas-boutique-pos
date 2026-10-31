@@ -1,15 +1,7 @@
-import {
-  Building2,
-  LayoutDashboard,
-  LogOut,
-  ScrollText,
-  ShieldCheck,
-  type LucideIcon,
-} from "lucide-react";
+import { Building2, LayoutDashboard, ScrollText, ShieldCheck, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
-import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import {
   Sidebar,
@@ -26,7 +18,7 @@ import {
 import { messages } from "@/config/messages.es";
 import { platformMessages } from "@/config/messages.platform.es";
 import { requirePlatformSession } from "@/lib/platform-auth";
-import { platformLogoutAction } from "@/modules/platform/actions";
+import { LogoutButton } from "@/modules/platform/components/logout-button";
 
 const copy = platformMessages.nav;
 
@@ -77,12 +69,7 @@ export async function PlatformShell({ children }: { children: ReactNode }) {
               <span className="font-medium">{user.name}</span>
               <span className="text-muted-foreground"> · @{user.username}</span>
             </Link>
-            <form action={platformLogoutAction}>
-              <Button type="submit" variant="outline" size="sm">
-                <LogOut aria-hidden="true" />
-                {copy.logout}
-              </Button>
-            </form>
+            <LogoutButton label={copy.logout} />
           </div>
         </header>
         <main id="contenido" className="min-w-0 flex-1 p-6 md:p-8">

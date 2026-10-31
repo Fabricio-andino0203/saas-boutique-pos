@@ -103,6 +103,9 @@ async function main(): Promise<void> {
           ? `Dirección: ${host}/login — en su primer acceso configurará su aplicación de autenticación.`
           : "En su primer acceso configurará su aplicación de autenticación.",
       );
+      console.log(
+        "Esa persona debe entrar de inmediato: quien conozca la contraseña temporal antes podría configurar la verificación.",
+      );
       return;
     }
     case "reset-2fa":

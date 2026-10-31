@@ -1,6 +1,6 @@
 # Propuesta técnica — Boutique POS como SaaS multi-negocio
 
-> **Propuesta aprobada el 2026-10-31 para la Etapa 0 (prueba de concepto), ya hecha: ver [`SAAS_ETAPA_0.md`](SAAS_ETAPA_0.md).** Cada etapa siguiente se muestra funcionando y se aprueba antes de empezar la otra.
+> **Propuesta aprobada el 2026-10-31. Etapas hechas:** Etapa 0 (prueba de concepto, [`SAAS_ETAPA_0.md`](SAAS_ETAPA_0.md)) y Etapa 1 (plano de control y superadministrador con 2FA, [`SAAS_ETAPA_1.md`](SAAS_ETAPA_1.md)). Cada etapa siguiente se muestra funcionando y se aprueba antes de empezar la otra.
 
 ## Resumen en cinco líneas
 

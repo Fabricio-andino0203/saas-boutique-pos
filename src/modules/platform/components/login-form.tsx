@@ -6,11 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { platformMessages } from "@/config/messages.platform.es";
 import { platformLoginAction } from "@/modules/platform/actions";
+import { useRedirectOnState } from "@/modules/platform/components/use-redirect-on-state";
 
 const copy = platformMessages.login;
 
 export function PlatformLoginForm() {
   const [state, formAction, pending] = useActionState(platformLoginAction, undefined);
+  useRedirectOnState(state);
 
   return (
     <form action={formAction} className="space-y-4">
@@ -37,8 +39,12 @@ export function PlatformLoginForm() {
           {state.error}
         </p>
       ) : null}
-      <Button type="submit" className="h-11 w-full" disabled={pending}>
-        {pending ? copy.submitting : copy.submit}
+      <Button
+        type="submit"
+        className="h-11 w-full"
+        disabled={pending || Boolean(state?.redirectTo)}
+      >
+        {pending || state?.redirectTo ? copy.submitting : copy.submit}
       </Button>
     </form>
   );

@@ -2,10 +2,17 @@ import { normalizeHost, type TenantDirectory } from "@/lib/tenancy/directory";
 
 /**
  * Qué atiende cada nombre de host (propuesta SaaS §3.3):
- * - `platform`: el panel del superadministrador (`admin.<dominio>`), si hay un `PLATFORM_HOST` configurado.
+ * - `platform`: el panel del superadministrador (`admin.<dominio>`). Solo existe en modo `multi` y con `PLATFORM_HOST`.
  * - `tenant`: el sistema de un negocio. En modo `single` cualquier host es "el negocio" (como siempre); en modo `multi`
  *   solo los hosts que están en el directorio.
  * - `unknown`: nadie. Se responde 404 antes de tocar cookies o datos.
+ *
+ * Por qué el panel exige el modo `multi`: cuando una acción del servidor redirige (o la página que se vuelve a dibujar tras
+ * una acción redirige), Next pide la página destino **desde dentro del servidor** a `http://localhost:<puerto>` y descarta
+ * el encabezado `Host` original (se comprobó: `fetch` de Node ignora un `Host` forzado). Ese host interno es "desconocido"
+ * en modo `multi`, así que la respuesta es un 404 y Next hace que el navegador navegue por su cuenta, que sí conserva el
+ * host. En modo `single` cualquier host sería "el negocio" y el servidor devolvería la pantalla de la tienda dentro del
+ * panel. Por eso `PLATFORM_HOST` solo se admite junto con `TENANCY_MODE=multi` (también lo valida `env.ts`).
  */
 export type HostKind = "platform" | "tenant" | "unknown";
 
@@ -17,13 +24,13 @@ export type HostConfig = {
 };
 
 export function classifyHost(rawHost: string | null | undefined, config: HostConfig): HostKind {
-  const platform = normalizeHost(config.platformHost);
   const host = normalizeHost(rawHost);
-  if (platform && host === platform) {
-    return "platform";
-  }
   if (config.mode === "single") {
     return "tenant";
+  }
+  const platform = normalizeHost(config.platformHost);
+  if (platform && host === platform) {
+    return "platform";
   }
   return host && config.directory.lookupByHost(host) ? "tenant" : "unknown";
 }

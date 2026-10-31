@@ -59,6 +59,9 @@ pnpm db:reset       # reset + migrate + seed (solo local)
 pnpm admin:create-owner   # primer arranque de una instalación real: crea al propietario (sin usuarios de demo)
 pnpm job:expire-layaways  # tarea diaria: vence apartados con el plazo cumplido
 pnpm db:verify         # revisa que los libros cuadran (después de restaurar un respaldo; VERIFY_DATABASE=<base>)
+pnpm control:setup     # SaaS: crea y migra la base central de la plataforma (ver docs/SAAS_ETAPA_1.md)
+pnpm platform:create-admin | platform:reset-2fa | platform:unlock | platform:gen-key | platform:rotate-key   # SaaS: superadministradores y llave maestra
+pnpm test:e2e:platform # SaaS: pruebas de navegador del panel de la plataforma (base central de pruebas)
 ```
 
 Antes de dar una tarea por terminada deben pasar: `lint`, `typecheck` y `test`.
@@ -137,6 +140,7 @@ Estas reglas existen porque un error aquí descuadra caja o inventario. Si una t
 | `docs/RUNBOOK.md` | Operar el servidor: instalar, actualizar, respaldar, restaurar, incidentes |
 | `docs/manual/` | Manuales de uso por rol (cajero en 1 página, gerente, propietario, almacén) |
 | `docs/CAPACITACION.md` · `docs/UX_FEEDBACK.md` | Capacitación de 10 minutos y registro de fricciones de uso |
+| `docs/SAAS_PROPUESTA.md` · `docs/SAAS_ETAPA_0.md` · `docs/SAAS_ETAPA_1.md` | Iniciativa SaaS multi-negocio (rama de la plataforma): propuesta aprobada por etapas e informes de cada etapa |
 
 ## 11. Build de la Fase 0
 

@@ -1,7 +1,6 @@
 "use server";
 
 import { headers } from "next/headers";
-import { redirect } from "next/navigation";
 
 import { platformMessages } from "@/config/messages.platform.es";
 import { toActionResult, type ActionResult } from "@/lib/action-result";
@@ -9,8 +8,8 @@ import { clientIpFrom } from "@/lib/client-ip";
 import { AccountLockedError, InvalidCodeError, InvalidCredentialsError } from "@/lib/errors";
 import {
   clearPlatformSession,
+  getPlatformSession,
   readPlatformToken,
-  requirePlatformSession,
   setPlatformSessionCookie,
 } from "@/lib/platform-auth";
 import {
@@ -37,7 +36,17 @@ import {
   recordPlatformFailedAttempt,
 } from "@/modules/platform/throttle";
 
+/**
+ * Acciones del panel de la plataforma.
+ *
+ * Importante: ninguna usa `redirect()`. Cuando una acción del servidor redirige, Next vuelve a pedir la página destino
+ * desde dentro del servidor usando su propio origen (`localhost`), **no** el host por el que entró la persona; y aquí el
+ * host es lo que decide qué se atiende (panel o negocio). En lugar de eso, la acción devuelve `redirectTo` y el
+ * navegador —que sí conserva el host— navega (`useRedirectOnState`).
+ */
+
 const errorMessages = platformMessages.errors;
+const LOGIN_PATH = "/login";
 
 async function requestContext() {
   const requestHeaders = await headers();
@@ -86,7 +95,7 @@ export async function platformLoginAction(
     return { error: result.error.message };
   }
   await setPlatformSessionCookie(result.data.token, result.data.expires);
-  redirect(result.data.next === "enroll" ? "/login/configurar" : "/login/verificar");
+  return { redirectTo: result.data.next === "enroll" ? "/login/configurar" : "/login/verificar" };
 }
 
 /** Resultado común de los dos pasos que abren la sesión completa. */
@@ -94,65 +103,53 @@ async function finishLogin(
   result: ActionResult<{ token: string; expires: Date }>,
 ): Promise<PlatformFormState> {
   if (!result.ok) {
-    if (result.error.code === "UNAUTHORIZED") {
-      redirect("/login"); // el paso de la contraseña venció: se empieza de nuevo
-    }
-    return { error: result.error.message };
+    // El paso de la contraseña venció: se empieza de nuevo.
+    return result.error.code === "UNAUTHORIZED"
+      ? { redirectTo: LOGIN_PATH }
+      : { error: result.error.message };
   }
   await setPlatformSessionCookie(result.data.token, result.data.expires);
-  redirect("/");
+  return { redirectTo: "/" };
+}
+
+async function submitCode(
+  formData: FormData,
+  step: typeof verifyLoginCode | typeof completeEnrollment,
+): Promise<PlatformFormState> {
+  const parsed = totpCodeSchema.safeParse({ code: formData.get("code") ?? "" });
+  if (!parsed.success) {
+    return { error: platformMessages.verify.invalid };
+  }
+  const token = await readPlatformToken();
+  if (!token) {
+    return { redirectTo: LOGIN_PATH };
+  }
+  const context = await requestContext();
+  const result = await toActionResult(
+    () => countingFailures(context.ip, () => step({ token, code: parsed.data.code, ...context })),
+    errorMessages,
+  );
+  return finishLogin(result);
 }
 
 export async function platformVerifyCodeAction(
   _previous: PlatformFormState,
   formData: FormData,
 ): Promise<PlatformFormState> {
-  const parsed = totpCodeSchema.safeParse({ code: formData.get("code") ?? "" });
-  if (!parsed.success) {
-    return { error: platformMessages.verify.invalid };
-  }
-  const token = await readPlatformToken();
-  if (!token) {
-    redirect("/login");
-  }
-  const context = await requestContext();
-  const result = await toActionResult(
-    () =>
-      countingFailures(context.ip, () =>
-        verifyLoginCode({ token, code: parsed.data.code, ...context }),
-      ),
-    errorMessages,
-  );
-  return finishLogin(result);
+  return submitCode(formData, verifyLoginCode);
 }
 
 export async function platformEnrollAction(
   _previous: PlatformFormState,
   formData: FormData,
 ): Promise<PlatformFormState> {
-  const parsed = totpCodeSchema.safeParse({ code: formData.get("code") ?? "" });
-  if (!parsed.success) {
-    return { error: platformMessages.verify.invalid };
-  }
-  const token = await readPlatformToken();
-  if (!token) {
-    redirect("/login");
-  }
-  const context = await requestContext();
-  const result = await toActionResult(
-    () =>
-      countingFailures(context.ip, () =>
-        completeEnrollment({ token, code: parsed.data.code, ...context }),
-      ),
-    errorMessages,
-  );
-  return finishLogin(result);
+  return submitCode(formData, completeEnrollment);
 }
 
-export async function platformLogoutAction(): Promise<void> {
+export async function platformLogoutAction(): Promise<PlatformFormState> {
   const { ip } = await requestContext();
   await clearPlatformSession({ ip });
-  redirect("/login");
+  return { redirectTo: LOGIN_PATH };
 }
 
 // ───────────────────────────── Administradores ─────────────────────────────
@@ -166,11 +163,22 @@ export async function createPlatformUserAction(
     username: formData.get("username"),
     password: formData.get("password"),
   });
+  // Nombre y usuario se devuelven si hay error para no obligar a escribirlos de nuevo; las contraseñas nunca.
+  const values = {
+    name: String(formData.get("name") ?? ""),
+    username: String(formData.get("username") ?? ""),
+  };
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? platformMessages.validation.required };
+    return {
+      error: parsed.error.issues[0]?.message ?? platformMessages.validation.required,
+      values,
+    };
   }
   const actorPassword = String(formData.get("actorPassword") ?? "");
-  const session = await requirePlatformSession();
+  const session = await getPlatformSession();
+  if (!session) {
+    return { redirectTo: LOGIN_PATH };
+  }
   const context = await requestContext();
   const actor = { id: session.user.id, username: session.user.username };
 
@@ -184,7 +192,7 @@ export async function createPlatformUserAction(
   );
   return result.ok
     ? { success: platformMessages.admins.create.success }
-    : { error: result.error.message };
+    : { error: result.error.message, values };
 }
 
 type RowAction = "deactivate" | "reactivate" | "reset2fa" | "unlock";
@@ -197,7 +205,10 @@ async function runRowAction(formData: FormData, action: RowAction): Promise<Plat
   if (!parsed.success) {
     return { error: platformMessages.validation.required };
   }
-  const session = await requirePlatformSession();
+  const session = await getPlatformSession();
+  if (!session) {
+    return { redirectTo: LOGIN_PATH };
+  }
   const context = await requestContext();
   const actor = { id: session.user.id, username: session.user.username };
   const adminContext = { actor, ip: context.ip };
@@ -279,7 +290,10 @@ export async function changePlatformPasswordAction(
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? platformMessages.validation.required };
   }
-  const session = await requirePlatformSession();
+  const session = await getPlatformSession();
+  if (!session) {
+    return { redirectTo: LOGIN_PATH };
+  }
   const context = await requestContext();
   const result = await toActionResult(
     () =>

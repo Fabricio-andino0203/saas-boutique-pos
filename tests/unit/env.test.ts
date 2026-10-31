@@ -46,6 +46,7 @@ describe("parseEnv", () => {
 describe("parseEnv — platform (SaaS)", () => {
   const key = Buffer.alloc(32, 9).toString("base64url");
   const platform = {
+    TENANCY_MODE: "multi",
     PLATFORM_HOST: "admin.tuplataforma.com",
     CONTROL_DATABASE_URL: "postgresql://u:p@localhost:5432/control",
     PLATFORM_MASTER_KEY: key,
@@ -67,6 +68,11 @@ describe("parseEnv — platform (SaaS)", () => {
   });
 
   it.each([
+    [
+      "the panel in single-business mode",
+      { TENANCY_MODE: "single" },
+      /PLATFORM_HOST solo se admite con TENANCY_MODE=multi/,
+    ],
     ["a PLATFORM_HOST with a scheme", { PLATFORM_HOST: "https://admin.x.com" }, /PLATFORM_HOST/],
     ["a PLATFORM_HOST with a path", { PLATFORM_HOST: "admin.x.com/panel" }, /PLATFORM_HOST/],
     ["no control database", { CONTROL_DATABASE_URL: "" }, /CONTROL_DATABASE_URL es obligatoria/],
@@ -116,13 +122,21 @@ describe("parseEnv with DEPLOYMENT=production", () => {
   describe("with the platform panel", () => {
     const withPlatform = {
       ...production,
+      TENANCY_MODE: "multi",
       PLATFORM_HOST: "admin.mi-plataforma.hn",
       CONTROL_DATABASE_URL: "postgresql://control:Qw81nXz7LkP2@db:5432/control",
       PLATFORM_MASTER_KEY: Buffer.alloc(32, 5).toString("base64url"),
     };
 
-    it("accepts a real configuration", () => {
-      expect(parseEnv(withPlatform).PLATFORM_HOST).toBe("admin.mi-plataforma.hn");
+    // La plataforma exige el modo multi-negocio, y ese modo todavía no está habilitado en producción (Etapa 2).
+    it("is not allowed in production yet because multi-business mode is not enabled", () => {
+      expect(() => parseEnv(withPlatform)).toThrow(/multi-negocio aún no/);
+    });
+
+    it("is not allowed without multi-business mode either", () => {
+      expect(() => parseEnv({ ...withPlatform, TENANCY_MODE: "single" })).toThrow(
+        /solo se admite con TENANCY_MODE=multi/,
+      );
     });
 
     it.each([
@@ -132,8 +146,12 @@ describe("parseEnv with DEPLOYMENT=production", () => {
         { CONTROL_DATABASE_URL: "postgresql://c:change-me-local-only@db/control" },
         /CONTROL_DATABASE_URL tiene la contraseña de ejemplo/,
       ],
-      ["multi-business mode (not enabled yet)", { TENANCY_MODE: "multi" }, /multi-negocio aún no/],
-    ])("rejects %s", (_name, override, message) => {
+      [
+        "a placeholder text instead of a master key",
+        { PLATFORM_MASTER_KEY: "replace-with-a-generated-key" },
+        /32 bytes/,
+      ],
+    ])("also rejects %s", (_name, override, message) => {
       expect(() => parseEnv({ ...withPlatform, ...override })).toThrow(message);
     });
   });

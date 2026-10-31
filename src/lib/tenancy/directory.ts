@@ -4,7 +4,7 @@ import type { TenantRef } from "@/lib/tenancy/tenant-context";
  * De dónde sale el negocio de una petición: **solo** del nombre de host, que se busca en un directorio de confianza. Nada que
  * mande el navegador (rutas, parámetros, cuerpo, cookies) puede elegir el negocio.
  *
- * En la Etapa 0 el directorio es una tabla fija (`TENANT_POC_DIRECTORY`); en la Etapa 1 pasa a ser la base central.
+ * En la Etapa 0 el directorio es una tabla fija (`TENANT_POC_DIRECTORY`); en la Etapa 2 pasa a ser la base central (tabla Tenant).
  */
 export type TenantDirectory = {
   lookupByHost(host: string): TenantRef | undefined;

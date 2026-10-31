@@ -209,3 +209,30 @@ Ensayado: un respaldo cifrado con un año de historia (3,3 MB, ≈ 21 000 línea
 ## 11. Lo que esta guía no cubre todavía
 
 Modo sin internet, impresión directa ESC/POS con apertura de cajón, varias sucursales, error tracking con Sentry y la validación del formato de factura/nota de crédito con el contador (`docs/DECISIONS_PENDING.md` #6). Están anotados en `docs/ROADMAP.md`.
+
+## 12. Plataforma SaaS: superadministradores (Etapa 1)
+
+> Solo aplica a la rama de la plataforma (`docs/SAAS_PROPUESTA.md`). Una instalación de una sola tienda no usa nada de esto.
+
+El panel de la plataforma vive en su propia dirección (`PLATFORM_HOST`, p. ej. `admin.tuplataforma.com`), con su propia base de datos (`CONTROL_DATABASE_URL`) y requiere `TENANCY_MODE=multi`. Todas las personas que entran son **superadministradores** con contraseña de 12 caracteres o más y verificación en dos pasos (aplicación de autenticación).
+
+| Tarea | Comando (en el servidor) | Notas |
+| --- | --- | --- |
+| Crear la base central y migrarla | `pnpm control:setup` | En producción la base la crea Postgres; el comando solo migra. |
+| Generar la llave maestra | `pnpm platform:gen-key` | Imprime la llave. Guardarla en `PLATFORM_MASTER_KEY` **y en un segundo lugar fuera del servidor**. |
+| Crear el primer superadministrador | `pnpm platform:create-admin` | Pide nombre, usuario y contraseña temporal. En su primer acceso configura la aplicación de autenticación. |
+| Perdió el teléfono | `pnpm platform:reset-2fa <usuario>` | Cierra sus sesiones; configurará una aplicación nueva al entrar. También se puede desde el panel (Administradores). |
+| Cuenta bloqueada por intentos fallidos | `pnpm platform:unlock <usuario>` | O esperar 15 minutos. |
+| Rotar la llave maestra | ver abajo | Re-cifra todos los secretos con la llave nueva. |
+
+**Rotar la llave maestra**
+1. `pnpm platform:gen-key` → llave nueva.
+2. En el entorno del servicio: `PLATFORM_MASTER_KEY_PREVIOUS` = la llave vigente, `PLATFORM_MASTER_KEY_PREVIOUS_VERSION` = su versión; `PLATFORM_MASTER_KEY` = la nueva y `PLATFORM_MASTER_KEY_VERSION` = la versión anterior + 1. Reiniciar.
+3. `pnpm platform:rotate-key` (repetible; imprime cuántos secretos re-cifró). Queda en la auditoría.
+4. Cuando el comando diga que todos están al día, retirar `PLATFORM_MASTER_KEY_PREVIOUS*` y reiniciar. Guardar la llave nueva fuera del servidor.
+
+**Si se pierde la llave maestra:** los secretos cifrados no se pueden recuperar. Los superadministradores restablecen su verificación con `platform:reset-2fa`; las credenciales de las bases de los negocios se vuelven a generar rotando el rol de cada base (procedimiento de la Etapa 3).
+
+**Respaldo de la base central:** hasta la Etapa 5 (respaldos por negocio) se respalda a mano: `pg_dump -Fc` de `CONTROL_DATABASE_URL`, cifrado y guardado fuera del servidor junto con (por separado) la llave maestra.
+
+**Auditoría:** todo lo que se hace en el panel queda en *Auditoría* y no se puede editar ni borrar (la base lo impide). Nunca contiene contraseñas, códigos ni secretos.

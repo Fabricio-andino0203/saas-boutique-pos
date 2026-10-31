@@ -4,8 +4,8 @@ import { Suspense } from "react";
 import { platformMessages } from "@/config/messages.platform.es";
 import { formatSecretForHumans } from "@/lib/totp";
 import { getPlatformLoginState, readPlatformToken } from "@/lib/platform-auth";
-import { platformLogoutAction } from "@/modules/platform/actions";
 import { CodeForm } from "@/modules/platform/components/code-form";
+import { LogoutButton } from "@/modules/platform/components/logout-button";
 import { QrCode } from "@/modules/platform/components/qr-code";
 import { getEnrollmentSetup } from "@/modules/platform/service";
 
@@ -58,11 +58,7 @@ async function EnrollCard() {
         <p className="text-sm font-medium">{copy.step2}</p>
         <CodeForm mode="enroll" />
       </div>
-      <form action={platformLogoutAction} className="text-center">
-        <button type="submit" className="text-muted-foreground text-sm underline">
-          {platformMessages.verify.back}
-        </button>
-      </form>
+      <LogoutButton label={platformMessages.verify.back} variant="link" />
     </div>
   );
 }
