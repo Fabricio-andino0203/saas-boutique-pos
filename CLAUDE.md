@@ -21,7 +21,7 @@ Moneda: Lempira (HNL, símbolo `L`). Zona horaria: `America/Tegucigalpa`.
 - [x] Fase 3 — Caja y punto de venta (2026-10-26)
 - [x] Fase 4 — Devoluciones, cambios, apartados, crédito de tienda (2026-10-27)
 - [x] Fase 5 — Clientes, reportes y dashboard (2026-10-27)
-- [ ] Fase 6 — Endurecimiento y despliegue
+- [x] Fase 6 — Endurecimiento y despliegue, lo imprescindible (2026-10-30); lo opcional (modo sin internet, ESC/POS, varias sucursales, modo oscuro) queda para la Fase 7
 
 Actualiza esta lista al terminar cada fase (marca `[x]` y agrega la fecha).
 
@@ -134,6 +134,9 @@ Estas reglas existen porque un error aquí descuadra caja o inventario. Si una t
 | `docs/UX.md` | Cómo debe sentirse: pantallas, atajos, copy, accesibilidad |
 | `docs/ROADMAP.md` | En qué orden: fases, entregables, criterios de aceptación, prompts |
 | `docs/DECISIONS_PENDING.md` | Preguntas abiertas y el valor por defecto asumido |
+| `docs/RUNBOOK.md` | Operar el servidor: instalar, actualizar, respaldar, restaurar, incidentes |
+| `docs/manual/` | Manuales de uso por rol (cajero en 1 página, gerente, propietario, almacén) |
+| `docs/CAPACITACION.md` · `docs/UX_FEEDBACK.md` | Capacitación de 10 minutos y registro de fricciones de uso |
 
 ## 11. Build de la Fase 0
 

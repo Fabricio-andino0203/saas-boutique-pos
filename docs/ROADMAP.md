@@ -15,7 +15,8 @@
 | 3 | Caja y POS: se puede vender y cerrar caja | L |
 | 4 | Devoluciones, cambios, apartados, crédito de tienda | M |
 | 5 | Clientes, reportes y dashboard | M |
-| 6 | Endurecimiento, offline, respaldos, despliegue | M–L |
+| 6 | Endurecimiento, respaldos, despliegue (lo imprescindible) | M–L |
+| 7 | Opcionales: modo sin internet, ESC/POS, varias sucursales, modo oscuro | por definir |
 
 **Hito "ya se puede abrir la tienda": final de la Fase 3** (con inventario cargado). Las fases 4–5 completan el MVP.
 
@@ -226,9 +227,11 @@ conocidos. Mide antes de optimizar y documenta los índices agregados.
 
 ---
 
-## Fase 6 — Endurecimiento y despliegue (M–L)
+## Fase 6 — Endurecimiento y despliegue (M–L) — ✔ lo imprescindible, 2026-10-30
 
 **Objetivo:** listo para producción con tranquilidad.
+
+> **Estado.** Se hizo lo imprescindible para salir a producción (entregables 1–5 y 10 de abajo) y quedó para la **Fase 7** lo opcional (los puntos 6, 7 y 8 y la parte de modo oscuro y accesibilidad del 9, que siguen listados abajo). Lo que se hizo: primer arranque seguro (`pnpm admin:create-owner`, sin usuarios de demostración), seguridad (cabeceras, límite de intentos por IP, `pnpm audit` en CI, Dependabot), observabilidad (registro JSON sin secretos, `/api/health` con migraciones, errores del servidor), paquete Docker + Caddy probado de punta a punta, respaldos diarios cifrados con comprobación y restauración **ensayada en un servidor vacío** con `pnpm db:verify`, 50 cobros simultáneos sin descuadres, y la documentación (`docs/RUNBOOK.md`, `docs/manual/`, `docs/CAPACITACION.md`, `docs/UX_FEEDBACK.md`). **Pendiente de una persona:** elegir alojamiento y dominio, copiar los respaldos fuera del servidor, el monitor externo y la prueba del manual de 1 página con alguien de la tienda (`docs/UX_FEEDBACK.md`).
 
 **Entregables**
 1. **Despliegue** según la opción elegida en `DECISIONS_PENDING.md` (Docker + Caddy o plataforma gestionada), HTTPS, dominio, variables y migraciones automáticas.

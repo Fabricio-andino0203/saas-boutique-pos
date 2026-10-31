@@ -62,7 +62,11 @@ Contabilidad completa, nómina, e-commerce público, integración con marketplac
 
 Autenticación y roles · catálogo con variantes · inventario con kardex · compras/recepción · conteo físico · POS · caja (apertura/arqueo/cierre) · pagos mixtos · devoluciones y cambios · apartados · crédito de tienda · clientes · reportes básicos · etiquetas con código de barras · recibos imprimibles.
 
-### Después del MVP (Fase 6 y más allá)
+### Fase 6 (hecha): salir a producción
+
+Primer arranque seguro, seguridad, observabilidad, paquete Docker + HTTPS, respaldos cifrados con restauración ensayada y 50 cobros simultáneos sin descuadres (ver `docs/ROADMAP.md`).
+
+### Después (Fase 7 y más allá)
 
 Multi-sucursal con transferencias · modo sin conexión (PWA) · programa de lealtad/puntos · tarjetas de regalo · promociones automáticas (2x1, por temporada) · facturación electrónica (si aplica) · integración con WhatsApp para recibos · e-commerce.
 

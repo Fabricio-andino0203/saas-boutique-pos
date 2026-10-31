@@ -1,0 +1,211 @@
+# Manual de operación (RUNBOOK)
+
+> Para quien instala y cuida el servidor. Todos los comandos de esta guía se probaron en el repositorio (instalación limpia, venta, respaldo, restauración en un servidor vacío, cambio de contraseña de la base). Si algo contradice a `CLAUDE.md` o a `docs/ARCHITECTURE.md`, gana `CLAUDE.md`.
+
+## 1. Qué hay en el servidor
+
+`docker-compose.prod.yml` levanta cuatro servicios, todos con reinicio automático y registros rotados (10 MB × 5):
+
+| Servicio | Qué hace | Se ve desde fuera |
+| --- | --- | --- |
+| `db` | PostgreSQL 16 con sus datos en el volumen `pgdata` | No (solo la red interna) |
+| `app` | El sistema (Next.js). Al arrancar aplica las migraciones pendientes | No (solo detrás de Caddy) |
+| `caddy` | HTTPS automático, HSTS, compresión; reescribe la IP real del cliente | Puertos 80 y 443 |
+| `backup` | Respaldo diario cifrado a las 02:00 (hora de la tienda) | No |
+
+Los respaldos quedan en la carpeta `./backups` del servidor (o en `BACKUP_PATH`). **El volumen `pgdata` y esa carpeta son lo único que no se puede reconstruir**: todo lo demás sale del repositorio.
+
+Para no escribir el comando largo cada vez, en el servidor:
+
+```bash
+alias dc='docker compose --env-file .env.production -f docker-compose.prod.yml'
+```
+
+(Ponlo en `~/.bashrc` para que quede.) En el resto de la guía `dc` significa eso.
+
+## 2. Primera instalación
+
+Requisitos: un servidor Linux con Docker y `docker compose` (Docker Engine 24 o más nuevo), `git`, un nombre de dominio que apunte a la IP del servidor y los puertos 80 y 443 abiertos hacia internet (Caddy los necesita para pedir el certificado). La construcción de la imagen necesita internet (descarga dependencias y la tipografía).
+
+1. Clonar el repositorio y entrar en la carpeta (por ejemplo `/opt/boutique-pos`).
+2. Crear la configuración:
+
+   ```bash
+   cp .env.production.example .env.production
+   ```
+
+   Completar `DOMAIN`, `APP_URL` (con `https://`), `POSTGRES_PASSWORD` (`openssl rand -hex 24`), `AUTH_SECRET` (`node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"`) y `BACKUP_PASSPHRASE` (`openssl rand -base64 33`). **Guardar `BACKUP_PASSPHRASE` también fuera del servidor** (gestor de contraseñas o caja fuerte): sin ella los respaldos no se pueden abrir y no hay forma de recuperarla.
+
+3. Levantar todo (la primera vez tarda varios minutos en construir):
+
+   ```bash
+   dc up -d --build
+   dc ps          # todo debe quedar "healthy" o "Up"
+   ```
+
+   Si `APP_URL` no es `https`, o `AUTH_SECRET`/`POSTGRES_PASSWORD` siguen siendo textos de ejemplo, la app se niega a arrancar y lo dice en `dc logs app`.
+
+4. Crear al propietario (pide nombre, usuario, contraseña dos veces y un PIN opcional):
+
+   ```bash
+   dc exec app pnpm admin:create-owner
+   ```
+
+   No existen usuarios de demostración en producción: `pnpm db:seed` se niega a correr con `DEPLOYMENT=production`.
+
+5. Abrir `https://tu-dominio`, entrar con ese usuario y completar la **Bienvenida** (datos del negocio, impuestos, reglas de venta, mercadería).
+6. Programar la tarea diaria de apartados vencidos (sección 3) y **copiar los respaldos fuera del servidor** (sección 5).
+7. Configurar el monitor externo (sección 7).
+
+## 3. Día a día
+
+```bash
+dc ps                                # estado de los servicios
+dc logs --tail 100 -f app            # registro de la app (una línea de JSON por evento)
+dc logs app | grep '"level":"error"' # solo errores
+```
+
+**Tarea diaria de apartados vencidos.** Sin ella los apartados solo vencen cuando alguien abre la pantalla de venta. En el `crontab` del servidor (`crontab -e`), ajustando la carpeta:
+
+```cron
+0 3 * * * cd /opt/boutique-pos && docker compose --env-file .env.production -f docker-compose.prod.yml exec -T app pnpm job:expire-layaways >> /var/log/boutique-apartados.log 2>&1
+```
+
+Es segura de repetir: si no hay nada vencido, no hace nada. Actúa como el propietario activo más antiguo.
+
+## 4. Actualizar a una versión nueva
+
+1. Avisar en la tienda: la app se reinicia (≈ 30 s sin servicio).
+2. **Respaldo manual antes de actualizar** (las migraciones no se revierten):
+
+   ```bash
+   dc exec -T backup /scripts/backup.sh
+   ```
+
+3. Traer y levantar:
+
+   ```bash
+   git pull
+   dc up -d --build
+   dc logs --tail 30 app     # debe terminar en "migrate.done" y "server.start"
+   ```
+
+4. Entrar y comprobar una venta de prueba. Si algo falla y hay migraciones nuevas de por medio, **no basta con volver al código anterior**: restaurar el respaldo del paso 2 (sección 6B) y luego volver a la versión anterior (`git checkout <etiqueta>` y `dc up -d --build`).
+
+Si una migración falla, el contenedor `app` se detiene y se reinicia en bucle sin atender tráfico (a propósito: nunca se sirve con la base a medias). `/api/health` también responde 503 mientras haya una migración sin terminar.
+
+## 5. Respaldos
+
+- **Qué:** un volcado completo de Postgres (`pg_dump`), cifrado con AES-256 y la clave `BACKUP_PASSPHRASE`, a las 02:00 todos los días. Si al arrancar no hay ninguno de las últimas 24 horas, hace uno de inmediato. Cada uno se **comprueba** (se descifra completo y se lee su índice) antes de conservarlo; si no se puede leer, no queda archivo y el registro dice `backup.verify_failed`.
+- **Dónde:** `./backups/boutique-AAAAMMDDTHHMMSSZ.dump.enc` (hora UTC en el nombre). Se conservan 30 días (`BACKUP_RETENTION_DAYS`).
+- **Cómo saber que funciona:** `dc ps` muestra `backup` como `healthy` solo si hay un respaldo de las últimas 26 horas. `dc logs backup` muestra `backup.done` con el tamaño y la cantidad de ventas.
+- **Copiarlos fuera del servidor (obligatorio):** un respaldo en el mismo disco no sirve si el disco muere. El sistema no trae cliente de nube; se copia la carpeta desde el servidor con lo que uses: `rclone sync /opt/boutique-pos/backups remoto:boutique`, `rsync` a otro equipo, un disco externo… Programarlo en el `crontab` a las 04:00 (después del respaldo). Los archivos ya van cifrados.
+- **La clave:** sin `BACKUP_PASSPHRASE` los archivos son basura. Si se cambia (sección 8), los respaldos viejos siguen necesitando la clave vieja: guardar las dos.
+
+## 6. Restaurar
+
+### A. Ensayo (hacerlo al instalar y cada tres meses)
+
+Restaura en una base **aparte** sin tocar la real y revisa que los libros cuadren:
+
+```bash
+ls backups/                                           # elegir un archivo
+dc exec -T backup /scripts/restore.sh /backups/boutique-AAAAMMDDTHHMMSSZ.dump.enc boutique_pos_ensayo
+dc exec app sh -c 'VERIFY_DATABASE=boutique_pos_ensayo pnpm db:verify'
+```
+
+Debe terminar con `Libros cuadrados: todas las comprobaciones pasaron.` y mostrar usuarios, productos, ventas y la última venta que esperas. Cuando termines, la base de ensayo se borra a mano:
+
+```bash
+dc exec -T db psql -U boutique -d postgres -c 'DROP DATABASE boutique_pos_ensayo'
+```
+
+(`boutique` es el valor de `POSTGRES_USER`.) Con la clave equivocada el script se detiene al principio con un mensaje claro y no crea nada.
+
+### B. Recuperar la tienda de verdad
+
+1. Si es un servidor nuevo: seguir la sección 2 hasta el paso 3, pero **sin crear el propietario** (viene en el respaldo) y con el **mismo `BACKUP_PASSPHRASE`**. Copiar al servidor el archivo de respaldo más reciente (a `./backups/`).
+2. Detener la app para que suelte la base:
+
+   ```bash
+   dc stop app caddy
+   ```
+
+3. Restaurar sobre la base real. La anterior **no se borra**: se renombra a `boutique_pos_old_<fecha>`.
+
+   ```bash
+   dc exec -T -e RESTORE_REPLACE=yes backup /scripts/restore.sh /backups/boutique-AAAAMMDDTHHMMSSZ.dump.enc boutique_pos
+   ```
+
+4. Volver a levantar y revisar:
+
+   ```bash
+   dc up -d
+   dc exec app pnpm db:verify
+   ```
+
+   Si `db:verify` lista problemas, **no abrir la tienda** y avisar con la salida completa.
+5. Entrar, comprobar la última venta y abrir caja. Lo vendido después del último respaldo (hasta 24 horas) hay que registrarlo a mano.
+6. Cuando todo esté bien, borrar la base vieja (`boutique_pos_old_...`) como en el ensayo.
+
+Ensayado: un respaldo cifrado con un año de historia (3,3 MB, ≈ 21 000 líneas de venta) se restauró en 6 segundos en un servidor Postgres vacío con las mismas cifras que el original, los libros cuadraron, la app arrancó sobre esa base y se pudo entrar.
+
+## 7. Monitoreo y alertas
+
+- **Monitor externo (recomendado, gratuito):** un servicio como UptimeRobot o Better Stack que pida `https://tu-dominio/api/health` cada minuto y avise por correo o WhatsApp si no responde `200` con `{"status":"ok"}`. `/api/health` responde `503` si la base no contesta o si hay una migración a medias. Es lo que avisa de que se cayó el servidor completo, algo que ningún programa dentro del mismo servidor puede hacer.
+- **Dentro del servidor:** `dc ps` (los servicios `app`, `db` y `backup` tienen verificación de salud) y el registro de la app.
+- **Eventos del registro** (`dc logs app`, una línea de JSON cada uno):
+
+  | Evento | Qué significa | Qué hacer |
+  | --- | --- | --- |
+  | `server.start` | La app arrancó (versión, modo) | Nada |
+  | `request.error` / `action.unexpected` | Un error del servidor (con su resumen, sin datos sensibles) | Si se repite, avisar con el texto |
+  | `auth.login_failed` | Intento fallido de entrar (IP y motivo; nunca la contraseña) | Vigilar si salen muchos |
+  | `auth.rate_limited` | Una IP llegó a 20 fallos en 15 min y quedó bloqueada | Ver "Incidentes" |
+  | `health.unhealthy` | `/api/health` respondió 503 | Ver "Incidentes" |
+  | `backup.done` / `backup.failed` / `backup.verify_failed` | Resultado del respaldo diario | Si falla, ver `dc logs backup` |
+
+- **Error tracking (Sentry u otro):** no está conectado todavía (necesita una cuenta); el punto de enganche es `onRequestError` en `src/instrumentation.ts`.
+
+## 8. Cambiar secretos
+
+- **Contraseña de la base** (`POSTGRES_PASSWORD`). Primero dentro de Postgres y luego en el archivo, para que no se desfasen:
+
+  ```bash
+  NUEVA=$(openssl rand -hex 24)
+  dc exec -T db psql -U boutique -d postgres -c "ALTER USER boutique PASSWORD '$NUEVA'"
+  sed -i "s/^POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=$NUEVA/" .env.production
+  dc up -d        # recrea app y backup con la contraseña nueva; los datos no se tocan
+  dc ps
+  ```
+
+- **Clave de respaldos** (`BACKUP_PASSPHRASE`): cambiarla en `.env.production` y `dc up -d backup`. Los respaldos **nuevos** usan la nueva; los **viejos solo se abren con la vieja**. Guardar las dos con la fecha del cambio.
+- **`AUTH_SECRET`:** hoy el sistema la exige al arrancar pero **no se usa para nada más** (las sesiones son tokens aleatorios guardados con hash, no dependen de ella), así que cambiarla no cierra sesiones. Queda reservada para cuando haga falta firmar algo; mientras tanto basta con que sea larga y propia.
+- **Contraseña o PIN de una persona:** el propietario o el gerente la restablece desde **Usuarios**; eso también desbloquea la cuenta y cierra sus sesiones abiertas.
+- **Cerrar todas las sesiones a la vez:** `dc exec -T db psql -U boutique -d boutique_pos -c 'DELETE FROM "Session"'` (todos tendrán que volver a entrar).
+
+## 9. Incidentes
+
+| Síntoma | Qué mirar | Qué hacer |
+| --- | --- | --- |
+| La página no abre o da error 502/504 | `dc ps`; `dc logs --tail 100 app` | Si `app` se reinicia en bucle: casi siempre es una migración fallida o una variable inválida; el registro dice cuál. Si está caído: `dc up -d`. |
+| `/api/health` da 503 | `dc logs db`; espacio en disco | Si la base no responde: `dc restart db`. Si hay una migración sin terminar: restaurar el respaldo previo a la actualización (sección 6B). |
+| "Demasiados intentos fallidos desde este equipo" | `dc logs app \| grep auth.rate_limited` | Esperar 15 minutos (o `dc restart app`, que borra los contadores). Si todos los cajeros salen por la misma IP y alguien insiste con claves malas, bloquea a toda la tienda: avisarles que esperen. |
+| Una persona no puede entrar ("bloqueada") | Usuarios → ese usuario | Esperar 15 minutos, o restablecer su contraseña o PIN (desbloquea al instante). |
+| El respaldo aparece `unhealthy` | `dc logs backup`; `df -h` | Revisar disco lleno, `BACKUP_PASSPHRASE` definida y que `db` esté sana; lanzarlo a mano: `dc exec -T backup /scripts/backup.sh`. |
+| Disco lleno | `df -h`; `docker system df` | Mover respaldos viejos ya copiados fuera, `docker image prune`; los registros ya se rotan solos. |
+| Inventario o caja que "no cuadran" | `dc exec app pnpm db:verify` y `dc exec app pnpm db:reconcile` | Guardar la salida completa y avisar. **No tocar la base a mano**: las ventas, los movimientos y la auditoría no se editan. |
+| Se perdió `BACKUP_PASSPHRASE` | — | Los respaldos existentes no se pueden recuperar. Poner una clave nueva (sección 8), hacer un respaldo manual de inmediato y guardarla en dos lugares. |
+| Sospecha de acceso indebido | `dc logs app \| grep auth.`; pantalla Auditoría | Restablecer las contraseñas de todos, cerrar todas las sesiones, cambiar la contraseña de la base (sección 8) y, si hay datos alterados, restaurar el último respaldo bueno. |
+| Se perdió el servidor completo | — | Servidor nuevo + sección 6B con el respaldo más reciente copiado fuera. |
+
+## 10. Mantenimiento periódico
+
+- **Cada mes:** `dc exec app pnpm db:verify` (revisa que los libros cuadran), `df -h`, confirmar que los respaldos llegan fuera del servidor.
+- **Cada tres meses:** ensayo de restauración (6A) con el respaldo más reciente.
+- **Cada actualización de Docker o del sistema:** `dc pull db caddy && dc up -d` para tener las imágenes base al día.
+- **Dependencias:** el repositorio revisa vulnerabilidades en cada integración (`pnpm audit --prod --audit-level=high`) y Dependabot propone actualizaciones semanales.
+
+## 11. Lo que esta guía no cubre todavía
+
+Modo sin internet, impresión directa ESC/POS con apertura de cajón, varias sucursales, error tracking con Sentry y la validación del formato de factura/nota de crédito con el contador (`docs/DECISIONS_PENDING.md` #6). Están anotados en `docs/ROADMAP.md`.

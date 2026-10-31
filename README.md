@@ -46,6 +46,20 @@ En un clon limpio, `pnpm exec next typegen` va antes de `pnpm typecheck` (genera
 
 ---
 
+## Producción
+
+Despliegue con Docker (base de datos + app + HTTPS con Caddy + respaldos cifrados diarios): `docs/RUNBOOK.md`. Resumen:
+
+```bash
+cp .env.production.example .env.production      # completar dominio, contraseñas y claves
+docker compose --env-file .env.production -f docker-compose.prod.yml up -d --build
+docker compose --env-file .env.production -f docker-compose.prod.yml exec app pnpm admin:create-owner
+```
+
+En producción **no** existen los usuarios de demostración de arriba: `pnpm db:seed` se niega a correr con `DEPLOYMENT=production`. Manuales de uso por rol: `docs/manual/`.
+
+---
+
 # Paquete de contexto — Boutique POS
 
 Este paquete contiene todo el contexto y el plan para que **Claude Code** construya el sistema de inventario y punto de venta de la boutique. **No contiene código**: es la especificación.

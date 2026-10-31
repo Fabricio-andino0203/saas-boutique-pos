@@ -36,8 +36,8 @@
 
 | # | Pregunta | Prioridad | Valor por defecto | Tu decisión |
 |---|---|:-:|---|---|
-| 21 | ¿Dónde se alojará? **A)** VPS/plataforma en la nube **B)** mini PC en la tienda | 🟡 (Fase 6) | A, con respaldo diario externo | |
-| 22 | ¿La conexión a internet de la tienda es estable? ¿Necesitas vender sin internet? | 🟡 | Estable; offline se evalúa en Fase 6 | |
+| 21 | ¿Dónde se alojará? **A)** VPS/plataforma en la nube **B)** mini PC en la tienda | 🟡 (Fase 6) | A, con respaldo diario externo | Sin definir (2026-10-30): el paquete Docker + Caddy sirve igual para un VPS o un mini PC (`docs/RUNBOOK.md`); falta que la tienda elija y copiar los respaldos fuera del servidor |
+| 22 | ¿La conexión a internet de la tienda es estable? ¿Necesitas vender sin internet? | 🟡 | Estable; offline se evalúa en Fase 6 | Aplazado a la Fase 7 (opcional): hoy se necesita conexión para vender |
 | 23 | ¿Presupuesto/preferencia de proveedor de nube? | 🟡 | Neon/Supabase + Vercel/Fly o VPS económico | |
 | 24 | Dominio y marca (logo, colores) | 🟢 | Acento sobrio, configurable | |
 | 25 | Tuteo ("tú") o trato de "usted" en la interfaz | 🟢 | Tuteo | |
