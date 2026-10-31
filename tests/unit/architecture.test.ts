@@ -48,6 +48,52 @@ function exists(file: string): boolean {
   }
 }
 
+// Propuesta SaaS, aislamiento por construcción: solo `src/lib/tenancy/` crea clientes de base de datos y solo los procesos
+// y pruebas (no el código de la aplicación) pueden fijar un negocio predeterminado para todo el proceso.
+const TENANCY_DIR = join("src", "lib", "tenancy") + sep;
+const CREATES_CLIENT = /\bnew\s+PrismaClient\s*\(/;
+const SETS_DEFAULT_TENANT = /\bsetProcessDefaultTenant\s*\(/;
+
+function appFilesOutsideTenancy(): string[] {
+  return walk(join(ROOT, "src"))
+    .map((file) => relative(ROOT, file))
+    .filter(
+      (file) =>
+        /\.(ts|tsx)$/.test(file) &&
+        !file.startsWith(join("src", "generated") + sep) &&
+        !file.startsWith(TENANCY_DIR),
+    );
+}
+
+describe("a business can only reach its own database", () => {
+  it("the detectors flag the dangerous calls", () => {
+    expect(CREATES_CLIENT.test("const c = new PrismaClient({ adapter })")).toBe(true);
+    expect(CREATES_CLIENT.test("import { PrismaClient } from '@/generated/prisma/client'")).toBe(
+      false,
+    );
+    expect(SETS_DEFAULT_TENANT.test("setProcessDefaultTenant({ id: 'x' })")).toBe(true);
+  });
+
+  it("scans real files", () => {
+    expect(appFilesOutsideTenancy()).toContain(join("src", "lib", "db.ts"));
+    expect(appFilesOutsideTenancy()).not.toContain(join("src", "lib", "tenancy", "resolver.ts"));
+  });
+
+  it("no application code creates its own database client", () => {
+    const offenders = appFilesOutsideTenancy().filter((file) =>
+      CREATES_CLIENT.test(readFileSync(join(ROOT, file), "utf8")),
+    );
+    expect(offenders).toEqual([]);
+  });
+
+  it("no application code sets a process-wide default business", () => {
+    const offenders = appFilesOutsideTenancy().filter((file) =>
+      SETS_DEFAULT_TENANT.test(readFileSync(join(ROOT, file), "utf8")),
+    );
+    expect(offenders).toEqual([]);
+  });
+});
+
 describe("stock writes go through inventory/service.ts only", () => {
   it("the detector flags direct writes and not reads", () => {
     expect(writesStockLevel("await db.stockLevel.update({ where: {} })")).toBe(true);

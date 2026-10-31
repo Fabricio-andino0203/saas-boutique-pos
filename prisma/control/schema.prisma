@@ -1,0 +1,19 @@
+// Esquema de la base CENTRAL (plano de control) del SaaS. Esqueleto de la Etapa 0: solo demuestra que Prisma maneja un
+// segundo esquema con su propia configuración, sus migraciones y su cliente generado, sin tocar los del negocio.
+// Las tablas reales (planes, suscripciones, superadministradores, auditoría…) llegan en la Etapa 1.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../../src/generated/control"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Tenant {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  name      String
+  createdAt DateTime @default(now())
+}

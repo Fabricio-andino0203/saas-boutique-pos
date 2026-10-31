@@ -51,6 +51,8 @@ export default defineConfig({
           environment: "node",
           fileParallelism: false,
           globalSetup: ["./tests/integration/global-setup.ts"],
+          // Con TENANCY_MODE=multi deja a toda la suite trabajando como un negocio fijo (ver el archivo).
+          setupFiles: ["./tests/integration/setup-tenant.ts"],
           testTimeout: 30_000,
           hookTimeout: 60_000,
           env: {
