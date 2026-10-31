@@ -59,6 +59,24 @@ export async function withClient<T>(
   }
 }
 
+/**
+ * Crea la base `name` en el servidor de `adminUrl` si todavía no existe. Devuelve `true` si la creó. Es para desarrollo y
+ * pruebas (la base central y la de pruebas); en producción la base la crea el servidor de Postgres.
+ */
+export async function ensureDatabase(adminUrl: string, name: string): Promise<boolean> {
+  assertIdentifier(name);
+  return withClient(urlFor(adminUrl, { database: "postgres" }), async (client) => {
+    const rows = await client.$queryRaw<{ present: boolean }[]>`
+      SELECT EXISTS (SELECT 1 FROM pg_database WHERE datname = ${name}) AS present
+    `;
+    if (rows[0]?.present) {
+      return false;
+    }
+    await client.$executeRawUnsafe(`CREATE DATABASE "${name}"`);
+    return true;
+  });
+}
+
 /** `prisma migrate deploy` contra una base, en un proceso aparte. Falla con la salida del error si no termina bien. */
 export function migrateDatabase(databaseUrl: string): Promise<void> {
   return new Promise((resolve, reject) => {

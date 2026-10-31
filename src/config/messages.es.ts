@@ -2380,6 +2380,8 @@ export const messages = {
       "Todavía hay prendas en existencia. Ajusta el inventario a cero antes de archivarlo.",
     INVALID_CREDENTIALS: "Usuario o contraseña incorrectos.",
     ACCOUNT_LOCKED: "Demasiados intentos fallidos. Espera unos minutos e inténtalo de nuevo.",
+    INVALID_CODE:
+      "El código no es correcto. Revisa que sea el más reciente y que la hora de tu teléfono esté al día.",
     UNEXPECTED:
       "Ocurrió un problema inesperado. Inténtalo de nuevo; si sigue pasando, avisa al administrador.",
   },

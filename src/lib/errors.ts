@@ -14,6 +14,7 @@ export const APP_ERROR_CODES = [
   "FISCAL_RANGE_EXHAUSTED",
   "INVALID_CREDENTIALS",
   "ACCOUNT_LOCKED",
+  "INVALID_CODE",
   "RATE_LIMITED",
   "USERNAME_TAKEN",
   "LAST_OWNER",
@@ -146,6 +147,13 @@ export class InvalidCredentialsError extends AppError {
 export class AccountLockedError extends AppError {
   constructor(message = "Account temporarily locked", options?: AppErrorOptions) {
     super("ACCOUNT_LOCKED", 423, message, options);
+  }
+}
+
+/** El código de verificación en dos pasos (2FA) está mal, venció o ya se usó. */
+export class InvalidCodeError extends AppError {
+  constructor(message = "Invalid verification code", options?: AppErrorOptions) {
+    super("INVALID_CODE", 401, message, options);
   }
 }
 

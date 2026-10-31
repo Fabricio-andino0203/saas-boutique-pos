@@ -43,6 +43,41 @@ describe("parseEnv", () => {
   });
 });
 
+describe("parseEnv — platform (SaaS)", () => {
+  const key = Buffer.alloc(32, 9).toString("base64url");
+  const platform = {
+    PLATFORM_HOST: "admin.tuplataforma.com",
+    CONTROL_DATABASE_URL: "postgresql://u:p@localhost:5432/control",
+    PLATFORM_MASTER_KEY: key,
+  };
+
+  it("is off by default and treats empty variables as unset", () => {
+    const env = parseEnv({ ...validSource, PLATFORM_HOST: "", PLATFORM_MASTER_KEY: "  " });
+    expect(env.TENANCY_MODE).toBe("single");
+    expect(env.PLATFORM_HOST).toBeUndefined();
+    expect(env.PLATFORM_MASTER_KEY).toBeUndefined();
+    expect(env.PLATFORM_LOGIN_RATE_LIMIT_MAX).toBe(10);
+  });
+
+  it("accepts a complete configuration, with or without a port", () => {
+    expect(parseEnv({ ...validSource, ...platform }).PLATFORM_HOST).toBe("admin.tuplataforma.com");
+    expect(
+      parseEnv({ ...validSource, ...platform, PLATFORM_HOST: "admin.localhost:3000" }),
+    ).toBeTruthy();
+  });
+
+  it.each([
+    ["a PLATFORM_HOST with a scheme", { PLATFORM_HOST: "https://admin.x.com" }, /PLATFORM_HOST/],
+    ["a PLATFORM_HOST with a path", { PLATFORM_HOST: "admin.x.com/panel" }, /PLATFORM_HOST/],
+    ["no control database", { CONTROL_DATABASE_URL: "" }, /CONTROL_DATABASE_URL es obligatoria/],
+    ["no master key", { PLATFORM_MASTER_KEY: "" }, /PLATFORM_MASTER_KEY es obligatoria/],
+    ["a master key of the wrong size", { PLATFORM_MASTER_KEY: "corta" }, /32 bytes/],
+    ["a previous key of the wrong size", { PLATFORM_MASTER_KEY_PREVIOUS: "corta" }, /32 bytes/],
+  ])("rejects %s", (_name, override, message) => {
+    expect(() => parseEnv({ ...validSource, ...platform, ...override })).toThrow(message);
+  });
+});
+
 describe("parseEnv with DEPLOYMENT=production", () => {
   const production = {
     DEPLOYMENT: "production",
@@ -76,5 +111,30 @@ describe("parseEnv with DEPLOYMENT=production", () => {
     ],
   ])("rejects an unsafe %s", (_name, override, message) => {
     expect(() => parseEnv({ ...production, ...override })).toThrow(message);
+  });
+
+  describe("with the platform panel", () => {
+    const withPlatform = {
+      ...production,
+      PLATFORM_HOST: "admin.mi-plataforma.hn",
+      CONTROL_DATABASE_URL: "postgresql://control:Qw81nXz7LkP2@db:5432/control",
+      PLATFORM_MASTER_KEY: Buffer.alloc(32, 5).toString("base64url"),
+    };
+
+    it("accepts a real configuration", () => {
+      expect(parseEnv(withPlatform).PLATFORM_HOST).toBe("admin.mi-plataforma.hn");
+    });
+
+    it.each([
+      ["a local PLATFORM_HOST", { PLATFORM_HOST: "admin.localhost" }, /host local/],
+      [
+        "the example control database password",
+        { CONTROL_DATABASE_URL: "postgresql://c:change-me-local-only@db/control" },
+        /CONTROL_DATABASE_URL tiene la contraseña de ejemplo/,
+      ],
+      ["multi-business mode (not enabled yet)", { TENANCY_MODE: "multi" }, /multi-negocio aún no/],
+    ])("rejects %s", (_name, override, message) => {
+      expect(() => parseEnv({ ...withPlatform, ...override })).toThrow(message);
+    });
   });
 });

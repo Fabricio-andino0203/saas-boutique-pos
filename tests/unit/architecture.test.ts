@@ -94,6 +94,92 @@ describe("a business can only reach its own database", () => {
   });
 });
 
+// Propuesta SaaS, plano de control: la base central y el panel de la plataforma no se mezclan con los datos de un negocio.
+const PLATFORM_SIDE = [
+  join("src", "modules", "platform") + sep,
+  join("src", "app", "platform") + sep,
+  join("src", "lib", "platform-auth.ts"),
+  join("src", "lib", "platform-cookie.ts"),
+  join("src", "config", "messages.platform.es.ts"),
+];
+/** Infraestructura que ve ambos lados: el enrutado por host y el envoltorio del acceso a datos. */
+const SHARED_INFRASTRUCTURE = [join("src", "proxy.ts"), TENANCY_DIR];
+const IMPORTS_CONTROL = /from\s+["']@\/(lib\/tenancy\/control-db|generated\/control)/;
+const IMPORTS_BUSINESS_DB = /from\s+["']@\/(lib\/db|generated\/prisma)/;
+const IMPORTS_PLATFORM = /from\s+["']@\/(modules\/platform|lib\/platform-)/;
+
+const isPlatformSide = (file: string) => PLATFORM_SIDE.some((entry) => file.startsWith(entry));
+const isShared = (file: string) => SHARED_INFRASTRUCTURE.some((entry) => file.startsWith(entry));
+
+function sourceFiles(): string[] {
+  return appFilesOutsideTenancy().concat(
+    walk(join(ROOT, TENANCY_DIR))
+      .map((file) => relative(ROOT, file))
+      .filter((file) => /\.(ts|tsx)$/.test(file)),
+  );
+}
+
+describe("the platform and the businesses stay apart", () => {
+  it("the detectors flag the dangerous imports", () => {
+    expect(IMPORTS_CONTROL.test('import { controlDb } from "@/lib/tenancy/control-db";')).toBe(
+      true,
+    );
+    expect(IMPORTS_CONTROL.test('import type { Tenant } from "@/generated/control/client";')).toBe(
+      true,
+    );
+    expect(IMPORTS_CONTROL.test('import { db } from "@/lib/db";')).toBe(false);
+    expect(IMPORTS_BUSINESS_DB.test('import { db } from "@/lib/db";')).toBe(true);
+    expect(
+      IMPORTS_PLATFORM.test('import { requirePlatformSession } from "@/lib/platform-auth";'),
+    ).toBe(true);
+  });
+
+  it("scans real files on both sides", () => {
+    const files = sourceFiles();
+    expect(files.some(isPlatformSide)).toBe(true);
+    expect(files).toContain(join("src", "modules", "platform", "service.ts"));
+    expect(files).toContain(join("src", "modules", "sales", "service.ts"));
+  });
+
+  it("only the platform side (and the tenancy layer) can reach the central database", () => {
+    const offenders = sourceFiles().filter(
+      (file) =>
+        !isPlatformSide(file) &&
+        !file.startsWith(TENANCY_DIR) &&
+        IMPORTS_CONTROL.test(readFileSync(join(ROOT, file), "utf8")),
+    );
+    expect(offenders).toEqual([]);
+  });
+
+  it("pages and components of the panel never import the central database directly", () => {
+    const offenders = sourceFiles().filter(
+      (file) =>
+        (file.startsWith(join("src", "app", "platform") + sep) ||
+          file.includes(join("platform", "components") + sep)) &&
+        IMPORTS_CONTROL.test(readFileSync(join(ROOT, file), "utf8")),
+    );
+    expect(offenders).toEqual([]);
+  });
+
+  it("the platform side never touches the database of a business", () => {
+    const offenders = sourceFiles().filter(
+      (file) =>
+        isPlatformSide(file) && IMPORTS_BUSINESS_DB.test(readFileSync(join(ROOT, file), "utf8")),
+    );
+    expect(offenders).toEqual([]);
+  });
+
+  it("business code never imports the platform side", () => {
+    const offenders = sourceFiles().filter(
+      (file) =>
+        !isPlatformSide(file) &&
+        !isShared(file) &&
+        IMPORTS_PLATFORM.test(readFileSync(join(ROOT, file), "utf8")),
+    );
+    expect(offenders).toEqual([]);
+  });
+});
+
 describe("stock writes go through inventory/service.ts only", () => {
   it("the detector flags direct writes and not reads", () => {
     expect(writesStockLevel("await db.stockLevel.update({ where: {} })")).toBe(true);

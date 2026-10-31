@@ -12,6 +12,22 @@ export const AUTH_LIMITS = {
   maxPasswordLength: 128,
 } as const;
 
+/**
+ * Acceso al panel de la plataforma (superadministradores). Más estricto que el de una tienda: contraseña larga, 2FA
+ * obligatorio, sesión corta con cierre por inactividad y una ventana breve entre la contraseña y el código.
+ */
+export const PLATFORM_AUTH_LIMITS = {
+  maxFailedAttempts: 5,
+  lockMinutes: 15,
+  /** Tiempo para escribir el código después de la contraseña. */
+  pendingMinutes: 10,
+  sessionHours: 8,
+  idleMinutes: 30,
+  touchSeconds: 60,
+  minPasswordLength: 12,
+  maxPasswordLength: 128,
+} as const;
+
 export const PRODUCT_LIMITS = {
   /** Máximo de variantes que el asistente genera de una vez (tallas × colores). */
   maxVariantsPerBatch: 200,

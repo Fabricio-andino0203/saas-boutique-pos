@@ -1,6 +1,14 @@
-// Esquema de la base CENTRAL (plano de control) del SaaS. Esqueleto de la Etapa 0: solo demuestra que Prisma maneja un
-// segundo esquema con su propia configuración, sus migraciones y su cliente generado, sin tocar los del negocio.
-// Las tablas reales (planes, suscripciones, superadministradores, auditoría…) llegan en la Etapa 1.
+// Esquema de la base CENTRAL (plano de control) del SaaS. Fuente: docs/SAAS_PROPUESTA.md §3.1.
+//
+// Aquí viven los negocios (tenants), los superadministradores de la plataforma y su auditoría. NUNCA guarda ventas,
+// inventario ni clientes: eso está en la base de cada negocio (prisma/schema.prisma).
+//
+// Convenciones:
+//  - Nada con historial se borra: los negocios y los superadministradores se desactivan o cambian de estado.
+//  - Los secretos (contraseña de la base de un negocio, secreto del 2FA) se guardan cifrados por la bóveda
+//    (src/lib/tenancy/vault.ts), nunca en claro. Las columnas terminadas en `Enc` contienen el sobre cifrado.
+//  - Las restricciones que Prisma no puede expresar (auditoría de solo inserción) viven en la migración `constraints`.
+//  - Los planes, suscripciones y pagos llegan en la Etapa 4.
 
 generator client {
   provider = "prisma-client"
@@ -11,9 +19,118 @@ datasource db {
   provider = "postgresql"
 }
 
+// ───────────────────────────── Enums ─────────────────────────────
+
+enum TenantStatus {
+  PROVISIONING
+  ACTIVE
+  SUSPENDED
+  PENDING_DELETION
+  DELETED
+  FAILED
+}
+
+// ───────────────────────────── Negocios ─────────────────────────────
+
 model Tenant {
-  id        String   @id @default(cuid())
-  slug      String   @unique
-  name      String
+  id     String       @id @default(cuid())
+  /// Subdominio único del negocio (`tienda-a` → tienda-a.<dominio>).
+  slug   String       @unique
+  name   String
+  status TenantStatus @default(PROVISIONING)
+
+  ownerEmail String?
+
+  /// Servidor de Postgres donde vive su base (hoy solo existe "primary").
+  dbServerId      String  @default("primary")
+  /// Nombres generados por el sistema, nunca escritos por una persona.
+  dbName          String? @unique
+  dbRole          String? @unique
+  /// Contraseña del rol de la base del negocio, cifrada por la bóveda.
+  dbCredentialEnc String?
+
+  /// Última migración aplicada a la base del negocio.
+  schemaVersion String?
+
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+}
+
+// ───────────────────────────── Superadministradores ─────────────────────────────
+
+model PlatformUser {
+  id           String @id @default(cuid())
+  username     String @unique
+  name         String
+  passwordHash String
+
+  /// Secreto TOTP cifrado por la bóveda. Existe desde que empieza el alta del 2FA.
+  totpSecretEnc String?
+  /// Cuándo se confirmó el 2FA con un primer código. Sin esto, el usuario aún no puede entrar al panel.
+  totpEnabledAt DateTime?
+  /// Último intervalo de 30 s aceptado: un código ya usado no se acepta de nuevo (anti-repetición).
+  totpLastStep  Int?
+
+  isActive     Boolean   @default(true)
+  failedLogins Int       @default(0)
+  lockedUntil  DateTime?
+  lastLoginAt  DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sessions PlatformSession[]
+}
+
+model PlatformSession {
+  id           String       @id @default(cuid())
+  /// Hash SHA-256 del token de la cookie; el token en claro nunca se guarda.
+  sessionToken String       @unique
+  userId       String
+  user         PlatformUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  expires DateTime
+  /// Nulo mientras la sesión solo pasó la contraseña: no da acceso al panel hasta confirmar el 2FA.
+  mfaVerifiedAt DateTime?
+
+  ip        String?
+  userAgent String?
+
+  createdAt DateTime @default(now())
+  /// Última actividad (para el cierre por inactividad).
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([expires])
+}
+
+// ───────────────────────────── Auditoría ─────────────────────────────
+
+/// Registro de toda acción administrativa de la plataforma. Es de solo inserción (lo garantiza un trigger en la migración).
+model PlatformAuditLog {
+  id String   @id @default(cuid())
+  at DateTime @default(now())
+
+  /// Quién actuó. Nulo cuando lo hizo el sistema o cuando falló un inicio de sesión de un usuario inexistente.
+  actorId       String?
+  /// Copia del usuario al momento de actuar: sobrevive aunque el usuario se desactive.
+  actorUsername String?
+
+  /// Código estable de la acción (p. ej. PLATFORM_LOGIN). Ver src/modules/platform/audit.ts.
+  action String
+
+  tenantId   String?
+  targetType String?
+  targetId   String?
+
+  /// Datos de apoyo de la acción. Nunca contraseñas, códigos ni secretos.
+  details Json?
+  ip      String?
+
+  @@index([at])
+  @@index([action, at])
+  @@index([actorId, at])
+  @@index([tenantId, at])
 }

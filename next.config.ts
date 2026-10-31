@@ -9,6 +9,8 @@ const nextConfig: NextConfig = {
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders(process.env.NODE_ENV !== "production") }];
   },
+  // En desarrollo cada negocio y el panel de la plataforma se abren por su propio subdominio (`admin.localhost`, `a.localhost`).
+  allowedDevOrigins: ["*.localhost"],
   cacheComponents: true,
   partialPrefetching: true,
   // exceljs es CommonJS pesado: se carga desde node_modules en el servidor, sin empaquetarlo.

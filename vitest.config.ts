@@ -2,6 +2,16 @@ import "dotenv/config";
 
 import { defineConfig } from "vitest/config";
 
+// Base central de la plataforma para las pruebas (Etapa 1): si no se define, se deriva de DATABASE_URL_TEST
+// (`…_test` → `…_control_test`). Se fija en el entorno del proceso para que también la vea `globalSetup`.
+if (!process.env.CONTROL_DATABASE_URL_TEST && process.env.DATABASE_URL_TEST) {
+  const derived = new URL(process.env.DATABASE_URL_TEST);
+  derived.pathname = derived.pathname.replace(/_test$/, "_control_test");
+  process.env.CONTROL_DATABASE_URL_TEST = derived.toString();
+}
+// Llave maestra de pruebas: igual a `TEST_MASTER_KEY` de tests/integration/helpers/control-url.ts. No protege nada real.
+const TEST_MASTER_KEY = Buffer.alloc(32, 7).toString("base64url");
+
 const exclude = ["**/node_modules/**", "blueprints/**"];
 
 const sharedEnv = {
@@ -58,6 +68,9 @@ export default defineConfig({
           env: {
             ...sharedEnv,
             DATABASE_URL: process.env.DATABASE_URL_TEST ?? "",
+            // Base central de la plataforma y llave maestra de prueba (Etapa 1). Nunca las de desarrollo.
+            CONTROL_DATABASE_URL: process.env.CONTROL_DATABASE_URL_TEST ?? "",
+            PLATFORM_MASTER_KEY: TEST_MASTER_KEY,
           },
         },
       },
