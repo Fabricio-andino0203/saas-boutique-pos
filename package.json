@@ -19,6 +19,8 @@
     "db:seed:history": "tsx prisma/seed-history.ts",
     "db:reset": "prisma migrate reset --force && pnpm db:seed",
     "db:reconcile": "tsx scripts/reconcile-stock.ts",
+    "admin:create-owner": "tsx scripts/create-owner.ts",
+    "job:expire-layaways": "tsx scripts/expire-layaways.ts",
     "test": "vitest run",
     "test:unit": "vitest run --project unit",
     "test:integration": "vitest run --project integration",

@@ -75,12 +75,15 @@ const DEFAULT_SETTINGS = [
 
 const DOCUMENT_COUNTERS = ["SALE", "RETURN", "LAYAWAY", "PURCHASE_ORDER", "GOODS_RECEIPT"] as const;
 
-/** Siembra mínima e idempotente. Nunca reinicia contadores ni rehashea usuarios existentes. */
-export async function runSeed(client: PrismaClient): Promise<{ users: number }> {
-  if (process.env.NODE_ENV === "production") {
-    throw new Error("La semilla de demostración no se ejecuta con NODE_ENV=production");
+/** Falla si la base es de producción: los usuarios de demostración nunca deben existir allí. */
+export function assertNotProduction(what: string): void {
+  if (process.env.NODE_ENV === "production" || process.env.DEPLOYMENT === "production") {
+    throw new Error(`${what} no se ejecuta en producción (NODE_ENV o DEPLOYMENT = production)`);
   }
+}
 
+/** Datos que toda instalación necesita (ubicación, caja, catálogos base, ajustes, contadores). Idempotente. */
+export async function seedBase(client: PrismaClient): Promise<void> {
   const location = await client.location.upsert({
     where: { code: "MAIN" },
     update: {},
@@ -92,26 +95,6 @@ export async function runSeed(client: PrismaClient): Promise<{ users: number }> 
   });
   if (!terminal) {
     await client.terminal.create({ data: { name: "Caja 1", locationId: location.id } });
-  }
-
-  for (const demo of DEMO_USERS) {
-    const existing = await client.user.findUnique({ where: { username: demo.username } });
-    if (existing) {
-      await client.user.update({
-        where: { username: demo.username },
-        data: { name: demo.name, role: demo.role },
-      });
-    } else {
-      await client.user.create({
-        data: {
-          username: demo.username,
-          name: demo.name,
-          role: demo.role,
-          passwordHash: await hashSecret(demo.password),
-          pinHash: await hashSecret(demo.pin),
-        },
-      });
-    }
   }
 
   const sizes = [
@@ -164,6 +147,34 @@ export async function runSeed(client: PrismaClient): Promise<{ users: number }> 
       create: { key, nextValue: 1 },
     });
   }
+}
 
-  return { users: DEMO_USERS.length };
+async function seedDemoUsers(client: PrismaClient): Promise<number> {
+  for (const demo of DEMO_USERS) {
+    const existing = await client.user.findUnique({ where: { username: demo.username } });
+    if (existing) {
+      await client.user.update({
+        where: { username: demo.username },
+        data: { name: demo.name, role: demo.role },
+      });
+    } else {
+      await client.user.create({
+        data: {
+          username: demo.username,
+          name: demo.name,
+          role: demo.role,
+          passwordHash: await hashSecret(demo.password),
+          pinHash: await hashSecret(demo.pin),
+        },
+      });
+    }
+  }
+  return DEMO_USERS.length;
+}
+
+/** Siembra de desarrollo: la base más los usuarios de demostración. Nunca reinicia contadores ni rehashea usuarios existentes. */
+export async function runSeed(client: PrismaClient): Promise<{ users: number }> {
+  assertNotProduction("La semilla de demostración");
+  await seedBase(client);
+  return { users: await seedDemoUsers(client) };
 }

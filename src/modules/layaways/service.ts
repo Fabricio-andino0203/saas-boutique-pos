@@ -627,8 +627,8 @@ export async function cancelLayaway(
 
 /**
  * Vence los apartados cuyo plazo ya pasó: cada uno en su propia transacción (uno que falle no frena a los demás).
- * Se llama de forma oportunista al abrir la lista de apartados o la pantalla de venta; una tarea programada llegará
- * con el despliegue. Devuelve cuántos venció.
+ * Se llama de forma oportunista al abrir la lista de apartados o la pantalla de venta, y a diario desde la tarea
+ * programada (`expireAllOverdueLayaways`). Devuelve cuántos venció.
  */
 export async function expireOverdueLayaways(
   actor: Actor,
@@ -666,4 +666,34 @@ export async function expireOverdueLayaways(
     }
   }
   return expired;
+}
+
+const EXPIRY_BATCHES_MAX = 100;
+
+/**
+ * La tarea programada (`pnpm job:expire-layaways`, pensada para el cron del servidor): vence todo lo que ya pasó de plazo,
+ * por lotes, actuando como el propietario activo más antiguo (las filas quedan con su nombre y el motivo "Venció el plazo
+ * del apartado"). Devuelve cuántos venció en total.
+ */
+export async function expireAllOverdueLayaways(
+  client: PrismaClient = db,
+  now: Date = new Date(),
+): Promise<number> {
+  const owner = await client.user.findFirst({
+    where: { role: "OWNER", isActive: true },
+    orderBy: { createdAt: "asc" },
+    select: { id: true },
+  });
+  if (!owner) {
+    throw new NotFoundError("There is no active owner to run the scheduled job as");
+  }
+  let total = 0;
+  for (let batch = 0; batch < EXPIRY_BATCHES_MAX; batch += 1) {
+    const expired = await expireOverdueLayaways({ id: owner.id, role: "OWNER" }, client, now);
+    if (expired === 0) {
+      break;
+    }
+    total += expired;
+  }
+  return total;
 }

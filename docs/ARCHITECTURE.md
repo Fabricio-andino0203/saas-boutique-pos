@@ -188,6 +188,9 @@ Implementación inicial: `caiRangeIssuer` en `src/modules/fiscal/issuer.ts` (cor
 - **Respaldos:** `pg_dump` diario cifrado a almacenamiento externo, retención 30 días, **prueba de restauración documentada y probada** (Fase 6).
 - **Migraciones:** `prisma migrate deploy` en el arranque del despliegue; nunca `db push` en producción.
 - **Observabilidad:** logs estructurados, endpoint `/api/health`, error tracking (Sentry u otro) en Fase 6.
+- **Primer arranque:** una instalación nueva no tiene usuarios. `pnpm admin:create-owner` (`scripts/create-owner.ts`, servicio `createFirstOwner` en `src/modules/users/bootstrap.ts`) deja la base lista (`seedBase`: ubicación, caja, catálogos y ajustes iniciales) y crea al propietario con su contraseña y PIN opcional; se niega si ya hay uno activo y deja un `USER_CREATED` en la auditoría. La semilla de demostración (`runSeed`) y la historia de prueba se niegan con `NODE_ENV=production` o `DEPLOYMENT=production`.
+- **Apartados vencidos:** `pnpm job:expire-layaways` (`expireAllOverdueLayaways`) para el cron diario del servidor; actúa como el propietario activo más antiguo y es seguro de repetir. Además se sigue venciendo de forma oportunista al abrir la pantalla de venta.
+- **`DEPLOYMENT=production`:** activa las comprobaciones estrictas de `env.ts` (`NODE_ENV=production`, `APP_URL` con https, `AUTH_SECRET` y contraseña de la base que no sean de ejemplo). Es independiente de `NODE_ENV` porque `next build`, CI y el E2E también corren con `NODE_ENV=production` y valores locales. Plantilla: `.env.production.example`.
 - **Configuración:** variables de entorno validadas con Zod al arrancar (`DATABASE_URL`, `AUTH_SECRET`, `APP_URL`, `TZ`…); `.env.example` versionado.
 
 ## 10. Estrategia de pruebas

@@ -6,6 +6,7 @@ import { DOCUMENT_PREFIX, formatDocumentNumber } from "../../src/lib/document-nu
 import { extractTax, percentOf } from "../../src/lib/money";
 import { createStockLevels } from "../../src/modules/inventory/service";
 import { valueOfUnits } from "../../src/modules/returns/calc";
+import { assertNotProduction } from "./run-seed";
 
 /**
  * Historia de prueba: un año de ventas realistas (más de 20 000 líneas con los valores por defecto) para probar los
@@ -119,9 +120,7 @@ export async function generateHistory(
   client: PrismaClient,
   options: HistoryOptions = {},
 ): Promise<HistorySummary> {
-  if (process.env.NODE_ENV === "production") {
-    throw new Error("La historia de prueba no se carga con NODE_ENV=production");
-  }
+  assertNotProduction("La historia de prueba");
   const months = options.months ?? 12;
   const salesPerDay = options.salesPerDay ?? 24;
   const productCount = options.products ?? 40;
@@ -641,6 +640,11 @@ export async function generateHistory(
     },
     { timeout: 600_000, maxWait: 30_000 },
   );
+
+  // Tras una carga masiva Postgres aún no tiene estadísticas de las tablas y puede elegir planes de varios segundos para
+  // joins que con estadísticas tardan milisegundos; en producción lo hace el autovacuum. Se actualizan aquí para que la
+  // base de desarrollo y la de pruebas se parezcan a una instalación con uso real.
+  await client.$executeRawUnsafe("ANALYZE");
 
   return {
     sales: saleRows.length,

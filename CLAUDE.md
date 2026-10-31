@@ -56,6 +56,8 @@ pnpm db:up          # docker compose up -d (Postgres)
 pnpm db:migrate     # prisma migrate dev
 pnpm db:seed        # datos de demo
 pnpm db:reset       # reset + migrate + seed (solo local)
+pnpm admin:create-owner   # primer arranque de una instalación real: crea al propietario (sin usuarios de demo)
+pnpm job:expire-layaways  # tarea diaria: vence apartados con el plazo cumplido
 ```
 
 Antes de dar una tarea por terminada deben pasar: `lint`, `typecheck` y `test`.

@@ -23,6 +23,7 @@ import {
   addLayawayPayment,
   cancelLayaway,
   createLayaway,
+  expireAllOverdueLayaways,
   expireOverdueLayaways,
   settleLayaway,
 } from "@/modules/layaways/service";
@@ -746,6 +747,38 @@ describe("expireOverdueLayaways", () => {
     ).toBe(closed.paidCents);
     expect(closed.paidCents === 2000 || closed.paidCents === 5000).toBe(true);
     await expectReservationsConsistent();
+  });
+
+  it("the scheduled job expires every overdue layaway, acting as the owner, and can be repeated", async () => {
+    const w = await world();
+    const overdue = { now: addLocalDays(new Date(), -40) };
+    const first = await create(w, oneDress(w), cash(5000), overdue);
+    const second = await create(w, oneDress(w), cash(3000), overdue);
+    const fresh = await create(w, oneDress(w), cash(2000));
+
+    expect(await expireAllOverdueLayaways(testDb)).toBe(2);
+    for (const id of [first.id, second.id]) {
+      expect((await testDb.layaway.findUniqueOrThrow({ where: { id } })).status).toBe("EXPIRED");
+    }
+    expect((await testDb.layaway.findUniqueOrThrow({ where: { id: fresh.id } })).status).toBe(
+      "ACTIVE",
+    );
+    const log = await testDb.auditLog.findFirstOrThrow({
+      where: { action: "LAYAWAY_CANCELLED", entityId: first.id },
+    });
+    expect(log.userId).toBe(w.owner.id);
+    expect(
+      (await testDb.customer.findUniqueOrThrow({ where: { id: w.ana.id } })).storeCreditCents,
+    ).toBe(8000);
+
+    expect(await expireAllOverdueLayaways(testDb)).toBe(0);
+    await expectReservationsConsistent();
+  });
+
+  it("the scheduled job refuses to run when the installation has no active owner", async () => {
+    const w = await world();
+    await testDb.user.update({ where: { id: w.owner.id }, data: { isActive: false } });
+    await expect(expireAllOverdueLayaways(testDb)).rejects.toBeInstanceOf(NotFoundError);
   });
 });
 
