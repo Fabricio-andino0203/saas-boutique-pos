@@ -1,0 +1,20 @@
+# Lo que no hace falta para compilar la imagen (acelera el envío del contexto y evita filtrar secretos).
+.git
+.github
+.claude
+.agents
+node_modules
+.next
+coverage
+test-results
+playwright-report
+tests
+docs
+blueprints
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+npm-debug.log*
+Dockerfile
+docker-compose*.yml

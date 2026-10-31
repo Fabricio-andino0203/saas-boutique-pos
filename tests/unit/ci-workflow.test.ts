@@ -20,6 +20,7 @@ describe("ci.yml", () => {
     "APP_URL:",
     "pnpm exec playwright install --with-deps chromium",
     "if: github.ref == 'refs/heads/main'",
+    "docker build --build-arg APP_VERSION=${{ github.sha }} --tag boutique-pos:ci .",
   ])("contains %s", (needle) => {
     expect(workflow).toContain(needle);
   });

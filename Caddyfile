@@ -1,0 +1,17 @@
+# Caddy: HTTPS automático (Let's Encrypt) y proxy hacia la app. DOMAIN viene de .env.production (p. ej. tienda.mi-boutique.hn).
+# Con DOMAIN=localhost Caddy usa su propia autoridad interna (sirve para probar en el equipo, el navegador avisa del certificado).
+{$DOMAIN} {
+	encode zstd gzip
+
+	header {
+		# Solo tiene sentido sobre HTTPS, por eso lo pone Caddy y no la app.
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		-Server
+	}
+
+	reverse_proxy app:3000 {
+		# La app usa estas cabeceras para registrar y limitar intentos por IP: se pisa lo que mande el navegador.
+		header_up X-Forwarded-For {remote_host}
+		header_up X-Real-IP {remote_host}
+	}
+}
