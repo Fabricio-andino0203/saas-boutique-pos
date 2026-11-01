@@ -79,7 +79,12 @@ services:
       PGDATABASE: ${POSTGRES_DB:-boutique_pos}
       BACKUP_PASSPHRASE: ${BACKUP_PASSPHRASE:?define BACKUP_PASSPHRASE en .env.production}
       BACKUP_TIME: ${BACKUP_TIME:-02:00}
+      # Un negocio sin plan conserva sus respaldos este tiempo; con plan, los días del plan (Planes → Días que se conservan los respaldos).
       BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-30}
+      # Cuánto se guarda el volcado final de una base archivada (el que se exige antes de borrarla).
+      FINAL_BACKUP_RETENTION_DAYS: ${FINAL_BACKUP_RETENTION_DAYS:-365}
+      # Cada cuántos segundos revisa si se pidió un respaldo desde el panel.
+      BACKUP_POLL_SECONDS: ${BACKUP_POLL_SECONDS:-15}
       # Con varios negocios también se respalda la base CENTRAL de la plataforma (control-*.dump.enc).
       TENANCY_MODE: ${TENANCY_MODE:-single}
       POSTGRES_CONTROL_DB: ${POSTGRES_CONTROL_DB:-boutique_pos_control}

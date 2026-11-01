@@ -265,12 +265,16 @@ export async function archiveTenantDatabase(
 
 export type ServerInventory = { databases: string[]; roles: string[] };
 
-/** Las bases y roles que el sistema creó en el servidor (nombres `t_*` y `z_archived_*`), para la conciliación. */
+/**
+ * Las bases y roles que el sistema creó en el servidor (nombres `t_*`, `z_archived_*` y `z_replaced_*`), para la conciliación.
+ * `z_replaced_*` es la base que una restauración dejó apartada al poner el respaldo en su lugar.
+ */
 export async function listManagedResources(adminUrl: string): Promise<ServerInventory> {
   return withClient(serverUrl(adminUrl), async (admin) => {
     const databases = await admin.$queryRaw<{ datname: string }[]>`
       SELECT datname FROM pg_database
-      WHERE NOT datistemplate AND (datname LIKE 't\\_%' OR datname LIKE 'z\\_archived\\_%')
+      WHERE NOT datistemplate
+        AND (datname LIKE 't\\_%' OR datname LIKE 'z\\_archived\\_%' OR datname LIKE 'z\\_replaced\\_%')
       ORDER BY datname
     `;
     const roles = await admin.$queryRaw<{ rolname: string }[]>`

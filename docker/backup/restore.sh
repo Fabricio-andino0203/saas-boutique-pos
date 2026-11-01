@@ -14,6 +14,12 @@ target="${2:?uso: restore.sh <archivo .dump.enc> <base destino>}"
 : "${BACKUP_PASSPHRASE:?define BACKUP_PASSPHRASE (la clave con la que se cifró el respaldo)}"
 
 [ -f "$file" ] || { echo "No existe el archivo: $file" >&2; exit 2; }
+case "$(basename "$file")" in
+  tenant-* | final-*)
+    echo "Es el respaldo de un negocio (tiene su propia llave): usa  /scripts/restore-tenant.sh  en su lugar." >&2
+    exit 2
+    ;;
+esac
 case "$target" in
   "" | *[!A-Za-z0-9_]*) echo "El nombre de la base solo puede tener letras, números y guion bajo: $target" >&2; exit 2 ;;
 esac

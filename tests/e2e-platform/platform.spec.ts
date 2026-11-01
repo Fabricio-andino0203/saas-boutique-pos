@@ -400,6 +400,78 @@ test.describe.serial("recorrido completo del superadministrador", () => {
     ).toBeVisible();
   });
 
+  test("respaldos: el panel muestra a quién atender, pide un respaldo y termina una restauración", async () => {
+    const backups = copy.backups;
+
+    // El Resumen lista lo que falló (el negocio B tiene un respaldo fallido de hace dos horas) y no al negocio A, que es nuevo.
+    await page.goto("/");
+    const attention = page.getByTestId("backup-attention");
+    await expect(attention).toContainText(TENANTS.b.name);
+    await expect(attention).toContainText(backups.states.failed);
+    await expect(attention).not.toContainText(TENANTS.a.name);
+
+    // La lista de todos los negocios, con su estado.
+    await page.getByRole("link", { name: copy.nav.backups }).click();
+    await expect(page.getByRole("heading", { level: 1, name: backups.title })).toBeVisible();
+    await expect(page.getByTestId(`backup-row-${TENANTS.b.slug}`)).toContainText(
+      backups.states.failed,
+    );
+    await expect(page.getByTestId(`backup-row-${TENANTS.a.slug}`)).toContainText(
+      backups.states.pending,
+    );
+
+    // El detalle de un negocio muestra el error del último intento, para saber qué pasó.
+    await page.goto(`/negocios/${TENANTS.b.slug}`);
+    await expect(page.getByTestId("backup-state")).toHaveAttribute("data-state", "failed");
+    await expect(page.getByTestId("backup-rows")).toContainText("pg_dump falló");
+
+    // Pedir un respaldo ahora: queda pedido para el servicio de respaldos (que aquí no corre), y no se puede pedir otro encima.
+    const requestId = `backup-request-${TENANTS.a.slug}`;
+    await page.goto(`/negocios/${TENANTS.a.slug}`);
+    await page.getByTestId(requestId).locator("summary").click();
+    await page.locator(`#${requestId}-password`).fill(PASSWORD);
+    await page
+      .getByTestId(requestId)
+      .locator("form")
+      .getByRole("button", { name: backups.detail.requestNow })
+      .click();
+    await expect(page.getByText(backups.detail.requested)).toBeVisible();
+    await expect(page.getByTestId("backup-rows")).toContainText(backups.statuses.REQUESTED);
+
+    await page.locator(`#${requestId}-password`).fill(PASSWORD);
+    await page
+      .getByTestId(requestId)
+      .locator("form")
+      .getByRole("button", { name: backups.detail.requestNow })
+      .click();
+    await expect(alertWith(page, "Ya hay un respaldo pedido o en marcha")).toBeVisible();
+
+    // Terminar una restauración: el rol, los permisos y la versión quedan al día y el negocio demuestra que puede entrar.
+    const relinkId = `relink-${TENANTS.a.slug}`;
+    await page.getByTestId(relinkId).locator("summary").click();
+    await page.locator(`#${relinkId}-password`).fill(PASSWORD);
+    await page
+      .getByTestId(relinkId)
+      .locator("form")
+      .getByRole("button", { name: backups.detail.relink })
+      .click();
+    await expect(
+      page.getByText(/Listo: el negocio puede entrar a su base\. Versión de datos/),
+    ).toBeVisible();
+
+    // Sin un respaldo bueno no hay de dónde restaurar, y la guía lo dice en vez de mostrar un comando inútil.
+    await page.getByTestId("restore-guide").locator("summary").click();
+    await expect(page.getByTestId("restore-guide")).toContainText(backups.detail.noUsable);
+
+    // Todo quedó en la auditoría.
+    await page.goto("/auditoria");
+    for (const action of ["BACKUP_REQUESTED", "TENANT_RELINKED"] as const) {
+      await expect(
+        page.getByRole("cell", { name: copy.audit.actions[action] }).first(),
+      ).toBeVisible();
+    }
+  });
+
   test("administradores: la confirmación con la contraseña protege el alta; la auditoría lo registra", async () => {
     await page.getByRole("link", { name: copy.nav.admins }).click();
     await expect(page.getByRole("heading", { level: 1, name: copy.admins.title })).toBeVisible();

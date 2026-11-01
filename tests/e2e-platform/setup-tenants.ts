@@ -49,7 +49,7 @@ async function main(): Promise<void> {
     }
   }
   await controlDb.$executeRawUnsafe(
-    `TRUNCATE TABLE "PlatformPayment", "Subscription", "Plan" CASCADE`,
+    `TRUNCATE TABLE "TenantBackup", "PlatformPayment", "Subscription", "Plan" CASCADE`,
   );
   await controlDb.provisioningRun.deleteMany({
     where: { tenantId: { in: leftovers.map((tenant) => tenant.id) } },
@@ -92,6 +92,19 @@ async function main(): Promise<void> {
       },
     });
   }
+  // Un respaldo que falló hace dos horas en el negocio B: el panel debe mostrarlo como algo que atender.
+  await controlDb.tenantBackup.create({
+    data: {
+      scope: "TENANT",
+      tenantId: TENANTS.b.id,
+      database: `t_${TENANTS.b.id}`,
+      trigger: "SCHEDULED",
+      status: "FAILED",
+      requestedAt: new Date(Date.now() - 2 * 3_600_000),
+      finishedAt: new Date(Date.now() - 2 * 3_600_000),
+      error: "pg_dump falló: la base no respondió",
+    },
+  });
   // La plantilla se conserva: el alta desde el panel copia de ella (se quita con --drop).
   console.log(`Negocios de prueba listos: ${tenants.map((tenant) => tenant.slug).join(", ")}`);
 }

@@ -10,7 +10,9 @@ import {
   type ErrorCode,
 } from "@/lib/errors";
 import { logger } from "@/lib/logger";
+import { getPlatformSession } from "@/lib/platform-auth";
 import type { PlatformFormState } from "@/modules/platform/schemas";
+import { confirmActorPassword, type AdminContext } from "@/modules/platform/service";
 import {
   assertPlatformNotThrottled,
   recordPlatformFailedAttempt,
@@ -71,4 +73,32 @@ export async function asFormState(
   } catch (error) {
     return { error: messageFor(error), ...(values ? { values } : {}) };
   }
+}
+
+/**
+ * El patrón de toda acción del panel que cambia algo: pide de nuevo la contraseña de quien actúa (contando los fallos contra la
+ * IP), comprueba que sigue con la sesión iniciada y ejecuta la operación con su contexto (quién y desde dónde, para la auditoría).
+ * Si algo sale mal devuelve el mensaje en el estado del formulario, conservando lo escrito en `values`.
+ */
+export async function runAsAdmin(
+  formData: FormData,
+  run: (context: AdminContext) => Promise<PlatformFormState>,
+  values?: Record<string, string>,
+): Promise<PlatformFormState> {
+  const actorPassword = String(formData.get("actorPassword") ?? "");
+  if (!actorPassword) {
+    return { error: platformMessages.validation.required, ...(values ? { values } : {}) };
+  }
+  const session = await getPlatformSession();
+  if (!session) {
+    return { redirectTo: "/login" };
+  }
+  const request = await requestContext();
+  const actor = { id: session.user.id, username: session.user.username };
+  return asFormState(async () => {
+    await countingFailures(request.ip, async () => {
+      await confirmActorPassword(actor.id, actorPassword, request);
+    });
+    return run({ actor, ip: request.ip });
+  }, values);
 }

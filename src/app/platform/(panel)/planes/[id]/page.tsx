@@ -39,6 +39,7 @@ export default async function PlatformEditPlanPage({ params }: Props) {
           price: formatMoneyPlain(plan.priceCents),
           interval: plan.interval,
           trialDays: plan.trialDays,
+          backupRetentionDays: plan.backupRetentionDays,
           sortOrder: plan.sortOrder,
           isActive: plan.isActive,
           limits: parseLimits(plan.limits),

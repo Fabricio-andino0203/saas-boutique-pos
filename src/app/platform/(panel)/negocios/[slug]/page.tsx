@@ -6,6 +6,7 @@ import { platformMessages } from "@/config/messages.platform.es";
 import { formatLocalDateTime } from "@/lib/dates";
 import { requirePlatformSession } from "@/lib/platform-auth";
 import { TenantActions } from "@/modules/platform/components/tenant-actions";
+import { TenantBackups } from "@/modules/platform/components/tenant-backups";
 import { TenantSubscription } from "@/modules/platform/components/tenant-subscription";
 import { getTenantDetail } from "@/modules/platform/queries";
 
@@ -108,6 +109,14 @@ export default async function PlatformTenantDetailPage({ params }: Props) {
       </section>
 
       <TenantSubscription slug={tenant.slug} tenantStatus={tenant.status} />
+
+      <TenantBackups
+        id={tenant.id}
+        slug={tenant.slug}
+        tenantStatus={tenant.status}
+        createdAt={tenant.createdAt}
+        database={tenant.dbName}
+      />
 
       <TenantActions
         slug={tenant.slug}

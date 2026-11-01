@@ -1,96 +1,69 @@
 #!/bin/sh
-# Un respaldo: volcado de la base (formato custom de pg_dump) cifrado con AES-256, comprobado y con retención.
+# El respaldo de todas las bases: volcado (formato custom de pg_dump) cifrado con AES-256, comprobado, con retención y anotado.
 # Variables: PGHOST PGUSER PGPASSWORD PGDATABASE (de Postgres), BACKUP_PASSPHRASE (obligatoria),
-#            BACKUP_DIR (por omisión /backups), BACKUP_RETENTION_DAYS (por omisión 30),
+#            BACKUP_DIR (por omisión /backups), BACKUP_RETENTION_DAYS (por omisión 30: se usa para un negocio sin plan),
 #            CONTROL_PGDATABASE (opcional: la base CENTRAL de la plataforma, que se respalda aparte). Con TENANCY_MODE=multi se
 #            respalda siempre (POSTGRES_CONTROL_DB, por omisión boutique_pos_control).
-# Resultado: $BACKUP_DIR/boutique-AAAAMMDDTHHMMSSZ.dump.enc (hora UTC) y, si hay base central,
-#            $BACKUP_DIR/control-AAAAMMDDTHHMMSSZ.dump.enc. Sale con error si algo falla; nunca deja un archivo a medias.
+# Resultado: $BACKUP_DIR/boutique-AAAAMMDDTHHMMSSZ.dump.enc (la tienda #1, hora UTC), control-….dump.enc (la base central) y, con
+#            varios negocios, tenant-<base>-….dump.enc (uno por negocio, con SU llave y los días de retención de SU plan).
+#            Sale con error si algo falla; nunca deja un archivo a medias. Cada respaldo se anota en la base central (tabla
+#            TenantBackup) para el panel.
 # La base central NO sirve sin la llave maestra de la plataforma (PLATFORM_MASTER_KEY), que no está en estos respaldos a propósito:
 # guárdala fuera del servidor.
-set -eu
+set -u
 set -o pipefail
 
-: "${BACKUP_PASSPHRASE:?define BACKUP_PASSPHRASE en .env.production}"
-BACKUP_DIR="${BACKUP_DIR:-/backups}"
-RETENTION_DAYS="${BACKUP_RETENTION_DAYS:-30}"
+. /scripts/lib.sh
 
-log() { printf '{"time":"%s","level":"%s","event":"%s"%s}\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$1" "$2" "${3:-}"; }
+: "${PGDATABASE:?define PGDATABASE}"
+failed=0
 
-mkdir -p "$BACKUP_DIR"
-stamp="$(date -u +%Y%m%dT%H%M%SZ)"
-partial=""
-trap 'if [ -n "$partial" ]; then rm -f "$partial"; fi' EXIT
-
-# Comprobación de un respaldo que no se puede leer no sirve de nada: (1) se descifra el archivo completo, lo que falla si la
-# clave o el relleno no cuadran, y (2) se lee el índice del volcado. `pg_restore --list` cierra la tubería en cuanto termina
-# el índice, así que en ese paso solo cuenta su resultado (sin pipefail).
-verify_archive() {
-  openssl enc -d -aes-256-cbc -pbkdf2 -iter 600000 -pass env:BACKUP_PASSPHRASE -in "$1" > /dev/null || return 1
-  (
-    set +o pipefail
-    openssl enc -d -aes-256-cbc -pbkdf2 -iter 600000 -pass env:BACKUP_PASSPHRASE -in "$1" 2> /dev/null | pg_restore --list > /dev/null
-  )
-}
-
-# backup_one <prefijo del archivo> <base de datos>
-backup_one() {
-  prefix="$1"
-  database="$2"
-  final="$BACKUP_DIR/$prefix-$stamp.dump.enc"
-  partial="$final.partial"
-
-  log info backup.start ",\"file\":\"$(basename "$final")\""
-
-  pg_dump --dbname "$database" --format=custom --no-owner --no-privileges \
-    | openssl enc -aes-256-cbc -pbkdf2 -iter 600000 -salt -pass env:BACKUP_PASSPHRASE -out "$partial"
-
-  if ! verify_archive "$partial"; then
-    log error backup.verify_failed ",\"file\":\"$(basename "$final")\""
-    rm -f "$partial"
-    exit 1
-  fi
-
-  mv "$partial" "$final"
-  partial=""
-  bytes="$(wc -c < "$final" | tr -d ' ')"
-  if [ "$prefix" = "boutique" ]; then
-    sales="$(psql --dbname "$database" --no-psqlrc --tuples-only --no-align --command 'SELECT count(*) FROM "Sale"' 2> /dev/null || echo "?")"
-    log info backup.done ",\"file\":\"$(basename "$final")\",\"bytes\":$bytes,\"sales\":\"$sales\""
-  else
-    log info backup.done ",\"file\":\"$(basename "$final")\",\"bytes\":$bytes"
-  fi
-
-  # Retención: se borran los respaldos con más de N días.
-  deleted="$(find "$BACKUP_DIR" -maxdepth 1 -name "$prefix-*.dump.enc" -mtime "+$RETENTION_DAYS" -print -delete | wc -l | tr -d ' ')"
-  if [ "$deleted" -gt 0 ]; then
-    log info backup.pruned ",\"file\":\"$prefix\",\"deleted\":$deleted,\"retentionDays\":$RETENTION_DAYS"
-  fi
-}
-
-backup_one boutique "${PGDATABASE:?define PGDATABASE}"
-# Con varios negocios (TENANCY_MODE=multi) la base central se respalda siempre, junto con la de la tienda.
-control_db="${CONTROL_PGDATABASE:-}"
-if [ -z "$control_db" ] && [ "${TENANCY_MODE:-single}" = "multi" ]; then
-  control_db="${POSTGRES_CONTROL_DB:-boutique_pos_control}"
-fi
-if [ -n "$control_db" ]; then
-  backup_one control "$control_db"
+# Los negocios que existen y los días que se conservan sus respaldos (los del plan, o los del servidor si no tiene).
+tenant_list="$(mktemp)"
+trap 'rm -f "$tenant_list"' EXIT
+use_registry=""
+if [ -n "$b_registry" ] && cpsql -v days="$DEFAULT_RETENTION_DAYS" > "$tenant_list" 2> /dev/null <<'SQL'
+SELECT t."id", t."dbName", COALESCE(p."backupRetentionDays", :'days'::int)
+FROM "Tenant" t
+LEFT JOIN "Subscription" s ON s."tenantId" = t."id" AND s."status" <> 'EXPIRED'
+LEFT JOIN "Plan" p ON p."id" = s."planId"
+WHERE t."dbName" IS NOT NULL AND t."status" IN ('ACTIVE', 'SUSPENDED', 'PENDING_DELETION', 'MIGRATION_FAILED')
+ORDER BY t."createdAt";
+SQL
+then
+  use_registry="yes"
 fi
 
-# Negocios dados de alta por la plataforma (Etapa 3): cada uno tiene su base `t_<id>` en el mismo servidor. Se respaldan todas
-# las que existan (archivo `tenant-t_<id>-….dump.enc`), una a una: si una falla se anota y se sigue con las demás, y al final el
-# respaldo termina con error. (El respaldo individual con retención por plan y restauración guiada llega con la Etapa 5.)
-if [ "${TENANCY_MODE:-single}" = "multi" ]; then
-  failed=0
-  tenant_dbs="$(psql --dbname postgres --no-psqlrc --tuples-only --no-align \
-    --command "SELECT datname FROM pg_database WHERE NOT datistemplate AND datname LIKE 't\\_%' ORDER BY datname")"
-  for tenant_db in $tenant_dbs; do
-    # En un subshell: `backup_one` termina con `exit` si algo falla, y eso no debe cortar a los demás negocios.
-    if ! (backup_one "tenant-$tenant_db" "$tenant_db"); then
-      log error backup.tenant_failed ",\"database\":\"$tenant_db\""
-      failed=1
-    fi
-  done
-  [ "$failed" = "0" ] || exit 1
+if [ -n "$use_registry" ]; then
+  # Se respalda a cada negocio registrado (la tienda #1 incluida: su archivo conserva el nombre `boutique-…`).
+  while IFS='|' read -r tenant_id tenant_db days; do
+    [ -n "$tenant_id" ] || continue
+    is_identifier "$tenant_db" || { log error backup.bad_name ",\"tenant\":\"$tenant_id\""; failed=1; continue; }
+    backup_one TENANT "$tenant_id" "$tenant_db" SCHEDULED - "$days" || failed=1
+  done < "$tenant_list"
+  # La base de siempre (PGDATABASE) se respalda aunque todavía no esté registrada como un negocio.
+  if ! grep -q "|$PGDATABASE|" "$tenant_list"; then
+    backup_one TENANT - "$PGDATABASE" SCHEDULED - "$DEFAULT_RETENTION_DAYS" || failed=1
+  fi
+else
+  # Sin registro (una sola tienda, o la base central no responde): la tienda de siempre y, si hay, todas las bases t_*.
+  backup_one TENANT - "$PGDATABASE" SCHEDULED - "$DEFAULT_RETENTION_DAYS" || failed=1
+  if [ "${TENANCY_MODE:-single}" = "multi" ]; then
+    tenant_dbs="$(psql --dbname postgres --no-psqlrc --tuples-only --no-align \
+      --command "SELECT datname FROM pg_database WHERE NOT datistemplate AND datname LIKE 't\\_%' ORDER BY datname")"
+    for tenant_db in $tenant_dbs; do
+      backup_one TENANT - "$tenant_db" SCHEDULED - "$DEFAULT_RETENTION_DAYS" || {
+        log error backup.tenant_failed ",\"database\":\"$tenant_db\""
+        failed=1
+      }
+    done
+  fi
 fi
+
+# La base central se respalda siempre que haya varios negocios (o si se pidió con CONTROL_PGDATABASE).
+if [ -n "$CONTROL_DB" ]; then
+  backup_one CONTROL - "$CONTROL_DB" SCHEDULED - "$DEFAULT_RETENTION_DAYS" || failed=1
+fi
+
+registry_mark_pruned
+[ "$failed" = "0" ] || exit 1

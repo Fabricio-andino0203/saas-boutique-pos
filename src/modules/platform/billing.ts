@@ -95,6 +95,13 @@ export const planSchema = z.object({
     .int(copy.trialDays)
     .min(0, copy.trialDays)
     .max(365, copy.trialDays),
+  /** Cuánto se conservan los respaldos diarios de los negocios con este plan (el servicio de respaldos lo lee de la base). */
+  backupRetentionDays: z
+    .number(copy.backupRetention)
+    .int(copy.backupRetention)
+    .min(7, copy.backupRetention)
+    .max(3650, copy.backupRetention)
+    .default(30),
   sortOrder: z
     .number(copy.sortOrder)
     .int(copy.sortOrder)
@@ -127,7 +134,14 @@ export async function getPlan(id: string, deps: BillingDeps = {}): Promise<Plan 
 function planSummary(
   plan: Pick<
     Plan,
-    "name" | "priceCents" | "interval" | "limits" | "features" | "trialDays" | "isActive"
+    | "name"
+    | "priceCents"
+    | "interval"
+    | "limits"
+    | "features"
+    | "trialDays"
+    | "backupRetentionDays"
+    | "isActive"
   >,
 ) {
   return {
@@ -137,6 +151,7 @@ function planSummary(
     limits: parseLimits(plan.limits),
     features: plan.features,
     trialDays: plan.trialDays,
+    backupRetentionDays: plan.backupRetentionDays,
     isActive: plan.isActive,
   };
 }

@@ -174,6 +174,13 @@ describe("registering a business end to end", () => {
     );
     expect(session.token).toBeTruthy();
 
+    // Su primer respaldo quedó pedido al activarlo, sin esperar a la noche.
+    expect(
+      await controlTestDb.tenantBackup.findMany({ where: { tenantId: tenant.id } }),
+    ).toMatchObject([
+      { scope: "TENANT", database: tenant.dbName, trigger: "SCHEDULED", status: "REQUESTED" },
+    ]);
+
     // Quedó en la auditoría, sin ningún secreto.
     const audit = await controlTestDb.platformAuditLog.findMany({
       where: { tenantId: tenant.id },

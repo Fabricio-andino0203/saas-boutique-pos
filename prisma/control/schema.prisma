@@ -65,6 +65,33 @@ enum ProvisioningStatus {
   UNDONE
 }
 
+enum BackupScope {
+  /// La base de un negocio.
+  TENANT
+  /// La base central de la plataforma.
+  CONTROL
+  /// La base archivada de un negocio dado de baja (volcado final antes de borrarla).
+  ARCHIVED
+}
+
+enum BackupTrigger {
+  /// El respaldo diario.
+  SCHEDULED
+  /// Lo pidió una persona desde el panel o la línea de comandos.
+  MANUAL
+  /// El volcado que se exige antes de borrar de verdad una base archivada.
+  FINAL
+}
+
+enum BackupStatus {
+  /// Pedido: el servicio de respaldos lo toma en unos segundos.
+  REQUESTED
+  RUNNING
+  /// Terminado, descifrado de vuelta y con el índice del volcado leído: el archivo sirve.
+  OK
+  FAILED
+}
+
 // ───────────────────────────── Negocios ─────────────────────────────
 
 model Tenant {
@@ -108,6 +135,7 @@ model Tenant {
   provisioningRuns ProvisioningRun[]
   subscriptions    Subscription[]
   payments         PlatformPayment[]
+  backups          TenantBackup[]
 
   @@index([status])
 }
@@ -127,6 +155,8 @@ model Plan {
   features    String[]
   /// Días de prueba de un negocio nuevo con este plan.
   trialDays   Int             @default(14)
+  /// Cuántos días se conservan los respaldos diarios de un negocio con este plan (7 a 3650; lo exige la base).
+  backupRetentionDays Int     @default(30)
   /// Un plan desactivado ya no se ofrece, pero los negocios que lo tienen lo conservan.
   isActive    Boolean         @default(true)
   sortOrder   Int             @default(0)
@@ -203,6 +233,50 @@ model PlatformPayment {
   createdAt            DateTime @default(now())
 
   @@index([tenantId, paidAt])
+}
+
+// ───────────────────────────── Respaldos (Etapa 5) ─────────────────────────────
+
+/// El registro de cada respaldo. Lo **escribe el servicio de respaldos** (que es quien tiene la clave y los archivos) y la
+/// aplicación lo **lee** para el panel; la aplicación solo agrega pedidos (`REQUESTED`). Un archivo borrado por la retención
+/// no borra su fila: queda con `prunedAt` como historial.
+model TenantBackup {
+  id String @id @default(cuid())
+
+  scope    BackupScope
+  /// Nulo solo en el respaldo de la base central.
+  tenantId String?
+  tenant   Tenant?     @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  /// La base que se respalda (nombre generado por el sistema, nunca escrito por una persona).
+  database String
+
+  trigger BackupTrigger
+  status  BackupStatus
+
+  /// `tenant-t_<id>-AAAAMMDDTHHMMSSZ.dump.enc` (solo el nombre; la carpeta es la del servicio de respaldos).
+  fileName      String?
+  bytes         Int?
+  /// SHA-256 del archivo cifrado: detecta que se dañó o cambió después.
+  checksum      String?
+  /// Cuándo se comprobó que el archivo se descifra y su índice se lee. Un respaldo `OK` siempre lo tiene.
+  verifiedAt    DateTime?
+  /// Última migración que traía la base respaldada: dice con qué versión hay que restaurarla.
+  schemaVersion String?
+  error         String?
+
+  requestedById       String?
+  requestedByUsername String?
+  requestedAt         DateTime  @default(now())
+  startedAt           DateTime?
+  finishedAt          DateTime?
+
+  /// Hasta cuándo se conserva el archivo (según el plan del negocio al respaldar) y cuándo se retiró.
+  keepUntil DateTime?
+  prunedAt  DateTime?
+
+  @@index([tenantId, requestedAt])
+  @@index([status, requestedAt])
+  @@index([scope, finishedAt])
 }
 
 /// Un intento de dar de alta un negocio: cada paso queda anotado para poder reintentar desde donde falló o deshacerlo.

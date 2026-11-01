@@ -53,6 +53,7 @@ export default async function PlatformReviewPage() {
           ) : null}
           <Section title={copy.sections.orphanDatabases} lines={report.orphanDatabases} />
           <Section title={copy.sections.orphanRoles} lines={report.orphanRoles} />
+          <Section title={copy.sections.replacedDatabases} lines={report.replacedDatabases} />
           <Section
             title={copy.sections.missingDatabases}
             lines={report.missingDatabases.map((item) => `${item.slug} (${item.database})`)}

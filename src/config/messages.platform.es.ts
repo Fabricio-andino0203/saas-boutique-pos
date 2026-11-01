@@ -34,6 +34,7 @@ export const platformMessages = {
     summary: "Resumen",
     tenants: "Negocios",
     plans: "Planes",
+    backups: "Respaldos",
     admins: "Administradores",
     audit: "Auditoría",
     account: "Mi cuenta",
@@ -241,6 +242,8 @@ export const platformMessages = {
       sections: {
         orphanDatabases: "Bases del servidor que ningún negocio reclama",
         orphanRoles: "Roles del servidor que ningún negocio reclama",
+        replacedDatabases:
+          "Bases apartadas por una restauración (no es un error: bórralas cuando ya no las necesites)",
         missingDatabases: "Negocios cuya base no está en el servidor",
         missingArchives: "Negocios archivados cuya base archivada no está",
         staleRuns: "Altas «en marcha» sin signos de vida (retómalas o deshazlas)",
@@ -364,6 +367,8 @@ export const platformMessages = {
       SUBSCRIPTION_PAST_DUE: "Una suscripción venció y entró en gracia",
       SUBSCRIPTION_READ_ONLY: "Una suscripción pasó a solo lectura",
       SUBSCRIPTION_CANCELLED: "Una suscripción se canceló por falta de pago",
+      BACKUP_REQUESTED: "Pidió un respaldo",
+      TENANT_RELINKED: "Terminó la restauración de un negocio (rol, permisos y versión)",
     },
   },
   account: {
@@ -456,6 +461,9 @@ export const platformMessages = {
         trialDays: "Días de prueba",
         trialHint:
           "Los negocios nuevos con este plan empiezan en prueba. Con 0 no hay prueba: quedan en gracia hasta que registres el primer pago.",
+        backupRetentionDays: "Días que se conservan los respaldos",
+        backupRetentionHint:
+          "De 7 a 3650. Los respaldos diarios de los negocios con este plan se borran pasado este tiempo; un negocio sin plan usa el valor del servidor (30 días).",
         limits: "Límites",
         limitsHint:
           "Déjalo vacío para «sin límite». Si un plan tiene menos tope que lo que ya usa un negocio, no se borra nada: solo se impide crear más. Cajas y sucursales se aplicarán cuando existan pantallas para crearlas.",
@@ -571,6 +579,7 @@ export const platformMessages = {
       limit: "Los límites son números enteros de cero o más (vacío = sin límite).",
       features: "Elige solo módulos que existen.",
       trialDays: "Los días de prueba van de 0 a 365.",
+      backupRetention: "Los días que se conservan los respaldos van de 7 a 3650.",
       sortOrder: "El orden es un número de 0 a 1000.",
       amount: "El monto del pago debe ser mayor que cero.",
       method: "Elige cómo se pagó.",
@@ -589,6 +598,81 @@ export const platformMessages = {
       samePlan: "El negocio ya tiene ese plan.",
       planNameTaken: "Ya existe un plan con ese nombre.",
       tenantNotBillable: "Ese negocio ya no está en servicio.",
+    },
+  },
+  /** Respaldos por negocio (Etapa 5). */
+  backups: {
+    title: "Respaldos",
+    description:
+      "Cada negocio se respalda por separado, con su propia llave y los días de conservación de su plan. El servicio de respaldos los hace a diario y a pedido.",
+    states: {
+      ok: "Al día",
+      stale: "Atrasado",
+      failed: "Falló",
+      never: "Sin respaldo",
+      pending: "Pendiente",
+    },
+    columns: {
+      tenant: "Negocio",
+      state: "Estado",
+      lastOk: "Último respaldo bueno",
+      retention: "Se conserva",
+      when: "Fecha",
+      kind: "Tipo",
+      size: "Tamaño",
+      file: "Archivo",
+      keepUntil: "Se conserva hasta",
+    },
+    attention: {
+      title: "Respaldos que piden atención",
+      empty: "Todos los respaldos están al día.",
+      control: "Base central de la plataforma",
+    },
+    control: "Base central de la plataforma",
+    controlHint:
+      "Guarda los negocios, planes, administradores y la auditoría. Sin la llave maestra (PLATFORM_MASTER_KEY) no sirve: guárdala fuera del servidor.",
+    never: "Nunca",
+    days: "{n} días",
+    daysServer: "{n} días (valor del servidor)",
+    open: "Hay uno pedido o en marcha",
+    empty: "Todavía no hay negocios con base de datos que respaldar.",
+    triggers: { SCHEDULED: "Diario", MANUAL: "A pedido", FINAL: "Final" },
+    statuses: {
+      REQUESTED: "Pedido",
+      RUNNING: "En marcha",
+      OK: "Bueno",
+      FAILED: "Falló",
+    },
+    pruned: "Retirado por la retención",
+    detail: {
+      title: "Respaldos",
+      empty: "Todavía no tiene respaldos.",
+      state: "Estado",
+      retention: "Se conservan",
+      requestNow: "Respaldar ahora",
+      requestHint:
+        "Pide un respaldo ahora. El servicio de respaldos lo hace en unos segundos; recarga la página para verlo.",
+      requested: "Pedido. El servicio de respaldos lo hace en unos segundos.",
+      relink: "Terminar la restauración",
+      relinkHint:
+        "Después de restaurar su base desde un respaldo: deja al día el rol del negocio, sus permisos y la versión de los datos, y comprueba que puede entrar.",
+      relinked:
+        "Listo: el negocio puede entrar a su base. Versión de datos {from} → {to}; vio {users} usuario(s). Falta revisar los libros con db:verify.",
+      restoreTitle: "Cómo restaurarlo",
+      restoreIntro:
+        "Restaurar vuelve a la fecha del respaldo: lo vendido después se pierde. Hazlo con el negocio suspendido.",
+      restoreSteps: [
+        "Suspende el negocio (arriba, en Acciones).",
+        "Restaura su base. La actual no se borra: queda guardada como z_replaced_…",
+        "Termina la restauración (botón de arriba, o pnpm tenants:relink).",
+        "Revisa que los libros cuadran.",
+        "Reactiva el negocio.",
+      ],
+      noUsable: "No hay un respaldo bueno y vigente: no hay de dónde restaurar.",
+    },
+    actions: {
+      confirmPassword: "Tu contraseña",
+      requestControl: "Respaldar la base central ahora",
     },
   },
   validation: {

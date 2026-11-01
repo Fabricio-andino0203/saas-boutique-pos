@@ -349,6 +349,23 @@ const STEPS: Record<ProvisionStepName, (context: StepContext) => Promise<void>> 
           });
         }
       }
+      // Su primer respaldo se pide al activarlo, sin esperar a la noche (el servicio de respaldos lo toma en segundos). Solo si
+      // todavía no tiene ninguno: este paso es repetible.
+      const hasBackup = await tx.tenantBackup.findFirst({
+        where: { tenantId: run.tenant.id },
+        select: { id: true },
+      });
+      if (!hasBackup) {
+        await tx.tenantBackup.create({
+          data: {
+            scope: "TENANT",
+            tenantId: run.tenant.id,
+            database,
+            trigger: "SCHEDULED",
+            status: "REQUESTED",
+          },
+        });
+      }
       // En la misma transacción que deja el negocio activo: no puede haber un negocio activo sin su registro.
       await recordPlatformAudit(tx, {
         action: "TENANT_PROVISIONED",

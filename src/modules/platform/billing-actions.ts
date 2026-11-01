@@ -4,8 +4,7 @@ import { platformMessages } from "@/config/messages.platform.es";
 import { endOfLocalDay, formatLocalDate, parseLocalDateKey } from "@/lib/dates";
 import { ValidationError } from "@/lib/errors";
 import { parseMoney } from "@/lib/format";
-import { getPlatformSession } from "@/lib/platform-auth";
-import { asFormState, countingFailures, requestContext } from "@/modules/platform/action-support";
+import { runAsAdmin } from "@/modules/platform/action-support";
 import {
   adjustSubscription,
   assignPlan,
@@ -16,14 +15,12 @@ import {
   updatePlan,
 } from "@/modules/platform/billing";
 import type { PlatformFormState } from "@/modules/platform/schemas";
-import { confirmActorPassword, type AdminContext } from "@/modules/platform/service";
 
 /**
  * Acciones del panel sobre planes, suscripciones y pagos. Todas piden de nuevo la contraseña de quien las hace y quedan en la
  * auditoría. Como el resto del panel, ninguna usa `redirect()` (ver `actions.ts`): devuelven `redirectTo`.
  */
 
-const LOGIN_PATH = "/login";
 const copy = platformMessages.billing;
 const validation = copy.validation;
 
@@ -57,29 +54,7 @@ function localDate(
   return end ? endOfLocalDay(day) : day;
 }
 
-/** Comprueba la sesión y la contraseña de quien actúa y ejecuta la operación con su contexto. */
-async function asAdmin(
-  formData: FormData,
-  run: (context: AdminContext) => Promise<PlatformFormState>,
-  values?: Record<string, string>,
-): Promise<PlatformFormState> {
-  const actorPassword = text(formData, "actorPassword");
-  if (!actorPassword) {
-    return { error: platformMessages.validation.required, ...(values ? { values } : {}) };
-  }
-  const session = await getPlatformSession();
-  if (!session) {
-    return { redirectTo: LOGIN_PATH };
-  }
-  const request = await requestContext();
-  const actor = { id: session.user.id, username: session.user.username };
-  return asFormState(async () => {
-    await countingFailures(request.ip, async () => {
-      await confirmActorPassword(actor.id, actorPassword, request);
-    });
-    return run({ actor, ip: request.ip });
-  }, values);
-}
+const asAdmin = runAsAdmin;
 
 // ───────────────────────────── Planes ─────────────────────────────
 
@@ -95,6 +70,7 @@ export async function savePlanAction(
     price: text(formData, "price"),
     interval: text(formData, "interval"),
     trialDays: text(formData, "trialDays"),
+    backupRetentionDays: text(formData, "backupRetentionDays"),
     sortOrder: text(formData, "sortOrder"),
     limitUsers: text(formData, "limitUsers"),
     limitProducts: text(formData, "limitProducts"),
@@ -124,6 +100,7 @@ export async function savePlanAction(
         },
         features: formData.getAll("features").map(String),
         trialDays: requiredInt(formData, "trialDays"),
+        backupRetentionDays: requiredInt(formData, "backupRetentionDays"),
         sortOrder: requiredInt(formData, "sortOrder"),
         isActive: formData.get("isActive") === "on",
       };

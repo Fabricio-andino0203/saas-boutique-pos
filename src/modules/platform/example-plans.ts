@@ -16,6 +16,7 @@ export const EXAMPLE_PLANS: readonly PlanInput[] = [
     limits: { users: 3, products: 500, terminals: null, locations: null },
     features: ["customers"],
     trialDays: 14,
+    backupRetentionDays: 30,
     sortOrder: 10,
   },
   {
@@ -26,6 +27,7 @@ export const EXAMPLE_PLANS: readonly PlanInput[] = [
     limits: { users: 8, products: 3000, terminals: null, locations: null },
     features: ["customers", "reports", "returns", "layaways", "labels"],
     trialDays: 14,
+    backupRetentionDays: 60,
     sortOrder: 20,
   },
   {
@@ -36,6 +38,7 @@ export const EXAMPLE_PLANS: readonly PlanInput[] = [
     limits: { users: null, products: null, terminals: null, locations: null },
     features: [...PLAN_FEATURES],
     trialDays: 14,
+    backupRetentionDays: 90,
     sortOrder: 30,
   },
 ];

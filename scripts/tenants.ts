@@ -21,6 +21,7 @@ import {
   type ProvisionOutcome,
 } from "../src/modules/platform/provisioning";
 import { reconcileTenants } from "../src/modules/platform/reconcile";
+import { relinkTenant } from "../src/modules/platform/restore";
 import { setTenantCanary } from "../src/modules/platform/tenants";
 import { flagValue, hasFlag, UsageError } from "./lib/tenant-run";
 
@@ -209,6 +210,10 @@ async function main(): Promise<void> {
       show("Bases del servidor que ningún negocio reclama", report.orphanDatabases);
       show("Roles del servidor que ningún negocio reclama", report.orphanRoles);
       show(
+        "Bases apartadas por una restauración (no es un error; bórralas cuando ya no las necesites)",
+        report.replacedDatabases,
+      );
+      show(
         "Negocios cuya base no está en el servidor",
         report.missingDatabases.map((item) => `${item.slug} (${item.database})`),
       );
@@ -229,6 +234,17 @@ async function main(): Promise<void> {
       } else {
         process.exitCode = 1;
       }
+      return;
+    }
+    case "relink": {
+      const report = await relinkTenant(requireArgument(argument, "relink"), context);
+      console.log(
+        `Reconectado: "${report.slug}" (${report.database}). ${report.roleManaged ? "Rol y permisos al día." : "Usa la cuenta principal del servidor."}`,
+      );
+      console.log(
+        `Versión de datos: ${report.schemaFrom ?? "sin versión"} → ${report.schemaTo}. Entró con su rol y vio ${report.usersVisible} usuario(s).`,
+      );
+      console.log(`Falta revisar los libros:  pnpm db:verify --tenant ${report.slug}`);
       return;
     }
     case "delete": {
@@ -262,7 +278,7 @@ async function main(): Promise<void> {
     }
     default:
       throw new UsageError(
-        "Uso: pnpm tenants:template | provision | resume <s> | undo <s> | migrate | canary <s> on|off | reconcile | delete <s> | cancel-delete <s> | archive <s>",
+        "Uso: pnpm tenants:template | provision | resume <s> | undo <s> | migrate | canary <s> on|off | reconcile | relink <s> | delete <s> | cancel-delete <s> | archive <s>",
       );
   }
 }

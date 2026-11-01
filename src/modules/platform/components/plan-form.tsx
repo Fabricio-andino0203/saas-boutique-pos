@@ -26,6 +26,7 @@ export type PlanFormDefaults = {
   price: string;
   interval: (typeof BILLING_INTERVALS)[number];
   trialDays: number;
+  backupRetentionDays: number;
   sortOrder: number;
   isActive: boolean;
   limits: Partial<Record<(typeof PLAN_LIMIT_KINDS)[number], number | null>>;
@@ -38,6 +39,7 @@ export const EMPTY_PLAN: PlanFormDefaults = {
   price: "",
   interval: "MONTHLY",
   trialDays: 14,
+  backupRetentionDays: 30,
   sortOrder: 0,
   isActive: true,
   limits: {},
@@ -112,6 +114,21 @@ export function PlanForm({ defaults = EMPTY_PLAN }: { defaults?: PlanFormDefault
           min={0}
           max={365}
           defaultValue={typed?.trialDays ?? defaults.trialDays}
+          required
+        />
+      </FormField>
+      <FormField
+        label={form.backupRetentionDays}
+        htmlFor="plan-backup-days"
+        hint={form.backupRetentionHint}
+      >
+        <Input
+          id="plan-backup-days"
+          name="backupRetentionDays"
+          type="number"
+          min={7}
+          max={3650}
+          defaultValue={typed?.backupRetentionDays ?? defaults.backupRetentionDays}
           required
         />
       </FormField>

@@ -24,9 +24,14 @@ const EXPECTS_DATABASE: TenantStatus[] = [
   "MIGRATION_FAILED",
 ];
 
+/** Prefijo de la base que una restauración deja apartada al poner el respaldo en su lugar. */
+export const REPLACED_PREFIX = "z_replaced_";
+
 export type ReconcileReport = {
   /** Bases `t_*` o `z_archived_*` del servidor que ningún negocio reclama. */
   orphanDatabases: string[];
+  /** Bases apartadas por una restauración: no son un error, solo hay que borrarlas cuando ya no se necesiten (borrado guiado). */
+  replacedDatabases: string[];
   /** Roles `t_*` del servidor que ningún negocio reclama. */
   orphanRoles: string[];
   /** Negocios que deberían tener base y no está en el servidor. */
@@ -85,7 +90,10 @@ export async function reconcileTenants(
   }
 
   const report: Omit<ReconcileReport, "ok"> = {
-    orphanDatabases: inventory.databases.filter((name) => !claimedDatabases.has(name)),
+    orphanDatabases: inventory.databases.filter(
+      (name) => !claimedDatabases.has(name) && !name.startsWith(REPLACED_PREFIX),
+    ),
+    replacedDatabases: inventory.databases.filter((name) => name.startsWith(REPLACED_PREFIX)),
     orphanRoles: inventory.roles.filter((name) => !claimedRoles.has(name)),
     missingDatabases: tenants
       .filter((tenant) => EXPECTS_DATABASE.includes(tenant.status) && tenant.dbName)
@@ -108,6 +116,9 @@ export async function reconcileTenants(
   };
   return {
     ...report,
-    ok: Object.values(report).every((list) => list.length === 0),
+    // Las bases apartadas por una restauración se muestran, pero no cuentan como algo que no cuadra.
+    ok: Object.entries(report).every(
+      ([key, list]) => key === "replacedDatabases" || list.length === 0,
+    ),
   };
 }

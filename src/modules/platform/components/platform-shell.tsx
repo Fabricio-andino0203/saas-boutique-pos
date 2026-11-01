@@ -1,5 +1,6 @@
 import {
   Building2,
+  DatabaseBackup,
   LayoutDashboard,
   Layers,
   ScrollText,
@@ -33,6 +34,7 @@ const navItems: readonly { href: string; label: string; icon: LucideIcon }[] = [
   { href: "/", label: copy.summary, icon: LayoutDashboard },
   { href: "/negocios", label: copy.tenants, icon: Building2 },
   { href: "/planes", label: copy.plans, icon: Layers },
+  { href: "/respaldos", label: copy.backups, icon: DatabaseBackup },
   { href: "/administradores", label: copy.admins, icon: ShieldCheck },
   { href: "/auditoria", label: copy.audit, icon: ScrollText },
 ];

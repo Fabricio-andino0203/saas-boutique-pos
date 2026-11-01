@@ -6,15 +6,21 @@ import { buttonVariants } from "@/components/ui/button";
 import { platformMessages } from "@/config/messages.platform.es";
 import { formatLocalDate, formatLocalDateTime } from "@/lib/dates";
 import { requirePlatformSession } from "@/lib/platform-auth";
+import { backupOverview } from "@/modules/platform/backups";
 import { billingOverview } from "@/modules/platform/billing";
 import { getPlatformSummary } from "@/modules/platform/queries";
 
 const copy = platformMessages.summary;
 const billing = platformMessages.billing;
+const backups = platformMessages.backups;
 
 export default async function PlatformSummaryPage() {
   const { user } = await requirePlatformSession();
-  const [summary, overview] = await Promise.all([getPlatformSummary(), billingOverview()]);
+  const [summary, overview, backupStatus] = await Promise.all([
+    getPlatformSummary(),
+    billingOverview(),
+    backupOverview(),
+  ]);
 
   return (
     <div className="space-y-8">
@@ -42,6 +48,42 @@ export default async function PlatformSummaryPage() {
           value={String(summary.vaultKeyVersion)}
           hint={`${copy.platform.twoFactor}: ${user.twoFactorEnabled ? copy.platform.ok : "—"}`}
         />
+      </section>
+
+      <section
+        className="space-y-3"
+        aria-labelledby="backup-attention-title"
+        data-testid="backup-attention"
+      >
+        <h2 id="backup-attention-title" className="text-lg font-semibold">
+          {backups.attention.title}
+        </h2>
+        {backupStatus.attention.length === 0 ? (
+          <p className="text-muted-foreground text-sm">{backups.attention.empty}</p>
+        ) : (
+          <ul className="border-divider divide-divider divide-y rounded-lg border">
+            {backupStatus.attention.map((item) => (
+              <li
+                key={item.slug ?? "control"}
+                className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm"
+              >
+                {item.slug ? (
+                  <Link
+                    href={`/negocios/${item.slug}`}
+                    className="text-primary font-medium underline"
+                  >
+                    {item.name}
+                  </Link>
+                ) : (
+                  <Link href="/respaldos" className="text-primary font-medium underline">
+                    {backups.attention.control}
+                  </Link>
+                )}
+                <span className="text-destructive">{backups.states[item.state]}</span>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
       <section
