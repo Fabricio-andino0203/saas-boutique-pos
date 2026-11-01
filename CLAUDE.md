@@ -59,9 +59,13 @@ pnpm db:reset       # reset + migrate + seed (solo local)
 pnpm admin:create-owner   # primer arranque de una instalación real: crea al propietario (sin usuarios de demo)
 pnpm job:expire-layaways  # tarea diaria: vence apartados con el plazo cumplido
 pnpm db:verify         # revisa que los libros cuadran (después de restaurar un respaldo; VERIFY_DATABASE=<base>)
-pnpm control:setup     # SaaS: crea y migra la base central de la plataforma (ver docs/SAAS_ETAPA_1.md)
+pnpm control:setup     # SaaS: crea (si falta) y migra la base central de la plataforma (ver docs/SAAS_ETAPA_1.md)
 pnpm platform:create-admin | platform:reset-2fa | platform:unlock | platform:gen-key | platform:rotate-key   # SaaS: superadministradores y llave maestra
-pnpm test:e2e:platform # SaaS: pruebas de navegador del panel de la plataforma (base central de pruebas)
+pnpm platform:adopt-store --slug <subdominio> --name "<negocio>"   # SaaS: registra la tienda en uso (DATABASE_URL) como el negocio #1, sin tocar sus datos (docs/SAAS_ETAPA_2.md)
+pnpm platform:suspend <subdominio> | platform:reactivate <subdominio> | platform:tenants   # SaaS: estado de los negocios
+pnpm job:expire-layaways --all     # con TENANCY_MODE=multi: recorre todos los negocios (los demás comandos de negocio llevan --tenant <subdominio>)
+pnpm test:e2e:platform # SaaS: pruebas de navegador del panel y de dos negocios por subdominio (base central de pruebas)
+E2E_TENANCY=multi pnpm test:e2e   # SaaS: las mismas pruebas de la tienda, con la tienda como negocio #1 en tienda.localhost
 ```
 
 Antes de dar una tarea por terminada deben pasar: `lint`, `typecheck` y `test`.
@@ -140,7 +144,7 @@ Estas reglas existen porque un error aquí descuadra caja o inventario. Si una t
 | `docs/RUNBOOK.md` | Operar el servidor: instalar, actualizar, respaldar, restaurar, incidentes |
 | `docs/manual/` | Manuales de uso por rol (cajero en 1 página, gerente, propietario, almacén) |
 | `docs/CAPACITACION.md` · `docs/UX_FEEDBACK.md` | Capacitación de 10 minutos y registro de fricciones de uso |
-| `docs/SAAS_PROPUESTA.md` · `docs/SAAS_ETAPA_0.md` · `docs/SAAS_ETAPA_1.md` | Iniciativa SaaS multi-negocio (rama de la plataforma): propuesta aprobada por etapas e informes de cada etapa |
+| `docs/SAAS_PROPUESTA.md` · `docs/SAAS_ETAPA_0.md` · `docs/SAAS_ETAPA_1.md` · `docs/SAAS_ETAPA_2.md` | Iniciativa SaaS multi-negocio (rama de la plataforma): propuesta aprobada por etapas e informes de cada etapa |
 
 ## 11. Build de la Fase 0
 

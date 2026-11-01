@@ -80,9 +80,9 @@ Las pruebas de la Etapa 0 se corren con `pnpm exec vitest run tests/integration/
 
 ## 7. Pendiente para las etapas siguientes (no bloquea)
 
-- `TENANCY_MODE` y `TENANT_POC_DIRECTORY` pasan a `src/lib/env.ts` con validación (Etapa 2).
-- Clave del limitador de intentos y registro (`logger`) con el id del negocio (Etapa 2).
-- Los scripts (`create-owner`, `db:verify`, `job:expire-layaways`…) reciben `--tenant` (Etapa 2/3).
+- ~~`TENANCY_MODE` y `TENANT_POC_DIRECTORY` pasan a `src/lib/env.ts` con validación~~ — hecho en la Etapa 2 (`TENANT_POC_DIRECTORY` desapareció: el directorio es la tabla `Tenant`).
+- ~~Clave del limitador de intentos y registro (`logger`) con el id del negocio~~ — hecho en la Etapa 2.
+- ~~Los scripts (`create-owner`, `db:verify`, `job:expire-layaways`…) reciben `--tenant`~~ — hecho en la Etapa 2.
 - Dos páginas (`vender`, `apartados/[id]`) importan `db` directamente; se corrigen al tocarlas.
 - `next dev` con `*.localhost` puede requerir `allowedDevOrigins` (la prueba se hizo con `next start`).
 - Credenciales por negocio cifradas con llave maestra en la base central (Etapa 1); hoy la URL viaja en el directorio de la prueba.

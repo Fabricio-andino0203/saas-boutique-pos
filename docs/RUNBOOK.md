@@ -212,13 +212,13 @@ Modo sin internet, impresión directa ESC/POS con apertura de cajón, varias suc
 
 ## 12. Plataforma SaaS: superadministradores (Etapa 1)
 
-> Solo aplica a la rama de la plataforma (`docs/SAAS_PROPUESTA.md`). Una instalación de una sola tienda no usa nada de esto.
+> Solo aplica a la rama de la plataforma (`docs/SAAS_PROPUESTA.md`). Una instalación de una sola tienda no usa nada de esto. Poner los negocios detrás de sus propias direcciones está en §13.
 
 El panel de la plataforma vive en su propia dirección (`PLATFORM_HOST`, p. ej. `admin.tuplataforma.com`), con su propia base de datos (`CONTROL_DATABASE_URL`) y requiere `TENANCY_MODE=multi`. Todas las personas que entran son **superadministradores** con contraseña de 12 caracteres o más y verificación en dos pasos (aplicación de autenticación).
 
 | Tarea | Comando (en el servidor) | Notas |
 | --- | --- | --- |
-| Crear la base central y migrarla | `pnpm control:setup` | En producción la base la crea Postgres; el comando solo migra. |
+| Crear la base central y migrarla | `pnpm control:setup` | La crea si no existe y la migra; es repetible. El arranque del contenedor lo hace solo en modo `multi` (§13). |
 | Generar la llave maestra | `pnpm platform:gen-key` | Imprime la llave. Guardarla en `PLATFORM_MASTER_KEY` **y en un segundo lugar fuera del servidor**. |
 | Crear el primer superadministrador | `pnpm platform:create-admin` | Pide nombre, usuario y contraseña temporal. En su primer acceso configura la aplicación de autenticación. |
 | Perdió el teléfono | `pnpm platform:reset-2fa <usuario>` | Cierra sus sesiones; configurará una aplicación nueva al entrar. También se puede desde el panel (Administradores). |
@@ -233,6 +233,75 @@ El panel de la plataforma vive en su propia dirección (`PLATFORM_HOST`, p. ej. 
 
 **Si se pierde la llave maestra:** los secretos cifrados no se pueden recuperar. Los superadministradores restablecen su verificación con `platform:reset-2fa`; las credenciales de las bases de los negocios se vuelven a generar rotando el rol de cada base (procedimiento de la Etapa 3).
 
-**Respaldo de la base central:** hasta la Etapa 5 (respaldos por negocio) se respalda a mano: `pg_dump -Fc` de `CONTROL_DATABASE_URL`, cifrado y guardado fuera del servidor junto con (por separado) la llave maestra.
+**Respaldo de la base central:** con `TENANCY_MODE=multi` el servicio `backup` la respalda cada día junto con la tienda (`control-*.dump.enc`, ver §13). Guarda **por separado** la llave maestra: sin ella los secretos de ese respaldo no se abren.
 
 **Auditoría:** todo lo que se hace en el panel queda en *Auditoría* y no se puede editar ni borrar (la base lo impide). Nunca contiene contraseñas, códigos ni secretos.
+
+## 13. Plataforma SaaS: varios negocios en producción (Etapa 2)
+
+> Solo aplica si activas `TENANCY_MODE=multi`. Una instalación de una sola tienda sigue funcionando exactamente igual (`TENANCY_MODE=single`, que es el valor por omisión) y no necesita nada de esta sección. Diseño y pruebas: `docs/SAAS_ETAPA_2.md`.
+
+### Cómo se reparte el tráfico
+
+- El panel de la plataforma vive en `PLATFORM_HOST` (p. ej. `admin.tuplataforma.com`).
+- Cada negocio vive en **`<subdominio>.<TENANT_BASE_DOMAIN>`** (p. ej. `tienda.tuplataforma.com`). El servidor decide de qué negocio es una petición **solo** por el nombre con que lo llamaron; nada que mande el navegador puede cambiarlo.
+- Cualquier otro nombre responde `404` sin tocar ninguna base de datos.
+- El estado de cada negocio decide qué muestra su dirección:
+
+| Estado | Qué ve quien entra |
+| --- | --- |
+| `ACTIVE` | El sistema, con la base de ese negocio. |
+| `SUSPENDED`, `PENDING_DELETION` | «Cuenta suspendida» (HTTP 403) en **todas** las pantallas. Sus datos no se tocan. |
+| `PROVISIONING`, `FAILED`, `DELETED` | `404`, como si no existiera. |
+
+`pnpm platform:suspend <subdominio>` / `pnpm platform:reactivate <subdominio>` cambian el estado (quedan en la auditoría). El cambio se nota en segundos: el servidor recuerda qué negocio es cada nombre durante `TENANT_DIRECTORY_TTL_MS` (20 000 ms por omisión).
+
+### Requisitos antes de activarlo
+
+1. **DNS:** un registro para el panel y uno **comodín** `*.tuplataforma.com` hacia este servidor.
+2. **Puertos** 80 y 443 abiertos (Caddy pide los certificados por el puerto 80).
+3. **Llave maestra** de la plataforma (`pnpm platform:gen-key`), guardada en `.env.production` **y en otro lugar fuera del servidor**.
+4. Un **respaldo reciente de la tienda con la restauración ensayada** (§6A).
+
+### Pasar una tienda que ya funciona a este modo
+
+1. En `.env.production` (ver `.env.production.example`, sección «Varios negocios»): `TENANCY_MODE=multi`, `PLATFORM_HOST`, `TENANT_BASE_DOMAIN`, `PLATFORM_MASTER_KEY`, `CADDYFILE=./Caddyfile.multi`, y `DOMAIN` y `APP_URL` con el dominio del **panel**.
+2. `dc up -d --build`. Al arrancar, el contenedor crea y migra la base central solo (`control_migrate.start/done` en el registro) y después migra la tienda como siempre.
+3. Crear a quien administra la plataforma: `dc exec app pnpm platform:create-admin` (debe entrar de inmediato a configurar su verificación en dos pasos).
+4. Registrar la tienda actual como el **negocio #1**, sin mover sus datos:
+   ```bash
+   dc exec app pnpm platform:adopt-store --slug tienda --name "Nombre de la boutique"
+   ```
+   Desde ese momento se atiende en `tienda.<TENANT_BASE_DOMAIN>`.
+5. **Avisar al personal de la nueva dirección.** Las sesiones abiertas en la dirección anterior no pasan a la nueva (otro nombre = otra cookie): todos entran otra vez. La dirección anterior deja de responder; si quieres que redirija, añade en `Caddyfile.multi` un bloque `direccion-anterior.com { redir https://tienda.tuplataforma.com{uri} permanent }`.
+6. Comprobar: `https://tienda.<dominio>/login` abre la entrada, `https://admin.<dominio>` el panel (sección **Negocios**) y `dc ps` muestra la app y los respaldos como `healthy`.
+
+**Volver atrás:** `TENANCY_MODE=single`, `DOMAIN` y `APP_URL` anteriores y quitar `CADDYFILE`; `dc up -d`. Los datos de la tienda nunca se movieron.
+
+### Tareas y comandos con varios negocios
+
+Los comandos de línea de comandos trabajan para **un** negocio; sin indicarlo se niegan (no hay una base «por defecto»):
+
+| Tarea | Comando |
+| --- | --- |
+| Crear al propietario de un negocio | `pnpm admin:create-owner --tenant <subdominio>` |
+| Vencer apartados de **todos** los negocios (cron diario) | `pnpm job:expire-layaways --all` |
+| Vencer apartados de uno | `pnpm job:expire-layaways --tenant <subdominio>` |
+| Conciliar inventario / verificar libros de uno | `pnpm db:reconcile --tenant <subdominio>` · `pnpm db:verify --tenant <subdominio>` |
+| Ver los negocios registrados | `pnpm platform:tenants` |
+
+Con una sola tienda, los mismos comandos no llevan nada extra.
+
+### Si algo falla
+
+- **La base central no responde:** los negocios que ya se atendieron en los últimos minutos **siguen funcionando** (hasta 10 minutos después de vencida su caché); los demás responden «Servicio no disponible» (503) y el registro dice `tenant.directory_unavailable`. La prueba de salud de Docker (`127.0.0.1`) responde por el estado de la plataforma y falla, así que `docker compose ps` lo muestra.
+- **«No se pudo descifrar la credencial»** en el registro (`TenantDirectoryError`): la llave maestra del servidor no es la que cifró esa credencial. Restaura la llave correcta (§12); no sirve de nada reintentar.
+- **Certificado de un negocio nuevo:** Caddy lo pide la primera vez que alguien entra, solo si la app confirma que el nombre existe. Un nombre inventado no obtiene certificado. Si hay muchas altas en pocos días y Let's Encrypt limita la emisión, usa un certificado comodín por reto DNS: construye Caddy con el módulo de tu proveedor de DNS (`xcaddy build --with github.com/caddy-dns/<proveedor>`) y cambia el bloque de los negocios por `*.tuplataforma.com { tls { dns <proveedor> <token> } import app }`. (Esta alternativa no se ensayó en esta etapa; el certificado bajo demanda sí, con la autoridad interna de Caddy.)
+
+### Respaldos
+
+El servicio `backup` respalda **también la base central** (`control-AAAAMMDDTHHMMSSZ.dump.enc`, cifrada y comprobada igual que la de la tienda) y su indicador de salud exige los dos. Se restaura con el mismo `restore.sh` (§6). La base central **no sirve sin la llave maestra**, que no está en ningún respaldo a propósito.
+
+### Lo que todavía no hace esta etapa
+
+El alta automática de negocios nuevos, la migración de todas las bases y el borrado controlado llegan en la Etapa 3; planes, vencimientos y límites en la Etapa 4; respaldos individuales por negocio en la Etapa 5. El negocio #1 se conecta con la cuenta principal de Postgres tal como lo hacía la tienda; los negocios nuevos tendrán un rol propio con permisos solo de datos.
