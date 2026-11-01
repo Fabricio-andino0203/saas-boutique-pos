@@ -378,3 +378,68 @@ El respaldo diario (§5) recorre **todas las bases `t_<id>` que existen en el se
 - Cada rol de negocio tiene `CONNECTION LIMIT 10` y `statement_timeout 60 s`: un negocio no puede acaparar el servidor. Cada proceso de la app abre un pool pequeño por negocio y cierra los que llevan 5 minutos sin uso (tope de 50 abiertos a la vez).
 - La prueba de capacidad dio de alta 20 negocios (5 a la vez) sin problema; para cientos de negocios hay que vigilar `max_connections` de Postgres (Etapa 6).
 - Todo lo que se hace queda en **Auditoría** (altas, fallos, retomadas, deshechas, migraciones fallidas, bajas, archivados), sin contraseñas ni secretos.
+
+## 15. Plataforma SaaS: planes, suscripciones y cobros (Etapa 4)
+
+> Solo aplica con `TENANCY_MODE=multi` (§13). Diseño, pruebas y límites: `docs/SAAS_ETAPA_4.md`. Los comandos corren dentro del contenedor (`dc exec app pnpm …`) y todo lo que hacen queda en la auditoría de la plataforma; el panel hace lo mismo con tu contraseña de confirmación.
+
+### Una vez: la tarea diaria
+
+El barrido anota quién entró en gracia, en solo lectura o se canceló, deja la auditoría y pide la baja de los cancelados. **El acceso de cada negocio no depende de él** (se calcula con la hora en cada petición), pero sin barrido el panel y la auditoría se quedan viejos y los cancelados no entran en retención. Se corre solo al arrancar el contenedor; además, una vez al día, junto al de apartados (§5):
+
+```cron
+10 3 * * * cd /opt/boutique-pos && docker compose --env-file .env.production -f docker-compose.prod.yml exec -T app pnpm billing:sweep >> /var/log/boutique-cobros.log 2>&1
+```
+
+Es repetible: correrlo dos veces no hace nada la segunda. Un barrido que falla no detiene nada (`billing_sweep.failed` en el arranque): corrígelo y vuelve a correrlo.
+
+### Crear los planes
+
+Panel → **Planes → Nuevo plan** (nombre, precio, cada cuánto se cobra, días de prueba, límites y módulos), o `dc exec app pnpm billing:seed-plans` para empezar con **Básico, Estándar y Completo** (precios de ejemplo: ajústalos). Editar un plan lo cambia para todos los negocios que lo tienen, **salvo el precio ya acordado**, que está copiado en cada suscripción. Un plan no se borra: se **desactiva** (deja de poder asignarse; quien ya lo tiene lo conserva).
+
+- **Límites:** usuarios activos y productos no archivados. Vacío = sin límite. Un negocio por encima del tope (porque bajó de plan) **conserva todo**; solo no puede agregar más.
+- **Módulos:** reportes y exportaciones, apartados, devoluciones y cambios, compras y proveedores, conteos físicos, etiquetas, clientes y crédito, facturación con CAI. Vender, cobrar, caja, inventario y catálogo van siempre.
+
+### Darle plan a un negocio
+
+- **Un negocio nuevo:** en **Registrar un negocio** elige el plan (arranca en prueba) o, desde el servidor, `pnpm tenants:provision … --plan "Estándar"`.
+- **Uno que ya existe sin plan** (la tienda #1, por ejemplo): **Negocios → (negocio) → Suscripción → Asignar plan**, o `pnpm billing:assign <subdominio> --plan "Estándar" --reason "Alta" [--paid] [--until AAAA-MM-DD]`. En prueba por omisión; con `--paid` queda vigente un periodo (o hasta la fecha indicada).
+- **Un negocio sin plan no tiene ninguna restricción ni paga**: la lista de negocios lo muestra como «Sin plan». No dejes ninguno así por olvido.
+
+### Cobrar
+
+Cuando el negocio te pague, **Registrar pago** (monto, método, referencia, periodos que cubre) o `pnpm billing:pay <subdominio> --amount 900.00 --method TRANSFER --reference "TR-123"`. El vencimiento se extiende desde el fin del periodo si todavía no vence, o desde hoy si ya venció. **El negocio vuelve a trabajar en segundos**, sin perder nada; si el sistema había pedido su baja por falta de pago, la cancela (una baja pedida por una persona no se toca).
+
+Un pago **no se puede editar ni borrar** (la base lo impide). Si registraste uno mal, el pago equivocado queda en el historial y lo corriges con **Ajustar vencimiento** (con el motivo), que también queda en la auditoría.
+
+### Qué ve el negocio en cada estado
+
+| Estado | Cuándo | Qué pasa |
+| --- | --- | --- |
+| Al corriente | hasta el vencimiento | Todo funciona. Los últimos 7 días (o de la prueba) la franja avisa «vence el…». |
+| **En gracia** | hasta 7 días después | Todo funciona; franja amarilla «venció el…, todo sigue hasta el…». |
+| **Solo lectura** | hasta 60 días más | Pueden entrar, consultar y exportar; **no registrar nada nuevo** (ventas, inventario, usuarios, catálogo…). Franja roja. |
+| **Cancelada** | después | «Suscripción vencida»: nadie entra. El sistema pide la baja (30 días de retención, cancelable); sus datos siguen intactos. |
+
+Los plazos se ajustan por negocio en **Ajustar vencimiento** (días de gracia 0–90, de solo lectura 0–365, y el vencimiento mismo, con el motivo).
+
+### Cambiar de plan
+
+**Cambiar plan → Ahora** conserva las fechas pagadas y estrena límites y módulos de inmediato; **En la próxima renovación** lo programa y el siguiente pago lo aplica (y cobra el precio nuevo). No se pierde ningún dato. El historial de planes queda en la página del negocio.
+
+### Si algo no cuadra
+
+| Síntoma | Qué mirar |
+| --- | --- |
+| El negocio no nota el cambio de plan o el pago | El directorio guarda 20 s los datos de cada negocio. Con una sola instancia se invalida al instante desde el panel; con varias puede tardar hasta 20 s. |
+| «No incluido en tu plan» en algo que sí debería | Panel → Planes → editar: ¿está marcado el módulo? Cada pantalla pertenece a un módulo (`src/config/plan-catalog.ts`). |
+| Un negocio cancelado que ya pagó sigue sin entrar | Revisa su suscripción: el pago debe haber cubierto una fecha futura. Si la baja la pidió una persona (no el barrido), cancélala en **Cancelar baja**. |
+| `pnpm billing:sweep` falla | Es solo la base central: revisa `CONTROL_DATABASE_URL`. El acceso de los negocios no se ve afectado. |
+| Un negocio paga y sigue en solo lectura | Mira su vencimiento en la página del negocio (hora de Honduras): un pago que solo cubre hasta una fecha ya pasada no lo levanta. |
+
+### Límites a tener presentes
+
+- Los avisos son la franja dentro de la tienda y la lista del panel: **el sistema no envía correos ni mensajes de cobro**.
+- El cobro es manual; no hay pasarela. La facturación de la propia plataforma (facturas a tus clientes) queda fuera.
+- El tope de **cajas y sucursales** existe en el plan pero no se aplica todavía (no hay pantalla para crearlas).
+- En solo lectura, `db` corta las escrituras de las tablas del negocio; no vigila SQL crudo de lectura (`$queryRaw`), que la aplicación usa solo para leer y para candados dentro de transacciones.
