@@ -5,6 +5,7 @@ import {
   listDatabaseNames,
   listManagedResources,
 } from "@/lib/tenancy/provision-steps";
+import { REPLACED_PREFIX } from "@/modules/platform/retired";
 import {
   DEFAULT_STALE_AFTER_MS,
   provisioningConfig,
@@ -23,9 +24,6 @@ const EXPECTS_DATABASE: TenantStatus[] = [
   "PENDING_DELETION",
   "MIGRATION_FAILED",
 ];
-
-/** Prefijo de la base que una restauración deja apartada al poner el respaldo en su lugar. */
-export const REPLACED_PREFIX = "z_replaced_";
 
 export type ReconcileReport = {
   /** Bases `t_*` o `z_archived_*` del servidor que ningún negocio reclama. */
@@ -62,6 +60,7 @@ export async function reconcileTenants(
         dbName: true,
         dbRole: true,
         archivedDbName: true,
+        archivedDroppedAt: true,
         schemaVersion: true,
       },
     }),
@@ -100,7 +99,10 @@ export async function reconcileTenants(
       .filter((tenant) => !present.has(tenant.dbName as string))
       .map((tenant) => ({ slug: tenant.slug, database: tenant.dbName as string })),
     missingArchives: tenants
-      .filter((tenant) => tenant.status === "DELETED" && tenant.archivedDbName)
+      .filter(
+        (tenant) =>
+          tenant.status === "DELETED" && tenant.archivedDbName && tenant.archivedDroppedAt === null,
+      )
       .filter((tenant) => !present.has(tenant.archivedDbName as string))
       .map((tenant) => ({ slug: tenant.slug, database: tenant.archivedDbName as string })),
     staleRuns: runs.map((run) => ({

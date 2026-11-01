@@ -15,6 +15,7 @@ import { formatLocalDateTime } from "@/lib/dates";
 import { requirePlatformSession } from "@/lib/platform-auth";
 import { backupOverview, type BackupState } from "@/modules/platform/backups";
 import { RequestControlBackupForm } from "@/modules/platform/components/backup-forms";
+import { RetiredDatabases } from "@/modules/platform/components/retired-databases";
 
 const copy = platformMessages.backups;
 
@@ -105,6 +106,8 @@ export default async function PlatformBackupsPage() {
       <div className="max-w-3xl">
         <RequestControlBackupForm />
       </div>
+
+      <RetiredDatabases />
     </div>
   );
 }

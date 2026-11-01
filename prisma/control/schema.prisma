@@ -128,6 +128,8 @@ model Tenant {
   statusBeforeDeletion TenantStatus?
   archivedAt           DateTime?
   archivedDbName       String?  @unique
+  /// Cuándo se borró de verdad la base archivada (siempre después de un volcado final comprobado).
+  archivedDroppedAt    DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -136,6 +138,7 @@ model Tenant {
   subscriptions    Subscription[]
   payments         PlatformPayment[]
   backups          TenantBackup[]
+  usageSnapshots   TenantUsageSnapshot[]
 
   @@index([status])
 }
@@ -309,6 +312,29 @@ model ProvisioningRun {
 
   @@index([tenantId, startedAt])
   @@index([status])
+}
+
+// ───────────────────────────── Uso por negocio (Etapa 5) ─────────────────────────────
+
+/// Una foto del uso de un negocio. **Solo números y fechas de una lista blanca** (ver src/modules/platform/usage.ts): el panel
+/// puede saber cuántas ventas tuvo un negocio, pero nunca qué vendió, a quién ni por cuánto. Se toma a diario.
+model TenantUsageSnapshot {
+  id       String @id @default(cuid())
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  takenAt  DateTime @default(now())
+
+  activeUsers   Int
+  products      Int
+  /// Ventas cerradas (no anuladas) en los últimos 30 días.
+  sales30d      Int
+  lastSaleAt    DateTime?
+  lastLoginAt   DateTime?
+  /// Tamaño de su base, en megabytes.
+  databaseMb    Int
+  schemaVersion String?
+
+  @@index([tenantId, takenAt])
 }
 
 // ───────────────────────────── Superadministradores ─────────────────────────────

@@ -11,6 +11,11 @@ import {
   type BackupState,
 } from "../src/modules/platform/backups";
 import { controlDb } from "../src/lib/tenancy/control-db";
+import {
+  dropRetiredDatabase,
+  listRetiredDatabases,
+  requestFinalDump,
+} from "../src/modules/platform/retired";
 import { flagValue, hasFlag, UsageError } from "./lib/tenant-run";
 
 /**
@@ -91,14 +96,54 @@ async function main(): Promise<void> {
       );
       return;
     }
+    case "retired": {
+      const rows = await listRetiredDatabases();
+      if (rows.length === 0) {
+        console.log("No hay bases apartadas.");
+        return;
+      }
+      for (const row of rows) {
+        const dump =
+          row.finalDump.state === "ok"
+            ? `volcado listo (${row.finalDump.fileName})`
+            : `volcado: ${row.finalDump.state}`;
+        console.log(
+          `${row.database.padEnd(48)} ${row.kind.padEnd(9)} ${(row.slug ?? "—").padEnd(20)} ${dump}`,
+        );
+      }
+      return;
+    }
+    case "final": {
+      const database = requireArgument(argument, "final");
+      await requestFinalDump(database, context);
+      console.log(
+        `Pedido el volcado final de "${database}": el servicio de respaldos lo hace en unos segundos.`,
+      );
+      return;
+    }
+    case "drop": {
+      const database = requireArgument(argument, "drop");
+      const { dumpFile } = await dropRetiredDatabase(
+        { database, confirm: flagValue("confirm") ?? "" },
+        context,
+      );
+      console.log(`Borrada: "${database}". Su volcado final se conserva: ${dumpFile}`);
+      return;
+    }
     default:
-      throw new UsageError("Uso: pnpm backups:status | list <s> | request <s>|--control");
+      throw new UsageError(
+        "Uso: pnpm backups:status | list <s> | request <s>|--control | retired | final <base> | drop <base> --confirm <base>",
+      );
   }
 }
 
 function requireArgument(value: string | undefined, command: string): string {
   if (!value || value.startsWith("--")) {
-    throw new UsageError(`Uso: pnpm backups:${command} <subdominio>`);
+    throw new UsageError(
+      command === "final" || command === "drop"
+        ? `Uso: pnpm backups:${command} <base>`
+        : `Uso: pnpm backups:${command} <subdominio>`,
+    );
   }
   return value;
 }

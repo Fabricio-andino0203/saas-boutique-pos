@@ -3,7 +3,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { messages } from "../../src/config/messages.es";
 import { platformMessages } from "../../src/config/messages.platform.es";
 import { totpCode, totpStep } from "../../src/lib/totp";
-import { E2E_PASSWORD as PASSWORD, PLATFORM_E2E_PORT, TENANTS } from "./constants";
+import { E2E_PASSWORD as PASSWORD, PLATFORM_E2E_PORT, RETIRED, TENANTS } from "./constants";
 
 const copy = platformMessages;
 // `global-setup.ts` da de alta al administrador en otro proceso (el cliente de Prisma no carga dentro de Playwright).
@@ -405,9 +405,10 @@ test.describe.serial("recorrido completo del superadministrador", () => {
 
     // El Resumen lista lo que falló (el negocio B tiene un respaldo fallido de hace dos horas) y no al negocio A, que es nuevo.
     await page.goto("/");
-    const attention = page.getByTestId("backup-attention");
-    await expect(attention).toContainText(TENANTS.b.name);
-    await expect(attention).toContainText(backups.states.failed);
+    const attention = page.getByTestId("platform-alerts");
+    await expect(attention).toContainText(
+      copy.alerts.messages.backup_failed.replace("{who}", TENANTS.b.name),
+    );
     await expect(attention).not.toContainText(TENANTS.a.name);
 
     // La lista de todos los negocios, con su estado.
@@ -463,9 +464,68 @@ test.describe.serial("recorrido completo del superadministrador", () => {
     await page.getByTestId("restore-guide").locator("summary").click();
     await expect(page.getByTestId("restore-guide")).toContainText(backups.detail.noUsable);
 
+    // El uso del negocio: solo números. Antes de la primera foto no hay nada; al pedirla aparecen las cuentas.
+    await page.goto(`/negocios/${TENANTS.a.slug}`);
+    await expect(page.getByTestId("usage-none")).toBeVisible();
+    const usageId = `usage-refresh-${TENANTS.a.slug}`;
+    await page.getByTestId(usageId).locator("summary").click();
+    await page.locator(`#${usageId}-password`).fill(PASSWORD);
+    await page
+      .getByTestId(usageId)
+      .locator("form")
+      .getByRole("button", { name: copy.usage.refresh })
+      .click();
+    await expect(page.getByText(copy.usage.refreshed)).toBeVisible();
+    await expect(page.getByTestId("usage-users")).toContainText("1");
+    await expect(page.getByTestId("usage-none")).toHaveCount(0);
+
+    // Bases apartadas: una sin volcado final (se pide) y otra con el volcado ya hecho (se borra, escribiendo su nombre).
+    await page.goto("/respaldos");
+    const retired = backups.retired;
+    const pending = page.getByTestId(`retired-row-${RETIRED.pending.database}`);
+    await expect(pending.getByTestId("final-dump-state")).toHaveAttribute("data-state", "none");
+    const dumpId = `final-dump-${RETIRED.pending.database}`;
+    await pending.getByTestId(dumpId).locator("summary").click();
+    await page.locator(`#${dumpId}-password`).fill(PASSWORD);
+    await pending
+      .getByTestId(dumpId)
+      .locator("form")
+      .getByRole("button", { name: retired.requestDump })
+      .click();
+    await expect(pending.getByTestId("final-dump-state")).toHaveAttribute("data-state", "open");
+    // Mientras el volcado está pedido no se ofrece borrar ni pedir otro.
+    await expect(pending.getByTestId(`drop-${RETIRED.pending.database}`)).toHaveCount(0);
+
+    const dumped = page.getByTestId(`retired-row-${RETIRED.dumped.database}`);
+    await expect(dumped.getByTestId("final-dump-state")).toHaveAttribute("data-state", "ok");
+    const dropId = `drop-${RETIRED.dumped.database}`;
+    await dumped.getByTestId(dropId).locator("summary").click();
+    await page.locator(`#${dropId}-confirm`).fill("otra-base");
+    await page.locator(`#${dropId}-password`).fill(PASSWORD);
+    await dumped
+      .getByTestId(dropId)
+      .locator("form")
+      .getByRole("button", { name: retired.drop })
+      .click();
+    await expect(alertWith(page, "escribe el nombre de la base tal cual")).toBeVisible();
+    await expect(dumped).toBeVisible(); // escribir mal el nombre no borra nada
+    await page.locator(`#${dropId}-confirm`).fill(RETIRED.dumped.database);
+    await page.locator(`#${dropId}-password`).fill(PASSWORD);
+    await dumped
+      .getByTestId(dropId)
+      .locator("form")
+      .getByRole("button", { name: retired.drop })
+      .click();
+    await expect(page.getByTestId(`retired-row-${RETIRED.dumped.database}`)).toHaveCount(0);
+
     // Todo quedó en la auditoría.
     await page.goto("/auditoria");
-    for (const action of ["BACKUP_REQUESTED", "TENANT_RELINKED"] as const) {
+    for (const action of [
+      "BACKUP_REQUESTED",
+      "TENANT_RELINKED",
+      "USAGE_REFRESHED",
+      "ARCHIVED_DATABASE_DROPPED",
+    ] as const) {
       await expect(
         page.getByRole("cell", { name: copy.audit.actions[action] }).first(),
       ).toBeVisible();

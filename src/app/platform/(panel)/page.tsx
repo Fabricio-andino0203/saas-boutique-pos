@@ -6,20 +6,21 @@ import { buttonVariants } from "@/components/ui/button";
 import { platformMessages } from "@/config/messages.platform.es";
 import { formatLocalDate, formatLocalDateTime } from "@/lib/dates";
 import { requirePlatformSession } from "@/lib/platform-auth";
-import { backupOverview } from "@/modules/platform/backups";
+import { describeAlert } from "@/modules/platform/alert-text";
+import { collectAlerts } from "@/modules/platform/alerts";
 import { billingOverview } from "@/modules/platform/billing";
 import { getPlatformSummary } from "@/modules/platform/queries";
 
 const copy = platformMessages.summary;
 const billing = platformMessages.billing;
-const backups = platformMessages.backups;
+const alertsCopy = platformMessages.alerts;
 
 export default async function PlatformSummaryPage() {
   const { user } = await requirePlatformSession();
-  const [summary, overview, backupStatus] = await Promise.all([
+  const [summary, overview, alerts] = await Promise.all([
     getPlatformSummary(),
     billingOverview(),
-    backupOverview(),
+    collectAlerts(),
   ]);
 
   return (
@@ -50,38 +51,37 @@ export default async function PlatformSummaryPage() {
         />
       </section>
 
-      <section
-        className="space-y-3"
-        aria-labelledby="backup-attention-title"
-        data-testid="backup-attention"
-      >
-        <h2 id="backup-attention-title" className="text-lg font-semibold">
-          {backups.attention.title}
+      <section className="space-y-3" aria-labelledby="alerts-title" data-testid="platform-alerts">
+        <h2 id="alerts-title" className="text-lg font-semibold">
+          {alertsCopy.title}
         </h2>
-        {backupStatus.attention.length === 0 ? (
-          <p className="text-muted-foreground text-sm">{backups.attention.empty}</p>
+        {alerts.length === 0 ? (
+          <p className="text-muted-foreground text-sm">{alertsCopy.none}</p>
         ) : (
           <ul className="border-divider divide-divider divide-y rounded-lg border">
-            {backupStatus.attention.map((item) => (
-              <li
-                key={item.slug ?? "control"}
-                className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm"
-              >
-                {item.slug ? (
-                  <Link
-                    href={`/negocios/${item.slug}`}
-                    className="text-primary font-medium underline"
+            {alerts.map((alert, index) => {
+              const { text, href } = describeAlert(alert);
+              return (
+                <li
+                  key={`${alert.code}-${alert.slug ?? index}-${alert.detail ?? ""}`}
+                  className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm"
+                  data-severity={alert.severity}
+                >
+                  <Link href={href} className="text-primary font-medium underline">
+                    {text}
+                  </Link>
+                  <span
+                    className={
+                      alert.severity === "critical"
+                        ? "text-destructive font-medium"
+                        : "text-muted-foreground"
+                    }
                   >
-                    {item.name}
-                  </Link>
-                ) : (
-                  <Link href="/respaldos" className="text-primary font-medium underline">
-                    {backups.attention.control}
-                  </Link>
-                )}
-                <span className="text-destructive">{backups.states[item.state]}</span>
-              </li>
-            ))}
+                    {alertsCopy.severity[alert.severity]}
+                  </span>
+                </li>
+              );
+            })}
           </ul>
         )}
       </section>

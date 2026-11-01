@@ -40,6 +40,8 @@ export const PLATFORM_AUDIT_ACTIONS = [
   "SUBSCRIPTION_CANCELLED",
   "BACKUP_REQUESTED",
   "TENANT_RELINKED",
+  "ARCHIVED_DATABASE_DROPPED",
+  "USAGE_REFRESHED",
 ] as const;
 
 export type PlatformAuditAction = (typeof PLATFORM_AUDIT_ACTIONS)[number];

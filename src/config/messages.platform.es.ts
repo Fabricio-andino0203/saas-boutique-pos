@@ -369,6 +369,8 @@ export const platformMessages = {
       SUBSCRIPTION_CANCELLED: "Una suscripción se canceló por falta de pago",
       BACKUP_REQUESTED: "Pidió un respaldo",
       TENANT_RELINKED: "Terminó la restauración de un negocio (rol, permisos y versión)",
+      ARCHIVED_DATABASE_DROPPED: "Borró de verdad una base archivada o reemplazada",
+      USAGE_REFRESHED: "Actualizó el uso de un negocio",
     },
   },
   account: {
@@ -600,6 +602,52 @@ export const platformMessages = {
       tenantNotBillable: "Ese negocio ya no está en servicio.",
     },
   },
+  /** Alertas de la plataforma (Etapa 5): lo que alguien debe atender. */
+  alerts: {
+    title: "Alertas",
+    none: "Todo en orden: no hay nada que atender.",
+    severity: { critical: "Grave", warning: "Aviso", info: "Información" },
+    control: "la base central de la plataforma",
+    limitKinds: { users: "usuarios", products: "productos" },
+    messages: {
+      backup_failed: "El último respaldo de {who} falló y no hay uno bueno reciente.",
+      backup_never: "{who} no tiene ningún respaldo bueno.",
+      backup_stale: "El último respaldo bueno de {who} tiene más de 26 horas.",
+      backup_service_stalled:
+        "Hay {detail} respaldo(s) pedido(s) que nadie atiende hace más de 10 minutos: revisa que el servicio de respaldos esté corriendo.",
+      migration_failed: "{who} está en mantenimiento: su última actualización de datos falló.",
+      provisioning_failed: "El alta de {who} no terminó: retómala o deshazla.",
+      server_database_missing:
+        "La base de {who} ({detail}) no está en el servidor: restáurala desde un respaldo.",
+      server_orphans:
+        "Hay {detail} base(s) o rol(es) en el servidor que ningún negocio reclama (Revisión del servidor).",
+      server_behind: "{detail} negocio(s) con datos atrasados: actualiza la flota.",
+      near_limit: "{who} usa casi todo el tope de {detail} de su plan.",
+      retired_databases:
+        "Hay {detail} base(s) apartada(s) (archivadas o reemplazadas) que se pueden borrar cuando ya no se necesiten.",
+    },
+  },
+  /** Uso por negocio (Etapa 5). */
+  usage: {
+    title: "Uso",
+    description: "Solo números: cuánto usa el negocio la plataforma, nunca qué vende ni a quién.",
+    none: "Todavía no hay una foto de su uso. Se toma a diario; también puedes actualizarla ahora.",
+    takenAt: "Foto del",
+    refresh: "Actualizar el uso",
+    refreshHint: "Lee de nuevo las cuentas del negocio (usuarios, productos, ventas, tamaño).",
+    refreshed: "Listo: el uso quedó actualizado.",
+    facts: {
+      users: "Usuarios activos",
+      products: "Productos",
+      sales: "Ventas (30 días)",
+      lastSale: "Última venta",
+      lastLogin: "Último ingreso",
+      size: "Peso de la base",
+    },
+    of: "{used} de {limit}",
+    mb: "{n} MB",
+    never: "Nunca",
+  },
   /** Respaldos por negocio (Etapa 5). */
   backups: {
     title: "Respaldos",
@@ -673,6 +721,42 @@ export const platformMessages = {
     actions: {
       confirmPassword: "Tu contraseña",
       requestControl: "Respaldar la base central ahora",
+    },
+    retired: {
+      title: "Bases apartadas",
+      description:
+        "Bases que el sistema nunca borra solo: las de negocios dados de baja (archivadas) y las que una restauración dejó apartadas al poner un respaldo en su lugar (con lo que se vendió después de ese respaldo). Para borrar una de verdad hace falta antes un volcado final comprobado.",
+      empty: "No hay bases apartadas.",
+      unavailable:
+        "Este servidor no tiene configurada la cuenta de aprovisionamiento (TENANT_PROVISIONING_URL): no se puede ver el servidor.",
+      columns: {
+        database: "Base",
+        kind: "Qué es",
+        tenant: "Negocio",
+        since: "Desde",
+        dump: "Volcado final",
+      },
+      kinds: {
+        archived: "Archivada (negocio dado de baja)",
+        replaced: "Reemplazada por una restauración",
+      },
+      dump: {
+        none: "Sin volcado",
+        open: "Pedido o en marcha",
+        failed: "Falló",
+        ok: "Listo",
+      },
+      keepUntil: "se conserva hasta",
+      requestDump: "Guardar el volcado final",
+      requestDumpHint:
+        "Pide al servicio de respaldos un volcado cifrado y comprobado de esta base. Sin él no se puede borrar.",
+      dumpRequested:
+        "Pedido. El servicio de respaldos lo hace en unos segundos; recarga la página.",
+      drop: "Borrar definitivamente",
+      dropHint:
+        "Borra la base del servidor. No se puede deshacer: solo queda el volcado final, que se conserva por el tiempo del servidor.",
+      confirmName: "Escribe el nombre de la base para confirmar",
+      dropped: "La base se borró. El volcado final se conserva.",
     },
   },
   validation: {

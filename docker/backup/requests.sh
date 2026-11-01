@@ -63,7 +63,9 @@ SQL
     ARCHIVED)
       days="$FINAL_RETENTION_DAYS"
       valid="$(cpsql -v t="$req_tenant" -v d="$req_database" <<'SQL' 2> /dev/null
-SELECT 'yes' FROM "Tenant" WHERE "id" = :'t' AND "archivedDbName" = :'d';
+SELECT 'yes' FROM "Tenant"
+WHERE "id" = :'t'
+  AND ("archivedDbName" = :'d' OR :'d' LIKE 'z\_replaced\_t\_' || "id" || '\_%');
 SQL
 )"
       ;;

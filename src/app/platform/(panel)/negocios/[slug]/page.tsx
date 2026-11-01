@@ -8,6 +8,7 @@ import { requirePlatformSession } from "@/lib/platform-auth";
 import { TenantActions } from "@/modules/platform/components/tenant-actions";
 import { TenantBackups } from "@/modules/platform/components/tenant-backups";
 import { TenantSubscription } from "@/modules/platform/components/tenant-subscription";
+import { TenantUsage } from "@/modules/platform/components/tenant-usage";
 import { getTenantDetail } from "@/modules/platform/queries";
 
 const copy = platformMessages.tenants;
@@ -109,6 +110,8 @@ export default async function PlatformTenantDetailPage({ params }: Props) {
       </section>
 
       <TenantSubscription slug={tenant.slug} tenantStatus={tenant.status} />
+
+      <TenantUsage id={tenant.id} slug={tenant.slug} tenantStatus={tenant.status} />
 
       <TenantBackups
         id={tenant.id}
