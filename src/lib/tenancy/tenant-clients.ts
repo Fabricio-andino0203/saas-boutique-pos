@@ -155,6 +155,26 @@ export function tenantPoolStats(): {
   };
 }
 
+/**
+ * Olvida el cliente de un negocio y cierra sus conexiones cuando termine lo que tiene en curso (al archivar su base: Postgres
+ * no renombra una base con conexiones abiertas).
+ */
+export function evictTenantClient(id: string): void {
+  const reg = registry();
+  const entry = reg.entries.get(id);
+  if (!entry) {
+    return;
+  }
+  reg.entries.delete(id);
+  const closeWhenIdle = setInterval(() => {
+    if (entry.inFlight === 0) {
+      clearInterval(closeWhenIdle);
+      closeEntry(entry, reg);
+    }
+  }, 200);
+  closeWhenIdle.unref();
+}
+
 /** Cierra todas las conexiones de todos los negocios (apagado ordenado y pruebas). */
 export async function closeAllTenantClients(): Promise<void> {
   const reg = registry();

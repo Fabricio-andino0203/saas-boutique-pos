@@ -60,6 +60,13 @@ const envSchema = z
     PLATFORM_HOST: optionalText(),
     /** Dominio bajo el que viven los negocios (`tuplataforma.com` → `tienda-a.tuplataforma.com`). Obligatorio en `multi`. */
     TENANT_BASE_DOMAIN: optionalText(),
+    /**
+     * Cuenta de Postgres que puede crear roles y bases (el alta de negocios) y migrarlas. Sin ella el panel no da de alta
+     * negocios nuevos. La aplicación en funcionamiento no la usa para atender: cada negocio se conecta con su rol limitado.
+     */
+    TENANT_PROVISIONING_URL: optionalText(),
+    /** Base «dorada» desde la que se copia cada negocio nuevo (se mantiene al día en cada arranque). */
+    TENANT_TEMPLATE_DB: optionalText(),
     /** Servidor donde están las bases de los negocios; por omisión, el de la base central. */
     TENANT_DB_HOST: optionalText(),
     TENANT_DB_PORT: optionalInt(1, 65535),
@@ -119,6 +126,18 @@ const envSchema = z
         "TENANT_BASE_DOMAIN debe ser solo un dominio (sin https://, puerto ni rutas)",
       );
     }
+    if (
+      value.TENANT_PROVISIONING_URL &&
+      !/^postgres(ql)?:\/\//.test(value.TENANT_PROVISIONING_URL)
+    ) {
+      problem("TENANT_PROVISIONING_URL", "TENANT_PROVISIONING_URL debe ser una URL de PostgreSQL");
+    }
+    if (value.TENANT_TEMPLATE_DB && !/^[a-z][a-z0-9_]{2,62}$/.test(value.TENANT_TEMPLATE_DB)) {
+      problem(
+        "TENANT_TEMPLATE_DB",
+        "TENANT_TEMPLATE_DB solo puede tener minúsculas, números y guion bajo",
+      );
+    }
     if (value.TENANT_DB_HOST && !HOSTNAME_PATTERN.test(value.TENANT_DB_HOST)) {
       problem("TENANT_DB_HOST", "TENANT_DB_HOST debe ser solo un nombre de host o una IP");
     }
@@ -162,6 +181,12 @@ const envSchema = z
       problem(
         "PLATFORM_MASTER_KEY",
         "PLATFORM_MASTER_KEY es un texto de ejemplo: genera una propia",
+      );
+    }
+    if (value.TENANT_PROVISIONING_URL && PLACEHOLDER_PATTERN.test(value.TENANT_PROVISIONING_URL)) {
+      problem(
+        "TENANT_PROVISIONING_URL",
+        "TENANT_PROVISIONING_URL tiene la contraseña de ejemplo: usa una propia",
       );
     }
     if (value.CONTROL_DATABASE_URL && PLACEHOLDER_PATTERN.test(value.CONTROL_DATABASE_URL)) {

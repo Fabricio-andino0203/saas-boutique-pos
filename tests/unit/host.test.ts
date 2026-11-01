@@ -19,6 +19,9 @@ const directory: TenantDirectory = {
     if (host === "suspendida.localhost") {
       return { state: "suspended", tenant: { id: "s", slug: "suspendida", name: "S" } };
     }
+    if (host === "mantenimiento.localhost") {
+      return { state: "maintenance", tenant: { id: "m", slug: "mantenimiento", name: "M" } };
+    }
     if (host === "rota.localhost") {
       throw new TenantDirectoryError("sin base central");
     }
@@ -46,6 +49,11 @@ describe("classifyHost", () => {
 
   it("a business that exists but cannot operate is 'suspended', not unknown and not a business", async () => {
     expect(await classifyHost("suspendida.localhost:3000", multi)).toBe("suspended");
+  });
+
+  it("a business whose last migration failed is 'maintenance': it exists, but waits for its repair", async () => {
+    expect(await classifyHost("mantenimiento.localhost", multi)).toBe("maintenance");
+    expect(await classifyHost("mantenimiento.localhost", single)).toBe("tenant");
   });
 
   it("the loopback host Next uses for its internal fetches is unknown in multi mode", async () => {
@@ -88,6 +96,7 @@ describe("isCertificateAllowed (Caddy's on-demand TLS question)", () => {
     expect(await isCertificateAllowed("admin.localhost", multi)).toBe(true);
     expect(await isCertificateAllowed("tienda-a.localhost", multi)).toBe(true);
     expect(await isCertificateAllowed("suspendida.localhost", multi)).toBe(true);
+    expect(await isCertificateAllowed("mantenimiento.localhost", multi)).toBe(true);
   });
 
   it("refuses names that belong to nobody, so nobody can spend the certificate quota", async () => {

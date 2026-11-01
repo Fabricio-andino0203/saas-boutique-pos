@@ -21,6 +21,9 @@ const directory: TenantDirectory = {
     if (host === "s.localhost") {
       return { state: "suspended", tenant: { id: "s", slug: "s", name: "Tienda S" } };
     }
+    if (host === "m.localhost") {
+      return { state: "maintenance", tenant: { id: "m", slug: "m", name: "Tienda M" } };
+    }
     if (host === "down.localhost") {
       throw new TenantDirectoryError("base central caída");
     }
@@ -173,6 +176,20 @@ describe("proxy — a business that cannot operate", () => {
       expect(response.headers.get("cache-control")).toBe("no-store");
       expect(await response.text()).toContain("Cuenta suspendida");
     }
+  });
+
+  it("a business whose migration failed shows the maintenance page (503, retry later) and nothing else", async () => {
+    for (const path of ["/", "/login", "/productos"]) {
+      const response = await proxy(
+        request(`http://m.localhost:3000${path}`, { cookie: "boutique_session=x" }),
+      );
+      expect(response.status, path).toBe(503);
+      expect(response.headers.get("retry-after")).toBe("300");
+      const html = await response.text();
+      expect(html).toContain("En mantenimiento");
+      expect(html).not.toContain("Tienda M");
+    }
+    expect((await proxy(request("http://m.localhost:3000/api/health"))).status).toBe(200);
   });
 
   it("a suspended business cannot reach /platform either", async () => {

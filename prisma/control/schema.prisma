@@ -8,7 +8,8 @@
 //  - Los secretos (contraseña de la base de un negocio, secreto del 2FA) se guardan cifrados por la bóveda
 //    (src/lib/tenancy/vault.ts), nunca en claro. Las columnas terminadas en `Enc` contienen el sobre cifrado.
 //  - Las restricciones que Prisma no puede expresar (auditoría de solo inserción) viven en la migración `constraints`.
-//  - Los planes, suscripciones y pagos llegan en la Etapa 4.
+//  - El alta automática, la migración de la flota y la baja controlada llegan en la Etapa 3; los planes, suscripciones y
+//    pagos en la Etapa 4.
 
 generator client {
   provider = "prisma-client"
@@ -28,6 +29,16 @@ enum TenantStatus {
   PENDING_DELETION
   DELETED
   FAILED
+  /// La última actualización de su base falló: se muestra «en mantenimiento» hasta repararla (los demás siguen).
+  MIGRATION_FAILED
+}
+
+enum ProvisioningStatus {
+  RUNNING
+  SUCCEEDED
+  FAILED
+  /// Se deshizo lo creado por el intento (base y rol).
+  UNDONE
 }
 
 // ───────────────────────────── Negocios ─────────────────────────────
@@ -52,9 +63,56 @@ model Tenant {
   /// Última migración aplicada a la base del negocio.
   schemaVersion String?
 
+  /// Se migra primero en cada actualización; si falla, no se toca al resto de la flota.
+  canary Boolean @default(false)
+  /// Por qué falló su última migración (nulo si va al día).
+  migrationError    String?
+  migrationFailedAt DateTime?
+
+  /// Baja controlada: pendiente de eliminar hasta `deleteAfter`; luego se archiva (la base se renombra, no se destruye).
+  deletionRequestedAt  DateTime?
+  deleteAfter          DateTime?
+  deletionReason       String?
+  /// En qué estado estaba al pedir la baja, para volver a él si se cancela.
+  statusBeforeDeletion TenantStatus?
+  archivedAt           DateTime?
+  archivedDbName       String?  @unique
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  provisioningRuns ProvisioningRun[]
+
+  @@index([status])
+}
+
+/// Un intento de dar de alta un negocio: cada paso queda anotado para poder reintentar desde donde falló o deshacerlo.
+model ProvisioningRun {
+  id       String @id @default(cuid())
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+
+  status  ProvisioningStatus @default(RUNNING)
+  attempt Int                @default(1)
+  /// [{ name, status: PENDING | DONE | FAILED, startedAt?, finishedAt?, error? }]
+  steps   Json
+  error   String?
+
+  /// Datos del propietario inicial. La contraseña temporal va cifrada por la bóveda y se borra al terminar.
+  ownerName     String
+  ownerUsername String
+  ownerEmail    String?
+  secretEnc     String?
+
+  actorId       String?
+  actorUsername String?
+
+  /// Último signo de vida: una ejecución «en marcha» sin él por varios minutos se considera interrumpida.
+  heartbeatAt DateTime  @default(now())
+  startedAt   DateTime  @default(now())
+  finishedAt  DateTime?
+
+  @@index([tenantId, startedAt])
   @@index([status])
 }
 

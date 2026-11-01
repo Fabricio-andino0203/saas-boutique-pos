@@ -147,6 +147,17 @@ describe("entryFromRecord — what each status does", () => {
     },
   );
 
+  it("MIGRATION_FAILED is 'maintenance' and never opens its credential", () => {
+    const entry = entryFromRecord(
+      record({ status: "MIGRATION_FAILED", dbCredentialEnc: "basura" }),
+      deps,
+    );
+    expect(entry).toEqual({
+      state: "maintenance",
+      tenant: { id: "ten1", slug: "tienda-a", name: "Tienda A" },
+    });
+  });
+
   it.each(["PROVISIONING", "FAILED", "DELETED"] as const)("%s serves nobody", (status) => {
     expect(entryFromRecord(record({ status }), deps)).toBeUndefined();
   });

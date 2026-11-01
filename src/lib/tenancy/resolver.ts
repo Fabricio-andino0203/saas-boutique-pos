@@ -66,7 +66,7 @@ export async function resolveCurrentTenant(): Promise<TenantRef> {
     }
     throw new TenantContextError(
       request.entry
-        ? "El negocio de la petición no puede operar (cuenta suspendida)"
+        ? "El negocio de la petición no puede operar (suspendido o en mantenimiento)"
         : "El host de la petición no corresponde a ningún negocio",
     );
   }

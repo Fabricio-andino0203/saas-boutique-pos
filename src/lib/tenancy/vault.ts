@@ -140,6 +140,8 @@ export function createVault(current: VaultKey, previous: readonly VaultKey[] = [
 export const vaultContext = {
   tenantDatabase: (tenantId: string) => `tenant:${tenantId}:db-credential`,
   platformUserTotp: (userId: string) => `platform-user:${userId}:totp-secret`,
+  /** Contraseña temporal del propietario de un negocio, solo mientras se da de alta (se borra al terminar). */
+  tenantOwnerPassword: (tenantId: string) => `tenant:${tenantId}:owner-password`,
 } as const;
 
 type VaultEnv = Record<string, string | undefined>;

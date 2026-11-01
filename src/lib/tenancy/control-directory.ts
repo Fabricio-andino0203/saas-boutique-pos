@@ -88,6 +88,11 @@ export function entryFromRecord(
         state: "suspended",
         tenant: { id: record.id, slug: record.slug, name: record.name },
       };
+    case "MIGRATION_FAILED":
+      return {
+        state: "maintenance",
+        tenant: { id: record.id, slug: record.slug, name: record.name },
+      };
     default:
       // En preparación, fallido o dado de baja: la dirección no atiende a nadie.
       return undefined;

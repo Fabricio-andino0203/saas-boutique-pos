@@ -77,8 +77,8 @@ export async function proxy(request: NextRequest): Promise<Response> {
   if (kind === "platform") {
     return platformRequest(request);
   }
-  if (kind === "suspended" && pathname !== "/api/health") {
-    return unavailableResponse("suspended");
+  if ((kind === "suspended" || kind === "maintenance") && pathname !== "/api/health") {
+    return unavailableResponse(kind);
   }
   if (kind === "unknown" && pathname !== "/api/health") {
     return notFound("Negocio no encontrado");

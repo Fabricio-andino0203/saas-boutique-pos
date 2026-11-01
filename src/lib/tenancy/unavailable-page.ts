@@ -5,10 +5,11 @@
 
 import { platformMessages } from "@/config/messages.platform.es";
 
-export type UnavailableKind = "suspended" | "directory-down";
+export type UnavailableKind = "suspended" | "maintenance" | "directory-down";
 
 const COPY: Record<UnavailableKind, { status: number; title: string; body: string }> = {
   suspended: { status: 403, ...platformMessages.unavailable.suspended },
+  maintenance: { status: 503, ...platformMessages.unavailable.maintenance },
   "directory-down": { status: 503, ...platformMessages.unavailable.directoryDown },
 };
 
@@ -40,7 +41,7 @@ export function unavailableResponse(kind: UnavailableKind): Response {
     headers: {
       "content-type": "text/html; charset=utf-8",
       "cache-control": "no-store",
-      ...(status === 503 ? { "retry-after": "30" } : {}),
+      ...(status === 503 ? { "retry-after": kind === "maintenance" ? "300" : "30" } : {}),
     },
   });
 }

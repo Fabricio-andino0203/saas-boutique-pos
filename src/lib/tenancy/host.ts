@@ -6,6 +6,7 @@ import { normalizeHost, type TenantDirectory } from "@/lib/tenancy/directory";
  * - `tenant`: el sistema de un negocio que opera. En modo `single` cualquier host es "el negocio" (como siempre); en modo
  *   `multi` solo `<slug>.<dominio base>` de un negocio activo.
  * - `suspended`: un negocio que existe pero no puede operar (suspendido o pendiente de baja): pantalla de cuenta suspendida.
+ * - `maintenance`: un negocio cuya última migración falló: pantalla «en mantenimiento» hasta repararlo.
  * - `unknown`: nadie. Se responde 404 antes de tocar cookies o datos.
  *
  * Por qué el panel exige el modo `multi`: cuando una acción del servidor redirige (o la página que se vuelve a dibujar tras
@@ -15,7 +16,7 @@ import { normalizeHost, type TenantDirectory } from "@/lib/tenancy/directory";
  * host. En modo `single` cualquier host sería "el negocio" y el servidor devolvería la pantalla de la tienda dentro del
  * panel. Por eso `PLATFORM_HOST` solo se admite junto con `TENANCY_MODE=multi` (también lo valida `env.ts`).
  */
-export type HostKind = "platform" | "tenant" | "suspended" | "unknown";
+export type HostKind = "platform" | "tenant" | "suspended" | "maintenance" | "unknown";
 
 export type HostConfig = {
   mode: "single" | "multi";
@@ -44,5 +45,5 @@ export async function classifyHost(
   if (!entry) {
     return "unknown";
   }
-  return entry.state === "active" ? "tenant" : "suspended";
+  return entry.state === "active" ? "tenant" : entry.state;
 }

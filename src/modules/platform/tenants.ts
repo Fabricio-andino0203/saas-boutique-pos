@@ -1,7 +1,7 @@
 import { controlDb, type ControlDb } from "@/lib/tenancy/control-db";
 import { invalidateTenantDirectory } from "@/lib/tenancy/control-directory";
 import { ConflictError, NotFoundError, ValidationError } from "@/lib/errors";
-import { withClient } from "@/lib/tenancy/provision-db";
+import { readSchemaVersion } from "@/lib/tenancy/provision-steps";
 import { isReservedSlug, isValidSlug } from "@/lib/tenancy/slug";
 import { parseDatabaseUrl } from "@/lib/tenancy/tenant-url";
 import { getVault, vaultContext, type Vault } from "@/lib/tenancy/vault";
@@ -13,21 +13,11 @@ import type { AdminContext } from "@/modules/platform/service";
  * propia) llega en la Etapa 3; en la Etapa 2 solo se registra el negocio que ya existe: la tienda actual como negocio #1.
  */
 
+// La lectura vive en la capa de aprovisionamiento; se reexporta porque otros módulos y pruebas la usan desde aquí.
+export { readSchemaVersion };
+
 function isUniqueViolation(error: unknown): boolean {
   return typeof error === "object" && error !== null && "code" in error && error.code === "P2002";
-}
-
-/** La última migración terminada de una base de negocio, o `null` si no tiene (aún no es de este sistema). */
-export async function readSchemaVersion(databaseUrl: string): Promise<string | null> {
-  return withClient(databaseUrl, async (client) => {
-    const rows = await client.$queryRaw<{ migration_name: string }[]>`
-      SELECT "migration_name" FROM "_prisma_migrations"
-      WHERE "finished_at" IS NOT NULL AND "rolled_back_at" IS NULL
-      ORDER BY "finished_at" DESC, "migration_name" DESC
-      LIMIT 1
-    `;
-    return rows[0]?.migration_name ?? null;
-  });
 }
 
 export type AdoptStoreInput = {
@@ -147,6 +137,33 @@ export async function adoptExistingStore(
     }
     throw error;
   }
+}
+
+/** Marca o desmarca un negocio como canario: se migra primero y, si falla, no se toca al resto de la flota. */
+export async function setTenantCanary(
+  input: { slug: string; canary: boolean },
+  context: AdminContext,
+  client: ControlDb = controlDb,
+): Promise<void> {
+  await client.$transaction(async (tx) => {
+    const tenant = await tx.tenant.findUnique({ where: { slug: input.slug } });
+    if (!tenant) {
+      throw new NotFoundError("No existe ese negocio");
+    }
+    if (tenant.canary === input.canary) {
+      return;
+    }
+    await tx.tenant.update({ where: { id: tenant.id }, data: { canary: input.canary } });
+    await recordPlatformAudit(tx, {
+      action: "TENANT_CANARY_CHANGED",
+      actor: context.actor,
+      tenantId: tenant.id,
+      targetType: "Tenant",
+      targetId: tenant.id,
+      details: { slug: tenant.slug, canary: input.canary },
+      ip: context.ip,
+    });
+  });
 }
 
 export type TenantStatusChange = { slug: string; status: "SUSPENDED" | "ACTIVE" };
