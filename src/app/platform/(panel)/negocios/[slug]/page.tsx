@@ -93,7 +93,9 @@ export default async function PlatformTenantDetailPage({ params }: Props) {
           </Fact>
           <Fact label={copy.columns.status}>{copy.status[tenant.status]}</Fact>
           <Fact label={copy.columns.schema}>
-            <span className="font-mono text-xs">{tenant.schemaVersion ?? detail.none}</span>
+            <span className="font-mono text-xs break-all">
+              {tenant.schemaVersion ?? detail.none}
+            </span>
           </Fact>
           <Fact label={detail.owner}>{tenant.ownerEmail ?? detail.none}</Fact>
           <Fact label={detail.database}>

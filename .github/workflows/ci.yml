@@ -22,7 +22,7 @@ env:
 jobs:
   check:
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 30
     services:
       postgres:
         image: postgres:16-alpine
@@ -70,7 +70,7 @@ jobs:
     if: github.ref == 'refs/heads/main'
     needs: check
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 45
     services:
       postgres:
         image: postgres:16-alpine

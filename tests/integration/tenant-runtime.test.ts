@@ -266,7 +266,16 @@ describe("the status of a business decides what its address does", () => {
     ["DELETED", undefined],
     ["PENDING_DELETION", "suspended"],
   ] as const)("a business in %s is %s", async (status, expected) => {
-    await controlTestDb.tenant.update({ where: { id: businesses.b.id }, data: { status } });
+    // Una baja pendiente trae sus fechas (lo exige una restricción de la base central desde la Etapa 3).
+    const pendingDeletion = {
+      deletionRequestedAt: new Date(),
+      deleteAfter: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      statusBeforeDeletion: "ACTIVE" as const,
+    };
+    await controlTestDb.tenant.update({
+      where: { id: businesses.b.id },
+      data: { status, ...(status === "PENDING_DELETION" ? pendingDeletion : {}) },
+    });
     try {
       const entry = await directory.lookupByHost(hostOf("b"));
       expect(entry?.state).toBe(expected);
@@ -274,7 +283,12 @@ describe("the status of a business decides what its address does", () => {
     } finally {
       await controlTestDb.tenant.update({
         where: { id: businesses.b.id },
-        data: { status: "ACTIVE" },
+        data: {
+          status: "ACTIVE",
+          deletionRequestedAt: null,
+          deleteAfter: null,
+          statusBeforeDeletion: null,
+        },
       });
     }
   });

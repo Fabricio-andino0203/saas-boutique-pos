@@ -153,7 +153,8 @@ export async function readSchemaVersion(databaseUrl: string): Promise<string | n
 export function latestMigrationName(
   migrationsDir = join(process.cwd(), "prisma", "migrations"),
 ): string {
-  const names = readdirSync(migrationsDir, { withFileTypes: true })
+  // La carpeta de migraciones se lee en tiempo de ejecución: no hay que empaquetar el proyecto entero (turbopackIgnore).
+  const names = readdirSync(/*turbopackIgnore: true*/ migrationsDir, { withFileTypes: true })
     .filter((entry) => entry.isDirectory() && /^\d{14}_/.test(entry.name))
     .map((entry) => entry.name)
     .sort();
