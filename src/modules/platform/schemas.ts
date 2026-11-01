@@ -63,6 +63,12 @@ export const platformAdminActionSchema = z.object({
   actorPassword: z.string().min(1, copy.required),
 });
 
+/** Acciones sobre un negocio: se confirman con la contraseña de quien las hace. */
+export const platformTenantActionSchema = z.object({
+  slug: z.string().trim().min(1),
+  actorPassword: z.string().min(1, copy.required),
+});
+
 export const platformAuditFiltersSchema = z.object({
   action: z.string().trim().optional(),
   from: z

@@ -64,6 +64,9 @@ export default defineConfig({
       // una suspensión se note en menos de un segundo.
       TENANT_BASE_DOMAIN: "localhost",
       TENANT_DIRECTORY_TTL_MS: "300",
+      // El alta de negocios desde el panel: la misma cuenta de Postgres de las pruebas y la plantilla que prepara el global-setup.
+      TENANT_PROVISIONING_URL: process.env.DATABASE_URL_TEST ?? "",
+      TENANT_TEMPLATE_DB: "e2e_template",
       CONTROL_DATABASE_URL: controlUrl,
       PLATFORM_MASTER_KEY: masterKey,
       PLATFORM_LOGIN_RATE_LIMIT_MAX: "1000",

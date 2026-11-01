@@ -1,8 +1,9 @@
 import { expect, test, type Page } from "@playwright/test";
 
+import { messages } from "../../src/config/messages.es";
 import { platformMessages } from "../../src/config/messages.platform.es";
 import { totpCode, totpStep } from "../../src/lib/totp";
-import { E2E_PASSWORD as PASSWORD, TENANTS } from "./constants";
+import { E2E_PASSWORD as PASSWORD, PLATFORM_E2E_PORT, TENANTS } from "./constants";
 
 const copy = platformMessages;
 // `global-setup.ts` da de alta al administrador en otro proceso (el cliente de Prisma no carga dentro de Playwright).
@@ -99,6 +100,147 @@ test.describe.serial("recorrido completo del superadministrador", () => {
       await expect(row).toContainText(`${tenant.slug}.localhost`);
       await expect(row).toContainText(copy.tenants.status.ACTIVE);
     }
+  });
+
+  // Un negocio dado de alta desde el panel: lo usan las tres pruebas siguientes (el alta tarda unos segundos).
+  const newSlug = `panel-${suffix}`;
+  const newName = `Boutique del panel ${suffix}`;
+  const newOwnerPassword = "Temporal-del-panel-2026";
+  const newTenantUrl = `http://${newSlug}.localhost:${PLATFORM_E2E_PORT}`;
+  const detailHeading = (page: Page) => page.getByRole("heading", { level: 1, name: newName });
+
+  test("alta de un negocio desde el panel: se crea con su base, queda activo y su propietario puede entrar", async ({
+    browser,
+  }) => {
+    test.slow();
+    const create = copy.tenants.create;
+    await page.getByRole("link", { name: copy.nav.tenants }).click();
+    await expect(page.getByRole("heading", { level: 2, name: create.title })).toBeVisible();
+
+    // Una contraseña de confirmación equivocada no crea nada.
+    await page.locator("#tenant-name").fill(newName);
+    await page.locator("#tenant-slug").fill(newSlug);
+    await page.locator("#tenant-owner-name").fill("Rosa Pérez");
+    await page.locator("#tenant-owner-username").fill("rosa");
+    await page.locator("#tenant-owner-password").fill(newOwnerPassword);
+    await page.locator("#tenant-actor-password").fill("no-es-mi-contrasena");
+    await page.getByRole("button", { name: create.submit }).click();
+    await expect(alertWith(page, copy.errors.INVALID_CREDENTIALS)).toBeVisible();
+    await expect(page.locator("#tenant-name")).toHaveValue(newName); // lo escrito se conserva
+
+    // Un subdominio reservado se explica con claridad.
+    await page.locator("#tenant-slug").fill("admin");
+    await page.locator("#tenant-owner-password").fill(newOwnerPassword);
+    await page.locator("#tenant-actor-password").fill(PASSWORD);
+    await page.getByRole("button", { name: create.submit }).click();
+    await expect(alertWith(page, "está reservado")).toBeVisible();
+
+    await page.locator("#tenant-slug").fill(newSlug);
+    await page.locator("#tenant-owner-password").fill(newOwnerPassword);
+    await page.locator("#tenant-actor-password").fill(PASSWORD);
+    await page.getByRole("button", { name: create.submit }).click();
+
+    // Termina en el detalle del negocio, activo y con los siete pasos hechos.
+    await expect(page).toHaveURL(new RegExp(`/negocios/${newSlug}$`), { timeout: 90_000 });
+    await expect(detailHeading(page)).toBeVisible();
+    await expect(page.getByText(copy.tenants.status.ACTIVE).first()).toBeVisible();
+    await expect(page.getByText(copy.tenants.detail.stepStatus.DONE)).toHaveCount(7);
+    await expect(page.getByText(copy.tenants.detail.runStatus.SUCCEEDED)).toBeVisible();
+
+    // El propietario entra a su dirección con la contraseña temporal (otra pestaña: no se pierde la sesión del panel).
+    const ownerPage = await browser.newPage();
+    try {
+      await ownerPage.goto(`${newTenantUrl}/login`);
+      await ownerPage.getByLabel(messages.auth.login.username).fill("rosa");
+      await ownerPage.getByLabel(messages.auth.login.password).fill(newOwnerPassword);
+      await ownerPage.getByRole("button", { name: messages.auth.login.submit }).click();
+      await expect(
+        ownerPage.getByRole("heading", { level: 1, name: messages.home.title }),
+      ).toBeVisible();
+    } finally {
+      await ownerPage.close();
+    }
+  });
+
+  test("suspender y reactivar desde el panel; una contraseña equivocada no cambia nada", async ({
+    browser,
+  }) => {
+    const actions = copy.tenants.actions;
+    await page.goto(`/negocios/${newSlug}`);
+    await expect(detailHeading(page)).toBeVisible();
+
+    const open = async (label: string) => {
+      await page.getByText(label, { exact: true }).first().click();
+    };
+    await open(actions.suspend);
+    await page.locator(`#confirm-suspend-${newSlug}`).fill("no-es-mi-contrasena");
+    await page.getByRole("button", { name: actions.suspend }).click();
+    await expect(alertWith(page, copy.errors.INVALID_CREDENTIALS)).toBeVisible();
+
+    await page.locator(`#confirm-suspend-${newSlug}`).fill(PASSWORD);
+    await page.getByRole("button", { name: actions.suspend }).click();
+    await expect(page.getByText(actions.done.suspend)).toBeVisible();
+    await expect(page.getByText(copy.tenants.status.SUSPENDED).first()).toBeVisible();
+
+    const visitor = await browser.newPage();
+    try {
+      await expect
+        .poll(async () => (await visitor.goto(`${newTenantUrl}/login`))?.status(), {
+          timeout: 10_000,
+        })
+        .toBe(403);
+      await expect(
+        visitor.getByRole("heading", { name: copy.unavailable.suspended.title }),
+      ).toBeVisible();
+
+      await open(actions.reactivate);
+      await page.locator(`#confirm-reactivate-${newSlug}`).fill(PASSWORD);
+      await page.getByRole("button", { name: actions.reactivate }).click();
+      await expect(page.getByText(actions.done.reactivate)).toBeVisible();
+      await expect
+        .poll(async () => (await visitor.goto(`${newTenantUrl}/login`))?.status(), {
+          timeout: 10_000,
+        })
+        .toBe(200);
+    } finally {
+      await visitor.close();
+    }
+  });
+
+  test("la baja controlada: se pide con un motivo, no se archiva antes de tiempo sin decirlo y se puede cancelar", async () => {
+    const actions = copy.tenants.actions;
+    await page.goto(`/negocios/${newSlug}`);
+    await page.getByText(actions.requestDeletion, { exact: true }).first().click();
+    await page.locator(`#reason-${newSlug}`).fill("Prueba de baja desde el panel");
+    await page.locator(`#confirm-requestDeletion-${newSlug}`).fill(PASSWORD);
+    await page.getByRole("button", { name: actions.requestDeletion }).click();
+    await expect(page.getByText(actions.done.requestDeletion)).toBeVisible();
+    await expect(page.getByText(copy.tenants.detail.pendingDeletion)).toBeVisible();
+    await expect(page.getByText("Prueba de baja desde el panel")).toBeVisible();
+
+    // Archivar exige escribir el subdominio y, antes de que termine la retención, aceptar que es anticipado.
+    await page.getByText(actions.archive, { exact: true }).first().click();
+    await page.locator(`#confirm-slug-${newSlug}`).fill(newSlug);
+    await page.locator(`#confirm-archive-${newSlug}`).fill(PASSWORD);
+    await page.getByRole("button", { name: actions.archive }).click();
+    await expect(alertWith(page, "retención termina")).toBeVisible();
+
+    await page.getByText(actions.cancelDeletion, { exact: true }).first().click();
+    await page.locator(`#confirm-cancelDeletion-${newSlug}`).fill(PASSWORD);
+    await page.getByRole("button", { name: actions.cancelDeletion }).click();
+    await expect(page.getByText(actions.done.cancelDeletion)).toBeVisible();
+    await expect(page.getByText(copy.tenants.status.ACTIVE).first()).toBeVisible();
+  });
+
+  test("revisión del servidor: muestra qué revisar y actualiza los datos de todos los negocios", async () => {
+    const review = copy.tenants.review;
+    await page.goto("/negocios/revision");
+    await expect(page.getByRole("heading", { level: 1, name: review.title })).toBeVisible();
+    await page.locator("#fleet-password").fill(PASSWORD);
+    await page.getByRole("button", { name: review.migrateAll.submit }).click();
+    await expect(
+      page.getByText(/Migrados \d+, al día \d+, con error 0, sin tocar 0\./),
+    ).toBeVisible();
   });
 
   test("administradores: la confirmación con la contraseña protege el alta; la auditoría lo registra", async () => {

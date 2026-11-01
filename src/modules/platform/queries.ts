@@ -1,4 +1,4 @@
-import type { Prisma, TenantStatus } from "@/generated/control/client";
+import type { Prisma, ProvisioningStatus, TenantStatus } from "@/generated/control/client";
 import { controlDb, type ControlDb } from "@/lib/tenancy/control-db";
 import { getVault } from "@/lib/tenancy/vault";
 import type { PlatformAuditFilters } from "@/modules/platform/schemas";
@@ -11,6 +11,7 @@ export type TenantRow = {
   name: string;
   status: TenantStatus;
   schemaVersion: string | null;
+  canary: boolean;
   createdAt: Date;
 };
 
@@ -23,9 +24,72 @@ export async function listTenants(client: ControlDb = controlDb): Promise<Tenant
       name: true,
       status: true,
       schemaVersion: true,
+      canary: true,
       createdAt: true,
     },
   });
+}
+
+export type RunRow = {
+  id: string;
+  attempt: number;
+  status: ProvisioningStatus;
+  steps: { name: string; status: "PENDING" | "DONE" | "FAILED"; error?: string }[];
+  error: string | null;
+  startedAt: Date;
+  finishedAt: Date | null;
+};
+
+export type TenantDetail = TenantRow & {
+  ownerEmail: string | null;
+  dbName: string | null;
+  archivedDbName: string | null;
+  migrationError: string | null;
+  migrationFailedAt: Date | null;
+  deletionReason: string | null;
+  deleteAfter: Date | null;
+  archivedAt: Date | null;
+  runs: RunRow[];
+};
+
+/** Todo lo que el panel muestra de un negocio, con sus intentos de alta (el más reciente primero). */
+export async function getTenantDetail(
+  slug: string,
+  client: ControlDb = controlDb,
+): Promise<TenantDetail | null> {
+  const tenant = await client.tenant.findUnique({
+    where: { slug },
+    include: { provisioningRuns: { orderBy: { startedAt: "desc" }, take: 10 } },
+  });
+  if (!tenant) {
+    return null;
+  }
+  return {
+    id: tenant.id,
+    slug: tenant.slug,
+    name: tenant.name,
+    status: tenant.status,
+    schemaVersion: tenant.schemaVersion,
+    canary: tenant.canary,
+    createdAt: tenant.createdAt,
+    ownerEmail: tenant.ownerEmail,
+    dbName: tenant.dbName,
+    archivedDbName: tenant.archivedDbName,
+    migrationError: tenant.migrationError,
+    migrationFailedAt: tenant.migrationFailedAt,
+    deletionReason: tenant.deletionReason,
+    deleteAfter: tenant.deleteAfter,
+    archivedAt: tenant.archivedAt,
+    runs: tenant.provisioningRuns.map((run) => ({
+      id: run.id,
+      attempt: run.attempt,
+      status: run.status,
+      steps: run.steps as RunRow["steps"],
+      error: run.error,
+      startedAt: run.startedAt,
+      finishedAt: run.finishedAt,
+    })),
+  };
 }
 
 export type PlatformSummary = {

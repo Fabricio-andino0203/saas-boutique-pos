@@ -2,6 +2,7 @@ import "dotenv/config";
 
 import { seedBase } from "../../prisma/seed/run-seed";
 import { closeControlDb, controlDb } from "../../src/lib/tenancy/control-db";
+import { dropTenantResources } from "../../src/lib/tenancy/provision-steps";
 import {
   createTemplateDatabase,
   createTenantDatabase,
@@ -12,14 +13,14 @@ import {
 } from "../../src/lib/tenancy/provision-db";
 import { getVault, vaultContext } from "../../src/lib/tenancy/vault";
 import { createFirstOwner } from "../../src/modules/users/bootstrap";
-import { E2E_PASSWORD, OWNER_USERNAME, TENANTS } from "./constants";
+import { E2E_PASSWORD, E2E_TEMPLATE_DB, OWNER_USERNAME, TENANTS } from "./constants";
 
 /**
  * Prepara (o desmonta con `--drop`) los dos negocios de las pruebas de navegador de la plataforma: cada uno con su base, su
  * propietario y su nombre, registrados en la base central de PRUEBAS. Corre con `tsx` en otro proceso porque el cliente de
  * Prisma generado no carga dentro de Playwright.
  */
-const TEMPLATE = "e2e_template";
+const TEMPLATE = E2E_TEMPLATE_DB;
 
 async function main(): Promise<void> {
   const controlUrl = process.env.CONTROL_DATABASE_URL ?? "";
@@ -31,9 +32,27 @@ async function main(): Promise<void> {
   }
   const tenants = Object.values(TENANTS);
 
-  // Siempre se parte de cero: lo que haya quedado de una corrida anterior se quita.
+  // Siempre se parte de cero: lo que haya quedado de una corrida anterior se quita. Eso incluye los negocios que las pruebas
+  // dieron de alta desde el panel (subdominio `panel-…`): sus bases, sus roles, sus intentos de alta y su registro.
+  const leftovers = await controlDb.tenant.findMany({
+    where: {
+      OR: [
+        { slug: { in: tenants.map((tenant) => tenant.slug) } },
+        { slug: { startsWith: "panel-" } },
+      ],
+    },
+    select: { id: true, dbName: true, dbRole: true },
+  });
+  for (const tenant of leftovers) {
+    if (tenant.dbName && tenant.dbRole) {
+      await dropTenantResources(adminUrl, { database: tenant.dbName, role: tenant.dbRole });
+    }
+  }
+  await controlDb.provisioningRun.deleteMany({
+    where: { tenantId: { in: leftovers.map((tenant) => tenant.id) } },
+  });
   await controlDb.tenant.deleteMany({
-    where: { slug: { in: tenants.map((tenant) => tenant.slug) } },
+    where: { id: { in: leftovers.map((tenant) => tenant.id) } },
   });
   for (const tenant of tenants) {
     await dropTenantDatabase(adminUrl, tenant.id);
@@ -70,7 +89,7 @@ async function main(): Promise<void> {
       },
     });
   }
-  await dropDatabase(adminUrl, TEMPLATE);
+  // La plantilla se conserva: el alta desde el panel copia de ella (se quita con --drop).
   console.log(`Negocios de prueba listos: ${tenants.map((tenant) => tenant.slug).join(", ")}`);
 }
 
