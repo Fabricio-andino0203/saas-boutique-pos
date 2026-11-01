@@ -17,6 +17,7 @@ import { isReservedSlug, isValidSlug } from "@/lib/tenancy/slug";
 import { getVault, vaultContext, type Vault } from "@/lib/tenancy/vault";
 import { recordPlatformAudit } from "@/modules/platform/audit";
 import type { AdminContext } from "@/modules/platform/service";
+import { startSubscription } from "@/modules/platform/subscription-start";
 
 /**
  * Alta automática de un negocio (propuesta SaaS §4): una **receta de pasos idempotentes** que deja anotado cada paso en
@@ -134,9 +135,11 @@ export type ProvisionInput = {
   /** Contraseña temporal del propietario inicial: la entrega quien hace el alta y la persona la cambia al entrar. */
   ownerPassword: string;
   ownerEmail?: string | undefined;
+  /** Plan con el que empieza (en prueba). Sin plan, el negocio se atiende sin restricciones hasta que se le asigne uno. */
+  planId?: string | undefined;
 };
 
-export type ProvisionData = Required<Omit<ProvisionInput, "ownerEmail">> & {
+export type ProvisionData = Required<Omit<ProvisionInput, "ownerEmail" | "planId">> & {
   ownerEmail: string | null;
 };
 
@@ -315,6 +318,37 @@ const STEPS: Record<ProvisionStepName, (context: StepContext) => Promise<void>> 
         where: { id: run.id },
         data: { status: "SUCCEEDED", secretEnc: null, error: null, finishedAt: deps.now() },
       });
+      // El plan elegido en el alta arranca en prueba, en la misma transacción (y solo si no hay suscripción: el paso es repetible).
+      if (run.planId) {
+        const plan = await tx.plan.findUnique({ where: { id: run.planId } });
+        const already = await tx.subscription.findFirst({
+          where: { tenantId: run.tenant.id, status: { not: "EXPIRED" } },
+          select: { id: true },
+        });
+        if (plan && !already) {
+          const sub = await startSubscription(tx, {
+            tenantId: run.tenant.id,
+            plan,
+            trial: true,
+            now: deps.now(),
+            reason: "Plan elegido al dar de alta el negocio",
+          });
+          await recordPlatformAudit(tx, {
+            action: "SUBSCRIPTION_ASSIGNED",
+            actor: admin.actor,
+            tenantId: run.tenant.id,
+            targetType: "Subscription",
+            targetId: sub.id,
+            details: {
+              slug: run.tenant.slug,
+              plan: plan.name,
+              trial: true,
+              periodEnd: sub.currentPeriodEnd.toISOString(),
+            },
+            ip: admin.ip,
+          });
+        }
+      }
       // En la misma transacción que deja el negocio activo: no puede haber un negocio activo sin su registro.
       await recordPlatformAudit(tx, {
         action: "TENANT_PROVISIONED",
@@ -439,8 +473,18 @@ export async function startProvisioning(
   const resolved = resolve(deps);
   const data = parseProvisionInput(input);
   const { client, vault, now } = resolved;
+  const planId = input.planId?.trim() || null;
 
   const runId = await client.$transaction(async (tx) => {
+    if (planId) {
+      const plan = await tx.plan.findUnique({ where: { id: planId } });
+      if (!plan) {
+        throw new NotFoundError("No existe ese plan");
+      }
+      if (!plan.isActive) {
+        throw new ConflictError("Ese plan está desactivado: actívalo o elige otro");
+      }
+    }
     const existing = await tx.tenant.findUnique({
       where: { slug: data.slug },
       include: { provisioningRuns: { orderBy: { startedAt: "desc" }, take: 1 } },
@@ -486,6 +530,7 @@ export async function startProvisioning(
         ownerName: data.ownerName,
         ownerUsername: data.ownerUsername,
         ownerEmail: data.ownerEmail,
+        planId,
         secretEnc: vault.encrypt(data.ownerPassword, vaultContext.tenantOwnerPassword(tenantId)),
         actorId: context.actor?.id ?? null,
         actorUsername: context.actor?.username ?? null,
@@ -499,7 +544,7 @@ export async function startProvisioning(
       tenantId,
       targetType: "Tenant",
       targetId: tenantId,
-      details: { slug: data.slug, name: data.name, ownerUsername: data.ownerUsername },
+      details: { slug: data.slug, name: data.name, ownerUsername: data.ownerUsername, planId },
       ip: context.ip,
     });
     return run.id;

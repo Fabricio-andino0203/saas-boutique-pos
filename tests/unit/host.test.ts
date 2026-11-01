@@ -19,6 +19,13 @@ const directory: TenantDirectory = {
     if (host === "suspendida.localhost") {
       return { state: "suspended", tenant: { id: "s", slug: "suspendida", name: "S" } };
     }
+    if (host === "vencida.localhost") {
+      return {
+        state: "suspended",
+        reason: "billing",
+        tenant: { id: "v", slug: "vencida", name: "V" },
+      };
+    }
     if (host === "mantenimiento.localhost") {
       return { state: "maintenance", tenant: { id: "m", slug: "mantenimiento", name: "M" } };
     }
@@ -49,6 +56,10 @@ describe("classifyHost", () => {
 
   it("a business that exists but cannot operate is 'suspended', not unknown and not a business", async () => {
     expect(await classifyHost("suspendida.localhost:3000", multi)).toBe("suspended");
+  });
+
+  it("a business whose subscription ended is 'expired', not just 'suspended'", async () => {
+    expect(await classifyHost("vencida.localhost:3000", multi)).toBe("expired");
   });
 
   it("a business whose last migration failed is 'maintenance': it exists, but waits for its repair", async () => {
@@ -92,6 +103,10 @@ describe("classifyHost", () => {
 });
 
 describe("isCertificateAllowed (Caddy's on-demand TLS question)", () => {
+  it("keeps answering for a business with an expired subscription: it will show its own page", async () => {
+    expect(await isCertificateAllowed("vencida.localhost", multi)).toBe(true);
+  });
+
   it("allows the panel and the businesses that exist, including a suspended one", async () => {
     expect(await isCertificateAllowed("admin.localhost", multi)).toBe(true);
     expect(await isCertificateAllowed("tienda-a.localhost", multi)).toBe(true);

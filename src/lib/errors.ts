@@ -38,6 +38,9 @@ export const APP_ERROR_CODES = [
   "LAYAWAY_DEPOSIT",
   "PHONE_TAKEN",
   "CUSTOMER_IN_USE",
+  "READ_ONLY",
+  "FEATURE_NOT_INCLUDED",
+  "PLAN_LIMIT",
 ] as const;
 
 export type ErrorCode = (typeof APP_ERROR_CODES)[number];
@@ -154,6 +157,40 @@ export class AccountLockedError extends AppError {
 export class InvalidCodeError extends AppError {
   constructor(message = "Invalid verification code", options?: AppErrorOptions) {
     super("INVALID_CODE", 401, message, options);
+  }
+}
+
+/** La suscripción del negocio venció y pasó la gracia: solo se puede consultar y exportar, no registrar nada nuevo. */
+export class ReadOnlyAccountError extends AppError {
+  constructor(message = "The account is read-only", options?: AppErrorOptions) {
+    super("READ_ONLY", 403, message, options);
+  }
+}
+
+/** La función pedida no está incluida en el plan del negocio. */
+export class FeatureNotIncludedError extends AppError {
+  readonly feature: string;
+
+  constructor(feature: string, options?: AppErrorOptions) {
+    super(
+      "FEATURE_NOT_INCLUDED",
+      403,
+      `The "${feature}" feature is not included in the plan`,
+      options,
+    );
+    this.feature = feature;
+  }
+}
+
+/** Agregar esto superaría el límite del plan del negocio (usuarios, productos…). */
+export class PlanLimitError extends AppError {
+  readonly kind: string;
+  readonly limit: number;
+
+  constructor(kind: string, limit: number, options?: AppErrorOptions) {
+    super("PLAN_LIMIT", 409, `The plan allows at most ${limit} (${kind})`, options);
+    this.kind = kind;
+    this.limit = limit;
   }
 }
 

@@ -1,6 +1,7 @@
 import type { PrismaClient } from "@/generated/prisma/client";
 import { audit } from "@/lib/audit";
 import { db } from "@/lib/db";
+import { assertWithinPlanLimit } from "@/lib/entitlements";
 import {
   LastOwnerError,
   NotFoundError,
@@ -55,6 +56,11 @@ export async function listUsers(client: PrismaClient = db) {
   });
 }
 
+/** Usuarios que cuentan para el límite del plan: los activos (los archivados no). */
+export async function countActiveUsers(client: PrismaClient = db): Promise<number> {
+  return client.user.count({ where: { isActive: true } });
+}
+
 export async function getUser(id: string, client: PrismaClient = db) {
   return client.user.findUnique({
     where: { id },
@@ -74,6 +80,7 @@ export async function createUser(
 
   try {
     return await client.$transaction(async (tx) => {
+      await assertWithinPlanLimit("users", () => tx.user.count({ where: { isActive: true } }));
       const user = await tx.user.create({
         data: { name: data.name, username: data.username, role: data.role, passwordHash, pinHash },
         select: { id: true },
@@ -155,6 +162,9 @@ export async function setUserActive(
       if (target.role === "OWNER" && (await otherActiveOwners(tx, id)) === 0) {
         throw new LastOwnerError();
       }
+    }
+    if (active) {
+      await assertWithinPlanLimit("users", () => tx.user.count({ where: { isActive: true } }));
     }
     await tx.user.update({ where: { id }, data: { isActive: active } });
     if (!active) {

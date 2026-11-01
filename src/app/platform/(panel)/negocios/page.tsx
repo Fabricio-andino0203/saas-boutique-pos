@@ -13,17 +13,19 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { platformMessages } from "@/config/messages.platform.es";
-import { formatLocalDateTime } from "@/lib/dates";
+import { formatLocalDate, formatLocalDateTime } from "@/lib/dates";
 import { requirePlatformSession } from "@/lib/platform-auth";
 import { CreateTenantForm } from "@/modules/platform/components/create-tenant-form";
 import { provisioningAvailable } from "@/modules/platform/provisioning";
+import { listPlans } from "@/modules/platform/billing";
 import { listTenants } from "@/modules/platform/queries";
 
 const copy = platformMessages.tenants;
+const billing = platformMessages.billing;
 
 export default async function PlatformTenantsPage() {
   await requirePlatformSession();
-  const tenants = await listTenants();
+  const [tenants, plans] = await Promise.all([listTenants(), listPlans()]);
   const baseDomain = process.env.TENANT_BASE_DOMAIN;
 
   return (
@@ -45,7 +47,10 @@ export default async function PlatformTenantsPage() {
         {provisioningAvailable() ? (
           <>
             <p className="text-muted-foreground max-w-3xl text-sm">{copy.create.description}</p>
-            <CreateTenantForm baseDomain={baseDomain} />
+            <CreateTenantForm
+              baseDomain={baseDomain}
+              plans={plans.filter((plan) => plan.isActive).map(({ id, name }) => ({ id, name }))}
+            />
           </>
         ) : (
           <p role="status" className="text-muted-foreground text-sm">
@@ -68,6 +73,8 @@ export default async function PlatformTenantsPage() {
               <TableHead>{copy.columns.name}</TableHead>
               <TableHead>{copy.columns.address}</TableHead>
               <TableHead>{copy.columns.status}</TableHead>
+              <TableHead>{copy.columns.plan}</TableHead>
+              <TableHead>{copy.columns.expires}</TableHead>
               <TableHead>{copy.columns.schema}</TableHead>
               <TableHead>{copy.columns.created}</TableHead>
               <TableHead>
@@ -86,6 +93,25 @@ export default async function PlatformTenantsPage() {
                 </TableCell>
                 <TableCell>{baseDomain ? `${tenant.slug}.${baseDomain}` : tenant.slug}</TableCell>
                 <TableCell>{copy.status[tenant.status]}</TableCell>
+                <TableCell>
+                  {tenant.subscription
+                    ? `${tenant.subscription.plan}${tenant.subscription.isTrial ? ` (${billing.subscription.trialTag})` : ""}`
+                    : billing.noPlan}
+                </TableCell>
+                <TableCell className="whitespace-nowrap">
+                  {tenant.subscription ? (
+                    <>
+                      {formatLocalDate(tenant.subscription.position.periodEnd)}
+                      {tenant.subscription.position.mode === "full" ? null : (
+                        <span className="text-warning ml-1 text-xs">
+                          ({billing.modes[tenant.subscription.position.mode]})
+                        </span>
+                      )}
+                    </>
+                  ) : (
+                    "—"
+                  )}
+                </TableCell>
                 <TableCell className="font-mono text-xs">
                   {tenant.schemaVersion ?? copy.noSchema}
                 </TableCell>

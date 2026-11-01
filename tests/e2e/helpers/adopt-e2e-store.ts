@@ -15,7 +15,9 @@ async function main(): Promise<void> {
     throw new Error("Estas pruebas solo usan una base central _test (CONTROL_DATABASE_URL).");
   }
   // Una corrida anterior pudo dejar el registro: se parte de cero (la base central de pruebas es desechable).
-  await controlDb.$executeRawUnsafe('TRUNCATE TABLE "ProvisioningRun", "Tenant"');
+  await controlDb.$executeRawUnsafe(
+    'TRUNCATE TABLE "PlatformPayment", "Subscription", "ProvisioningRun", "Tenant"',
+  );
   const tenant = await adoptExistingStore(
     { slug: "tienda", name: "Tienda E2E", databaseUrl },
     { actor: null },

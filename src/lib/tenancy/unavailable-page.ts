@@ -5,16 +5,22 @@
 
 import { platformMessages } from "@/config/messages.platform.es";
 
-export type UnavailableKind = "suspended" | "maintenance" | "directory-down";
+export type UnavailableKind =
+  "suspended" | "expired" | "feature" | "maintenance" | "directory-down";
 
-const COPY: Record<UnavailableKind, { status: number; title: string; body: string }> = {
+const COPY: Record<
+  UnavailableKind,
+  { status: number; title: string; body: string; back?: string }
+> = {
   suspended: { status: 403, ...platformMessages.unavailable.suspended },
+  expired: { status: 403, ...platformMessages.unavailable.expired },
+  feature: { status: 403, ...platformMessages.unavailable.feature },
   maintenance: { status: 503, ...platformMessages.unavailable.maintenance },
   "directory-down": { status: 503, ...platformMessages.unavailable.directoryDown },
 };
 
 export function unavailableResponse(kind: UnavailableKind): Response {
-  const { status, title, body } = COPY[kind];
+  const { status, title, body, back } = COPY[kind];
   const html = `<!doctype html>
 <html lang="es-HN">
 <head>
@@ -33,6 +39,7 @@ export function unavailableResponse(kind: UnavailableKind): Response {
 <main>
 <h1>${title}</h1>
 <p>${body}</p>
+${back ? `<p style="margin-top:1rem"><a href="/">${back}</a></p>` : ""}
 </main>
 </body>
 </html>`;

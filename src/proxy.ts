@@ -1,9 +1,12 @@
 import { NextResponse, type NextRequest } from "next/server";
 
+import { featureForPath } from "@/config/plan-catalog";
 import { logger } from "@/lib/logger";
 import { isPlatformPublicPath, platformCookieName } from "@/lib/platform-cookie";
 import { sessionCookieName } from "@/lib/session-cookie";
+import { includesFeature } from "@/lib/tenancy/billing";
 import { getTenantDirectory } from "@/lib/tenancy/control-directory";
+import { normalizeHost } from "@/lib/tenancy/directory";
 import { classifyHost, type HostKind } from "@/lib/tenancy/host";
 import { unavailableResponse } from "@/lib/tenancy/unavailable-page";
 
@@ -77,7 +80,10 @@ export async function proxy(request: NextRequest): Promise<Response> {
   if (kind === "platform") {
     return platformRequest(request);
   }
-  if ((kind === "suspended" || kind === "maintenance") && pathname !== "/api/health") {
+  if (
+    (kind === "suspended" || kind === "expired" || kind === "maintenance") &&
+    pathname !== "/api/health"
+  ) {
     return unavailableResponse(kind);
   }
   if (kind === "unknown" && pathname !== "/api/health") {
@@ -85,6 +91,17 @@ export async function proxy(request: NextRequest): Promise<Response> {
   }
   if (isPlatformPath(pathname)) {
     return notFound("No encontrado");
+  }
+  // Un módulo que el plan del negocio no incluye no se atiende, ni sus pantallas ni lo que se envía desde ellas.
+  if (kind === "tenant" && process.env.TENANCY_MODE === "multi") {
+    const feature = featureForPath(pathname);
+    const host = normalizeHost(request.headers.get("host"));
+    if (feature && host) {
+      const entry = await getTenantDirectory().lookupByHost(host);
+      if (entry?.state === "active" && !includesFeature(entry.tenant.entitlements, feature)) {
+        return unavailableResponse("feature");
+      }
+    }
   }
   if (isPublicPath(pathname) || request.cookies.has(sessionCookieName())) {
     return NextResponse.next();

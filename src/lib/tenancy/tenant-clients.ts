@@ -50,7 +50,8 @@ export function configureTenantPool(options: Partial<PoolOptions>): void {
   Object.assign(registry().options, options);
 }
 
-export type TenantLease = { client: PrismaClient; release: () => void };
+/** `readOnly`: el plan del negocio está en solo lectura (ver `read-only-guard.ts`); el resolutor corta las escrituras. */
+export type TenantLease = { client: PrismaClient; release: () => void; readOnly?: boolean };
 
 function closeEntry(entry: Entry, reg: Registry): void {
   reg.evicted += 1;
@@ -131,6 +132,7 @@ export function acquireTenantClient(tenant: TenantRef, poolSize?: number): Tenan
   let released = false;
   return {
     client: held.client,
+    readOnly: tenant.entitlements?.mode === "readonly",
     release: () => {
       if (!released) {
         released = true;

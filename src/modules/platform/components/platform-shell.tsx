@@ -1,4 +1,11 @@
-import { Building2, LayoutDashboard, ScrollText, ShieldCheck, type LucideIcon } from "lucide-react";
+import {
+  Building2,
+  LayoutDashboard,
+  Layers,
+  ScrollText,
+  ShieldCheck,
+  type LucideIcon,
+} from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
@@ -25,6 +32,7 @@ const copy = platformMessages.nav;
 const navItems: readonly { href: string; label: string; icon: LucideIcon }[] = [
   { href: "/", label: copy.summary, icon: LayoutDashboard },
   { href: "/negocios", label: copy.tenants, icon: Building2 },
+  { href: "/planes", label: copy.plans, icon: Layers },
   { href: "/administradores", label: copy.admins, icon: ShieldCheck },
   { href: "/auditoria", label: copy.audit, icon: ScrollText },
 ];

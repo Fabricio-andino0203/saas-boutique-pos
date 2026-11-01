@@ -48,6 +48,9 @@ async function main(): Promise<void> {
       await dropTenantResources(adminUrl, { database: tenant.dbName, role: tenant.dbRole });
     }
   }
+  await controlDb.$executeRawUnsafe(
+    `TRUNCATE TABLE "PlatformPayment", "Subscription", "Plan" CASCADE`,
+  );
   await controlDb.provisioningRun.deleteMany({
     where: { tenantId: { in: leftovers.map((tenant) => tenant.id) } },
   });

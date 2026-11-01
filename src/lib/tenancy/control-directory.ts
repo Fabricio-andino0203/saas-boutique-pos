@@ -1,5 +1,7 @@
+import { PLAN_FEATURES } from "@/config/plan-catalog";
 import type { TenantStatus } from "@/generated/control/client";
 import { logger } from "@/lib/logger";
+import { toEntitlements, type TenantEntitlements } from "@/lib/tenancy/billing";
 import { controlDb } from "@/lib/tenancy/control-db";
 import {
   cachedDirectory,
@@ -18,6 +20,16 @@ import { getVault, vaultContext, type Vault } from "@/lib/tenancy/vault";
  * se descifra la credencial de la base del negocio con la bóveda y se arma su URL. Con una caché corta (ver `directory.ts`).
  */
 
+/** La suscripción vigente de un negocio con lo que hace falta para saber qué puede usar (ver `billing.ts`). */
+export type SubscriptionRecord = {
+  /** Prueba gratuita (aún sin ningún pago). */
+  isTrial: boolean;
+  currentPeriodEnd: Date;
+  graceDays: number;
+  readOnlyDays: number;
+  plan: { name: string; features: string[]; limits: unknown };
+};
+
 export type TenantRecord = {
   id: string;
   slug: string;
@@ -27,12 +39,39 @@ export type TenantRecord = {
   dbName: string | null;
   dbRole: string | null;
   dbCredentialEnc: string | null;
+  /** Sin suscripción (`null` o ausente) un negocio no tiene restricciones: es el caso de los negocios anteriores a los planes. */
+  subscription?: SubscriptionRecord | null;
 };
 
 export type RecordDeps = {
   vault: Pick<Vault, "decrypt">;
   endpointFor: (serverId: string) => ServerEndpoint;
+  now?: () => Date;
 };
+
+/** Los derechos del plan del negocio en este momento, o `undefined` si no tiene suscripción. */
+export function entitlementsOfRecord(
+  record: TenantRecord,
+  now: Date,
+): TenantEntitlements | undefined {
+  const sub = record.subscription;
+  if (!sub) {
+    return undefined;
+  }
+  return toEntitlements(
+    {
+      isTrial: sub.isTrial,
+      currentPeriodEnd: sub.currentPeriodEnd,
+      graceDays: sub.graceDays,
+      readOnlyDays: sub.readOnlyDays,
+      planName: sub.plan.name,
+      features: sub.plan.features,
+      limits: sub.plan.limits,
+    },
+    now,
+    PLAN_FEATURES,
+  );
+}
 
 /**
  * Cómo conectarse a la base de un negocio: abre su credencial en la bóveda y arma la URL. Lo usan la atención de peticiones
@@ -80,8 +119,19 @@ export function entryFromRecord(
   deps: RecordDeps,
 ): DirectoryEntry | undefined {
   switch (record.status) {
-    case "ACTIVE":
-      return { state: "active", tenant: tenantRefFromRecord(record, deps) };
+    case "ACTIVE": {
+      const entitlements = entitlementsOfRecord(record, (deps.now ?? (() => new Date()))());
+      if (entitlements?.mode === "blocked") {
+        // La suscripción terminó: no se atiende ni se toca su base (ni siquiera se abre su credencial).
+        return {
+          state: "suspended",
+          reason: "billing",
+          tenant: { id: record.id, slug: record.slug, name: record.name },
+        };
+      }
+      const tenant = tenantRefFromRecord(record, deps);
+      return { state: "active", tenant: entitlements ? { ...tenant, entitlements } : tenant };
+    }
     case "SUSPENDED":
     case "PENDING_DELETION":
       return {
@@ -106,8 +156,8 @@ export type ControlDirectoryOptions = {
   ttlMs?: number | undefined;
 };
 
-function findInControl(slug: string): Promise<TenantRecord | null> {
-  return controlDb.tenant.findUnique({
+async function findInControl(slug: string): Promise<TenantRecord | null> {
+  const row = await controlDb.tenant.findUnique({
     where: { slug },
     select: {
       id: true,
@@ -118,8 +168,25 @@ function findInControl(slug: string): Promise<TenantRecord | null> {
       dbName: true,
       dbRole: true,
       dbCredentialEnc: true,
+      subscriptions: {
+        where: { status: { not: "EXPIRED" } },
+        take: 1,
+        select: {
+          isTrial: true,
+          currentPeriodEnd: true,
+          graceDays: true,
+          readOnlyDays: true,
+          plan: { select: { name: true, features: true, limits: true } },
+        },
+      },
     },
   });
+  if (!row) {
+    return null;
+  }
+  // La suscripción vigente es la única que no está `EXPIRED` (lo garantiza un índice único parcial).
+  const { subscriptions, ...tenant } = row;
+  return { ...tenant, subscription: subscriptions[0] ?? null };
 }
 
 export function createControlDirectory(options: ControlDirectoryOptions): CachedDirectory {

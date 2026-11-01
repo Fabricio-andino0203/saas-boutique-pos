@@ -232,6 +232,163 @@ test.describe.serial("recorrido completo del superadministrador", () => {
     await expect(page.getByText(copy.tenants.status.ACTIVE).first()).toBeVisible();
   });
 
+  test("planes y suscripciones: un plan se crea, se asigna, y la tienda lo siente (módulos, límites, solo lectura) hasta que se paga", async ({
+    browser,
+  }) => {
+    test.slow();
+    const billing = copy.billing;
+    const sub = billing.subscription;
+    const planName = `Plan E2E ${suffix}`;
+
+    // ── El plan: un precio inválido lo explica sin borrar lo escrito (ni los módulos marcados); con uno válido aparece en la lista ──
+    // (Cada contraseña equivocada cuenta para el bloqueo de la cuenta: en este recorrido solo caben cuatro, y ya se usan varias.)
+    await page.getByRole("link", { name: copy.nav.plans }).click();
+    await expect(page.getByRole("heading", { level: 1, name: billing.plans.title })).toBeVisible();
+    await page.getByRole("link", { name: billing.plans.new }).first().click();
+    await expect(
+      page.getByRole("heading", { level: 1, name: billing.plans.newTitle }),
+    ).toBeVisible();
+    await page.locator("#plan-name").fill(planName);
+    await page.locator("#plan-price").fill("abc");
+    await page.locator("#plan-limitUsers").fill("2");
+    await page.getByLabel(billing.features.customers).check();
+    await page.locator("#plan-actor-password").fill(PASSWORD);
+    await page.getByRole("button", { name: billing.plans.form.submitCreate }).click();
+    await expect(alertWith(page, billing.validation.price)).toBeVisible();
+    await expect(page.locator("#plan-name")).toHaveValue(planName); // lo escrito se conserva
+    await expect(page.locator("#plan-limitUsers")).toHaveValue("2");
+    await expect(page.getByLabel(billing.features.customers)).toBeChecked(); // y los módulos marcados
+
+    await page.locator("#plan-price").fill("500.00");
+    await page.locator("#plan-actor-password").fill(PASSWORD);
+    await page.getByRole("button", { name: billing.plans.form.submitCreate }).click();
+    await expect(page).toHaveURL(/\/planes$/);
+    const planRow = page.getByTestId(`plan-row-${planName}`);
+    await expect(planRow).toContainText("L 500.00");
+    await expect(planRow).toContainText(billing.features.customers);
+    await expect(planRow).not.toContainText(billing.features.reports);
+
+    // ── Se asigna a un negocio con el vencimiento ya pasado: queda en solo lectura ──
+    const daysAgo = (days: number) =>
+      new Date(Date.now() - days * 86_400_000).toISOString().slice(0, 10);
+    await page.goto(`/negocios/${newSlug}`);
+    await expect(page.getByTestId("subscription-none")).toBeVisible();
+    await page.getByTestId("billing-assign").locator("summary").click();
+    await page.locator("#assign-plan").selectOption({ label: planName });
+    await page.locator("#assign-mode").selectOption("paid");
+    await page.locator("#assign-until").fill(daysAgo(20));
+    await page.locator("#assign-reason").fill("Prueba de navegador");
+    await page.locator("#billing-assign-password").fill(PASSWORD);
+    await page.getByRole("button", { name: sub.assign.submit }).click();
+    // El formulario de asignar desaparece al refrescar (ya hay plan), y con él su mensaje: lo que se comprueba es el resultado.
+    await expect(page.getByTestId("subscription-facts")).toHaveAttribute("data-mode", "readonly");
+
+    // ── La tienda: aviso de solo lectura, el menú sin lo que el plan no incluye, y nada nuevo se puede registrar ──
+    const store = await browser.newPage();
+    try {
+      await store.goto(`${newTenantUrl}/login`);
+      await store.getByLabel(messages.auth.login.username).fill("rosa");
+      await store.getByLabel(messages.auth.login.password).fill(newOwnerPassword);
+      await store.getByRole("button", { name: messages.auth.login.submit }).click();
+      await expect(
+        store.getByRole("heading", { level: 1, name: messages.home.title }),
+      ).toBeVisible();
+
+      const banner = store.getByTestId("subscription-banner");
+      await expect(banner).toHaveAttribute("data-mode", "readonly");
+      await expect(banner).toContainText("Solo lectura");
+      await expect(
+        store.getByRole("link", { name: messages.nav.customers, exact: true }),
+      ).toBeVisible();
+      await expect(
+        store.getByRole("link", { name: messages.nav.reports, exact: true }),
+      ).toHaveCount(0);
+      await expect(
+        store.getByRole("link", { name: messages.nav.layaways, exact: true }),
+      ).toHaveCount(0);
+
+      // Un módulo que el plan no incluye no responde, ni con la dirección escrita a mano.
+      const blocked = await store.goto(`${newTenantUrl}/reportes`);
+      expect(blocked?.status()).toBe(403);
+      await expect(
+        store.getByRole("heading", { name: copy.unavailable.feature.title }),
+      ).toBeVisible();
+
+      // Consultar sí; registrar algo nuevo, no.
+      await store.goto(`${newTenantUrl}/usuarios`);
+      await expect(
+        store.getByRole("heading", { level: 1, name: messages.users.title }),
+      ).toBeVisible();
+      await store.goto(`${newTenantUrl}/usuarios/nuevo`);
+      await store.getByLabel(messages.users.form.name).fill("Persona de prueba");
+      await store.getByLabel(messages.users.form.username, { exact: true }).fill(`p-${suffix}`);
+      await store.getByLabel(messages.users.form.password).fill("Clave-E2E-2026");
+      await store.getByRole("button", { name: messages.users.form.create }).click();
+      await expect(store.getByText(messages.errors.READ_ONLY)).toBeVisible();
+
+      // ── El pago: el panel lo registra y la tienda vuelve a poder trabajar, sin perder nada ──
+      await page.reload();
+      await page.getByTestId("billing-pay").locator("summary").click();
+      // Un monto inválido se explica sin borrar lo demás (una contraseña equivocada también contaría para el bloqueo de la cuenta).
+      await page.locator("#pay-amount").fill("abc");
+      await page.locator("#pay-reference").fill("TR-E2E-1");
+      await page.locator("#billing-pay-password").fill(PASSWORD);
+      await page.getByRole("button", { name: sub.pay.submit }).click();
+      await expect(alertWith(page, copy.billing.validation.amount)).toBeVisible();
+      await expect(page.locator("#pay-reference")).toHaveValue("TR-E2E-1");
+      await expect(page.locator("#billing-pay-password")).toHaveValue(""); // solo se vacía la contraseña
+      await page.locator("#pay-amount").fill("500.00");
+      await page.locator("#billing-pay-password").fill(PASSWORD);
+      await page.getByRole("button", { name: sub.pay.submit }).click();
+      await expect(
+        page.getByText(/Pago registrado: el negocio queda cubierto hasta el/),
+      ).toBeVisible();
+      await expect(page.getByTestId("subscription-facts")).toHaveAttribute("data-mode", "full");
+      await expect(page.getByRole("cell", { name: "TR-E2E-1" })).toBeVisible();
+
+      await expect
+        .poll(
+          async () => {
+            await store.goto(`${newTenantUrl}/usuarios`);
+            return store.getByTestId("subscription-banner").count();
+          },
+          { timeout: 10_000 },
+        )
+        .toBe(0);
+
+      // ── El límite del plan (2 usuarios): con la dueña caben uno más, y el siguiente se rechaza ──
+      await expect(store.getByTestId("plan-usage-users")).toContainText("1 de 2 usuarios");
+      await store.goto(`${newTenantUrl}/usuarios/nuevo`);
+      await store.getByLabel(messages.users.form.name).fill("Persona de prueba");
+      await store.getByLabel(messages.users.form.username, { exact: true }).fill(`p-${suffix}`);
+      await store.getByLabel(messages.users.form.password).fill("Clave-E2E-2026");
+      await store.getByRole("button", { name: messages.users.form.create }).click();
+      await expect(store).toHaveURL(/\/usuarios$/);
+      await expect(store.getByTestId("plan-usage-users")).toContainText("2 de 2 usuarios");
+
+      await store.goto(`${newTenantUrl}/usuarios/nuevo`);
+      await store.getByLabel(messages.users.form.name).fill("Otra persona");
+      await store.getByLabel(messages.users.form.username, { exact: true }).fill(`q-${suffix}`);
+      await store.getByLabel(messages.users.form.password).fill("Clave-E2E-2026");
+      await store.getByRole("button", { name: messages.users.form.create }).click();
+      await expect(store.getByText(messages.errors.PLAN_LIMIT)).toBeVisible();
+    } finally {
+      await store.close();
+    }
+
+    // ── Todo quedó en la auditoría de la plataforma ──
+    await page.goto("/auditoria");
+    for (const action of [
+      "PLAN_CREATED",
+      "SUBSCRIPTION_ASSIGNED",
+      "SUBSCRIPTION_PAYMENT_REGISTERED",
+    ] as const) {
+      await expect(
+        page.getByRole("cell", { name: copy.audit.actions[action] }).first(),
+      ).toBeVisible();
+    }
+  });
+
   test("revisión del servidor: muestra qué revisar y actualiza los datos de todos los negocios", async () => {
     const review = copy.tenants.review;
     await page.goto("/negocios/revision");

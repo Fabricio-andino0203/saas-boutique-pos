@@ -16,13 +16,14 @@ export type TenantSummary = { id: string; slug: string; name: string };
  * - `active`: el negocio opera; trae cómo conectarse a su base.
  * - `suspended`: el negocio existe pero no puede operar (suspendido o pendiente de baja). Se responde una pantalla de
  *   cuenta suspendida, sin tocar su base.
+ *   Si el motivo es `billing`, la suscripción terminó (pasó la gracia y el solo lectura): se dice «suscripción vencida».
  * - `maintenance`: la última actualización de su base falló (`MIGRATION_FAILED`): se responde «en mantenimiento» (503)
  *   hasta repararla, sin tocar su base. Los demás negocios no se enteran.
  * Un host sin negocio (o de un negocio que aún no existe del todo o ya se dio de baja) no tiene entrada: `undefined`.
  */
 export type DirectoryEntry =
   | { state: "active"; tenant: TenantRef }
-  | { state: "suspended"; tenant: TenantSummary }
+  | { state: "suspended"; tenant: TenantSummary; reason?: "billing" }
   | { state: "maintenance"; tenant: TenantSummary };
 
 export type TenantDirectory = {

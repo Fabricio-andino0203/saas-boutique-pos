@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 
 import { FormField } from "@/components/shared/form-field";
+import { NativeSelect } from "@/components/shared/native-select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { platformMessages } from "@/config/messages.platform.es";
@@ -14,7 +15,13 @@ import { provisionTenantAction } from "@/modules/platform/tenant-actions";
 
 const copy = platformMessages.tenants.create;
 
-export function CreateTenantForm({ baseDomain }: { baseDomain: string | undefined }) {
+export function CreateTenantForm({
+  baseDomain,
+  plans,
+}: {
+  baseDomain: string | undefined;
+  plans: readonly { id: string; name: string }[];
+}) {
   const [state, formAction, pending] = useActionState(provisionTenantAction, undefined);
   useRedirectOnState(state);
   useRefreshOnSuccess(state);
@@ -88,6 +95,16 @@ export function CreateTenantForm({ baseDomain }: { baseDomain: string | undefine
           minLength={8}
           required
         />
+      </FormField>
+      <FormField label={copy.plan} htmlFor="tenant-plan" hint={copy.planHint}>
+        <NativeSelect id="tenant-plan" name="planId" defaultValue={state?.values?.planId ?? ""}>
+          <option value="">{copy.noPlan}</option>
+          {plans.map((plan) => (
+            <option key={plan.id} value={plan.id}>
+              {plan.name}
+            </option>
+          ))}
+        </NativeSelect>
       </FormField>
       <FormField label={copy.actorPassword} htmlFor="tenant-actor-password">
         <Input

@@ -30,6 +30,7 @@ import {
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import { SubscriptionBanner } from "@/components/layout/subscription-banner";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -46,8 +47,11 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { messages } from "@/config/messages.es";
+import { featureForPath } from "@/config/plan-catalog";
 import { requireSession } from "@/lib/auth";
+import { currentEntitlements } from "@/lib/entitlements";
 import { hasCapability, type Capability } from "@/lib/permissions";
+import { includesFeature } from "@/lib/tenancy/billing";
 import { logoutAction } from "@/modules/auth/actions";
 
 type NavItem = { href: string; label: string; icon: LucideIcon; capability?: Capability };
@@ -208,13 +212,19 @@ const navGroups: readonly NavGroup[] = [
 
 export async function AuthenticatedShell({ children }: { children: ReactNode }) {
   const { user } = await requireSession();
+  const entitlements = await currentEntitlements();
 
+  // El menú no ofrece lo que el rol no puede hacer ni los módulos que el plan del negocio no incluye (el servidor lo exige igual).
   const visibleGroups = navGroups
     .map((group) => ({
       ...group,
-      items: group.items.filter(
-        (item) => !item.capability || hasCapability(user.role, item.capability),
-      ),
+      items: group.items.filter((item) => {
+        const feature = featureForPath(item.href);
+        return (
+          (!item.capability || hasCapability(user.role, item.capability)) &&
+          (feature === undefined || includesFeature(entitlements, feature))
+        );
+      }),
     }))
     .filter((group) => group.items.length > 0);
 
@@ -259,6 +269,7 @@ export async function AuthenticatedShell({ children }: { children: ReactNode }) 
         </SidebarContent>
       </Sidebar>
       <SidebarInset className="min-w-0">
+        <SubscriptionBanner entitlements={entitlements} />
         <header className="border-divider flex h-14 items-center gap-2 border-b px-4">
           <SidebarTrigger />
           <Separator orientation="vertical" className="h-5" />

@@ -4,15 +4,17 @@ import Link from "next/link";
 import { PageHeader } from "@/components/shared/page-header";
 import { buttonVariants } from "@/components/ui/button";
 import { platformMessages } from "@/config/messages.platform.es";
-import { formatLocalDateTime } from "@/lib/dates";
+import { formatLocalDate, formatLocalDateTime } from "@/lib/dates";
 import { requirePlatformSession } from "@/lib/platform-auth";
+import { billingOverview } from "@/modules/platform/billing";
 import { getPlatformSummary } from "@/modules/platform/queries";
 
 const copy = platformMessages.summary;
+const billing = platformMessages.billing;
 
 export default async function PlatformSummaryPage() {
   const { user } = await requirePlatformSession();
-  const summary = await getPlatformSummary();
+  const [summary, overview] = await Promise.all([getPlatformSummary(), billingOverview()]);
 
   return (
     <div className="space-y-8">
@@ -40,6 +42,41 @@ export default async function PlatformSummaryPage() {
           value={String(summary.vaultKeyVersion)}
           hint={`${copy.platform.twoFactor}: ${user.twoFactorEnabled ? copy.platform.ok : "—"}`}
         />
+      </section>
+
+      <section
+        className="space-y-3"
+        aria-labelledby="attention-title"
+        data-testid="billing-attention"
+      >
+        <h2 id="attention-title" className="text-lg font-semibold">
+          {billing.overview.title}
+        </h2>
+        {overview.attention.length === 0 ? (
+          <p className="text-muted-foreground text-sm">{billing.overview.empty}</p>
+        ) : (
+          <ul className="border-divider divide-divider divide-y rounded-lg border">
+            {overview.attention.map((row) => (
+              <li
+                key={row.slug}
+                className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm"
+              >
+                <Link href={`/negocios/${row.slug}`} className="text-primary font-medium underline">
+                  {row.name}
+                </Link>
+                <span className="text-muted-foreground">
+                  {row.plan} · {billing.modes[row.mode]} ·{" "}
+                  {row.daysToPeriodEnd > 0
+                    ? billing.overview.dueIn.replace("{n}", String(row.daysToPeriodEnd))
+                    : row.daysToPeriodEnd === 0
+                      ? billing.overview.dueToday
+                      : billing.overview.overdue.replace("{n}", String(-row.daysToPeriodEnd))}{" "}
+                  ({formatLocalDate(row.periodEnd)})
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
       <section className="space-y-3">

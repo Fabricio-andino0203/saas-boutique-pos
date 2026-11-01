@@ -6,6 +6,7 @@ import { Prisma, type PrismaClient } from "@/generated/prisma/client";
 import { audit } from "@/lib/audit";
 import { buildEan13 } from "@/lib/barcode";
 import { db } from "@/lib/db";
+import { assertWithinPlanLimit } from "@/lib/entitlements";
 import { CodeTakenError, HasStockError, NotFoundError, ValidationError } from "@/lib/errors";
 import { percentOf } from "@/lib/money";
 import { requireCapability } from "@/lib/permissions";
@@ -227,6 +228,15 @@ async function createVariants(tx: Tx, source: NewVariantSource): Promise<number>
 
 // ───────────────────────── Crear ─────────────────────────
 
+/** El plan del negocio puede limitar cuántos productos activos tiene; `adding` es cuántos se van a crear. */
+export async function assertProductRoom(tx: Tx, adding = 1): Promise<void> {
+  await assertWithinPlanLimit(
+    "products",
+    () => tx.product.count({ where: { archivedAt: null } }),
+    adding,
+  );
+}
+
 export async function createProductTx(
   tx: Tx,
   actor: Actor,
@@ -239,6 +249,7 @@ export async function createProductTx(
     loadActive(tx, "size", data.sizeIds),
     loadActive(tx, "color", data.colorIds),
   ]);
+  await assertProductRoom(tx);
   const code = data.code ?? (await freshProductCode(tx));
 
   let product;
@@ -514,6 +525,9 @@ export async function setProductArchived(
     if (archived && (await onHandOf(tx, { variant: { productId: id } })) > 0) {
       throw new HasStockError();
     }
+    if (!archived && product.archivedAt !== null) {
+      await assertProductRoom(tx);
+    }
     await tx.product.update({ where: { id }, data: { archivedAt: archived ? new Date() : null } });
     await audit.log(tx, {
       userId: actor.id,
@@ -573,6 +587,7 @@ export async function duplicateProduct(
     if (!source) {
       throw new NotFoundError();
     }
+    await assertProductRoom(tx);
     const code = await freshProductCode(tx);
     const copy = await tx.product.create({
       data: {
@@ -783,6 +798,11 @@ export async function searchProductIds(client: PrismaClient, query: string): Pro
     LIMIT ${PRODUCT_LIMITS.maxSearchMatches}
   `;
   return rows.map((row) => row.id);
+}
+
+/** Productos que cuentan para el límite del plan: los no archivados. */
+export async function countActiveProducts(client: PrismaClient = db): Promise<number> {
+  return client.product.count({ where: { archivedAt: null } });
 }
 
 export async function listProducts(

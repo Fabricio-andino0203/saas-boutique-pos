@@ -394,3 +394,87 @@ describe("staticDirectory", () => {
     expect(await directory.lookupByHost("b.localhost")).toBeUndefined();
   });
 });
+
+describe("entryFromRecord — subscriptions", () => {
+  const NOW = new Date("2026-11-10T12:00:00.000Z");
+  const withNow: RecordDeps = { ...deps, now: () => NOW };
+  const day = (offset: number) => new Date(NOW.getTime() + offset * 24 * 60 * 60 * 1000);
+  const subscription = (periodEndOffsetDays: number, overrides = {}) => ({
+    isTrial: false,
+    currentPeriodEnd: day(periodEndOffsetDays),
+    graceDays: 7,
+    readOnlyDays: 60,
+    plan: {
+      name: "Básico",
+      features: ["customers", "reports", "no-existe"],
+      limits: { users: 3, products: null, extra: 9 },
+    },
+    ...overrides,
+  });
+
+  it("a business without a subscription carries no entitlements (it is not restricted)", () => {
+    const entry = entryFromRecord(record({ subscription: null }), withNow);
+    expect(entry).toMatchObject({ state: "active" });
+    expect(entry && "tenant" in entry && "entitlements" in entry.tenant).toBe(false);
+  });
+
+  it("carries the plan, keeping only the modules and limits that exist", () => {
+    const entry = entryFromRecord(record({ subscription: subscription(10) }), withNow);
+    expect(entry).toMatchObject({
+      state: "active",
+      tenant: {
+        entitlements: {
+          planName: "Básico",
+          features: ["customers", "reports"],
+          limits: { users: 3, products: null },
+          mode: "full",
+          status: "ACTIVE",
+          daysToPeriodEnd: 10,
+        },
+      },
+    });
+  });
+
+  it("marks a trial as such until it is paid", () => {
+    const entry = entryFromRecord(
+      record({ subscription: subscription(3, { isTrial: true }) }),
+      withNow,
+    );
+    expect(entry).toMatchObject({ tenant: { entitlements: { status: "TRIAL", mode: "full" } } });
+  });
+
+  it("after the due date there are grace days with everything working, then read-only", () => {
+    expect(entryFromRecord(record({ subscription: subscription(-3) }), withNow)).toMatchObject({
+      state: "active",
+      tenant: { entitlements: { mode: "grace" } },
+    });
+    expect(entryFromRecord(record({ subscription: subscription(-20) }), withNow)).toMatchObject({
+      state: "active",
+      tenant: { entitlements: { mode: "readonly" } },
+    });
+  });
+
+  it("a cancelled subscription is shown as suspended for billing, without opening the credential", () => {
+    const entry = entryFromRecord(
+      record({ subscription: subscription(-100), dbCredentialEnc: "basura" }),
+      withNow,
+    );
+    expect(entry).toEqual({
+      state: "suspended",
+      reason: "billing",
+      tenant: { id: "ten1", slug: "tienda-a", name: "Tienda A" },
+    });
+  });
+
+  it("a subscription never revives a business that is suspended or serves nobody", () => {
+    expect(
+      entryFromRecord(record({ status: "SUSPENDED", subscription: subscription(10) }), withNow),
+    ).toEqual({
+      state: "suspended",
+      tenant: { id: "ten1", slug: "tienda-a", name: "Tienda A" },
+    });
+    expect(
+      entryFromRecord(record({ status: "DELETED", subscription: subscription(10) }), withNow),
+    ).toBeUndefined();
+  });
+});

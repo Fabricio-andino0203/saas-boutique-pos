@@ -8,8 +8,8 @@
 //  - Los secretos (contraseña de la base de un negocio, secreto del 2FA) se guardan cifrados por la bóveda
 //    (src/lib/tenancy/vault.ts), nunca en claro. Las columnas terminadas en `Enc` contienen el sobre cifrado.
 //  - Las restricciones que Prisma no puede expresar (auditoría de solo inserción) viven en la migración `constraints`.
-//  - El alta automática, la migración de la flota y la baja controlada llegan en la Etapa 3; los planes, suscripciones y
-//    pagos en la Etapa 4.
+//  - El alta automática, la migración de la flota y la baja controlada son de la Etapa 3; los planes, suscripciones y pagos
+//    (con sus restricciones en la migración `plans_and_subscriptions`) de la Etapa 4.
 
 generator client {
   provider = "prisma-client"
@@ -31,6 +31,30 @@ enum TenantStatus {
   FAILED
   /// La última actualización de su base falló: se muestra «en mantenimiento» hasta repararla (los demás siguen).
   MIGRATION_FAILED
+}
+
+enum BillingInterval {
+  MONTHLY
+  QUARTERLY
+  SEMIANNUAL
+  ANNUAL
+}
+
+enum SubscriptionStatus {
+  TRIAL
+  ACTIVE
+  PAST_DUE
+  SUSPENDED
+  CANCELLED
+  /// Fila vieja, reemplazada por otra (un cambio de plan): queda como historial.
+  EXPIRED
+}
+
+enum PaymentMethod {
+  CASH
+  TRANSFER
+  CARD
+  OTHER
 }
 
 enum ProvisioningStatus {
@@ -82,8 +106,103 @@ model Tenant {
   updatedAt DateTime @updatedAt
 
   provisioningRuns ProvisioningRun[]
+  subscriptions    Subscription[]
+  payments         PlatformPayment[]
 
   @@index([status])
+}
+
+// ───────────────────────────── Planes, suscripciones y pagos (Etapa 4) ─────────────────────────────
+
+/// Lo que se vende: un precio, una duración, los módulos que incluye y cuánto se puede crear.
+model Plan {
+  id          String          @id @default(cuid())
+  name        String          @unique
+  description String?
+  priceCents  Int
+  interval    BillingInterval @default(MONTHLY)
+  /// { users?, products?, terminals?, locations? }: enteros; ausente o null = sin límite.
+  limits      Json            @default("{}")
+  /// Módulos incluidos (ver src/config/plan-catalog.ts). El núcleo va siempre.
+  features    String[]
+  /// Días de prueba de un negocio nuevo con este plan.
+  trialDays   Int             @default(14)
+  /// Un plan desactivado ya no se ofrece, pero los negocios que lo tienen lo conservan.
+  isActive    Boolean         @default(true)
+  sortOrder   Int             @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  subscriptions Subscription[]
+
+  @@index([isActive, sortOrder])
+}
+
+/// El contrato de un negocio con un plan. Un cambio de plan **no edita** la fila: cierra la vigente (EXPIRED) y crea otra, así
+/// que el historial de qué tuvo contratado y a qué precio nunca se reescribe. Solo hay una vigente por negocio.
+model Subscription {
+  id       String @id @default(cuid())
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  planId   String
+  plan     Plan   @relation(fields: [planId], references: [id])
+
+  /// Último estado anotado (lo deja el barrido diario); el que manda en cada consulta se calcula con las fechas.
+  status SubscriptionStatus
+  /// Prueba gratuita: sigue siéndolo hasta el primer pago, aunque ya haya vencido.
+  isTrial Boolean @default(false)
+
+  startsAt           DateTime
+  currentPeriodStart DateTime
+  /// Hasta cuándo está pagado (o en prueba). De aquí salen la gracia, el solo lectura y la cancelación.
+  currentPeriodEnd   DateTime
+
+  /// Días con todo funcionando después del vencimiento, y días de solo lectura antes de cancelar.
+  graceDays    Int @default(7)
+  readOnlyDays Int @default(60)
+
+  /// Lo acordado al contratar: no cambia si después se edita el plan.
+  priceCentsSnapshot Int
+  intervalSnapshot   BillingInterval
+
+  /// Plan que empieza en la próxima renovación (cambio «al fin del periodo»).
+  nextPlanId String?
+  reason     String?
+  endedAt    DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  payments PlatformPayment[]
+
+  @@index([tenantId, startsAt])
+  @@index([status, currentPeriodEnd])
+}
+
+/// Un pago registrado a mano (la v1 no cobra sola). Es de solo inserción (lo garantiza un trigger): un error se corrige
+/// ajustando el vencimiento con su motivo en la auditoría, nunca editando el pago.
+model PlatformPayment {
+  id             String       @id @default(cuid())
+  tenantId       String
+  tenant         Tenant       @relation(fields: [tenantId], references: [id])
+  subscriptionId String
+  subscription   Subscription @relation(fields: [subscriptionId], references: [id])
+
+  amountCents Int
+  method      PaymentMethod
+  reference   String?
+  note        String?
+  paidAt      DateTime
+  /// El tramo de tiempo que este pago cubre.
+  coversFrom  DateTime
+  coversUntil DateTime
+
+  registeredById       String?
+  registeredByUsername String?
+  createdAt            DateTime @default(now())
+
+  @@index([tenantId, paidAt])
 }
 
 /// Un intento de dar de alta un negocio: cada paso queda anotado para poder reintentar desde donde falló o deshacerlo.
@@ -103,6 +222,8 @@ model ProvisioningRun {
   ownerUsername String
   ownerEmail    String?
   secretEnc     String?
+  /// Plan con el que arranca el negocio (en prueba); se aplica al terminar el alta. Nulo = sin plan.
+  planId        String?
 
   actorId       String?
   actorUsername String?

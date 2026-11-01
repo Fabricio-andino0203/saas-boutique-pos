@@ -4,7 +4,7 @@ import { createInterface } from "node:readline/promises";
 import { Writable } from "node:stream";
 
 import { AppError } from "../src/lib/errors";
-import { closeControlDb } from "../src/lib/tenancy/control-db";
+import { closeControlDb, controlDb } from "../src/lib/tenancy/control-db";
 import { ensureTemplateCurrent } from "../src/lib/tenancy/provision-steps";
 import { migrateFleet } from "../src/modules/platform/fleet";
 import {
@@ -29,8 +29,9 @@ import { flagValue, hasFlag, UsageError } from "./lib/tenant-run";
  * panel no está a mano). Todo queda en la auditoría de la plataforma como acción del sistema.
  *
  *   pnpm tenants:template [--force]                 Deja al día la base «dorada» desde la que se copia cada negocio nuevo.
- *   pnpm tenants:provision --slug <s> --name "<n>" --owner-name "<n>" --owner-username <u> [--owner-email <e>]
+ *   pnpm tenants:provision --slug <s> --name "<n>" --owner-name "<n>" --owner-username <u> [--owner-email <e>] [--plan "<plan>"]
  *                                                   Da de alta un negocio (la contraseña temporal sale de OWNER_PASSWORD o se pregunta).
+ *                                                   Con --plan arranca en prueba con ese plan (ver pnpm billing:plans).
  *   pnpm tenants:resume <slug>                      Retoma un alta que falló o se interrumpió.
  *   pnpm tenants:undo <slug>                        Deshace un alta que no terminó (borra su base y su rol).
  *   pnpm tenants:migrate [--force] [--only a,b] [--concurrency N] [--no-canary-gate]
@@ -124,6 +125,11 @@ async function main(): Promise<void> {
     }
     case "provision": {
       const password = process.env.OWNER_PASSWORD ?? (await askPassword());
+      const planName = flagValue("plan");
+      const plan = planName ? await controlDb.plan.findUnique({ where: { name: planName } }) : null;
+      if (planName && !plan) {
+        throw new UsageError(`No existe el plan "${planName}" (mira «pnpm billing:plans»)`);
+      }
       printOutcome(
         await startProvisioning(
           {
@@ -133,6 +139,7 @@ async function main(): Promise<void> {
             ownerUsername: required("owner-username"),
             ownerEmail: flagValue("owner-email"),
             ownerPassword: password,
+            planId: plan?.id,
           },
           context,
         ),

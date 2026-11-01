@@ -5,7 +5,12 @@ import { db } from "@/lib/db";
 import { CodeTakenError } from "@/lib/errors";
 import { hasCapability, requireCapability } from "@/lib/permissions";
 import type { Actor } from "@/modules/catalog/service";
-import { createVariantCells, freshProductCode, type Named } from "@/modules/products/service";
+import {
+  assertProductRoom,
+  createVariantCells,
+  freshProductCode,
+  type Named,
+} from "@/modules/products/service";
 
 import { normalize } from "./columns";
 import { buildImportPlan, type ImportContext, type ImportPlan, type NamedRef } from "./plan";
@@ -120,6 +125,8 @@ export async function importProducts(
 
   await client.$transaction(
     async (tx: Tx) => {
+      // Todo el archivo entra o no entra nada: si el plan no alcanza para todos los productos nuevos, no entra ninguno.
+      await assertProductRoom(tx, plan.products.length);
       const lookup = {
         brands: new Map<string, string>(),
         seasons: new Map<string, string>(),

@@ -106,6 +106,13 @@ export function parseLocalDateKey(key: string): Date | null {
   return new Date(startOfLocalDay(probe).getTime() + 12 * 3_600_000);
 }
 
+/** Solo la fecha, en la zona de la tienda: `31/10/2026`. */
+export function formatLocalDate(date: Date): string {
+  assertValidDate(date);
+  const p = zonedParts(date);
+  return `${pad2(p.day)}/${pad2(p.month)}/${p.year}`;
+}
+
 export function formatLocalDateTime(date: Date): string {
   assertValidDate(date);
   const p = zonedParts(date);

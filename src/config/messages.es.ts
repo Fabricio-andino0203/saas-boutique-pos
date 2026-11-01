@@ -1,5 +1,19 @@
 export const messages = {
   app: { name: "Boutique POS" },
+  /** Avisos de la suscripción del negocio (los ve cada usuario del negocio, arriba de la pantalla). */
+  subscription: {
+    trialEnding:
+      "Tu prueba gratuita termina el {date}. Para seguir usando el sistema, comunícate con quien administra tu servicio.",
+    renewSoon:
+      "Tu suscripción vence el {date}. Comunícate con quien administra tu servicio para renovarla a tiempo.",
+    grace:
+      "Tu suscripción venció el {date}. Todo sigue funcionando hasta el {until}; después el sistema pasará a solo lectura.",
+    readOnly:
+      "Solo lectura: tu suscripción venció. Puedes consultar y exportar, pero no registrar nada nuevo. El acceso se cierra el {until}. Comunícate con quien administra tu servicio para renovarla.",
+    usage: "{used} de {limit} {what}",
+    usageOver: "{used} de {limit} {what}: ya no se pueden agregar más con tu plan",
+    limitKinds: { users: "usuarios", products: "productos" },
+  },
   nav: {
     home: "Inicio",
     account: "Mi cuenta",
@@ -2355,6 +2369,12 @@ export const messages = {
     PHONE_TAKEN: "Ya hay un cliente con ese teléfono (puede estar archivado). Búscalo en la lista.",
     CUSTOMER_IN_USE:
       "Este cliente tiene apartados activos. Termínalos o cancélalos antes de archivarlo.",
+    READ_ONLY:
+      "Tu cuenta está en solo lectura porque la suscripción venció: puedes consultar y exportar, pero no registrar nada nuevo. Comunícate con quien administra tu servicio para renovarla.",
+    FEATURE_NOT_INCLUDED:
+      "Esa función no está incluida en tu plan. Pídele a quien administra tu servicio que lo cambie.",
+    PLAN_LIMIT:
+      "Tu plan no permite agregar más de esto. Pídele a quien administra tu servicio que lo cambie.",
     INSUFFICIENT_CASH:
       "No hay tanto efectivo en la caja. Revisa el monto: el efectivo esperado no puede quedar en negativo.",
     FISCAL_RANGE_EXHAUSTED: "El rango de facturas se agotó o ya venció. Solicita uno nuevo al SAR.",

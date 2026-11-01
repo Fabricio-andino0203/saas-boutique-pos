@@ -1,5 +1,7 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 
+import type { TenantEntitlements } from "@/lib/tenancy/billing";
+
 /**
  * Un negocio (tenant) tal como lo necesita el acceso a datos: quién es y a qué base conectarse. La URL se arma con la
  * credencial que la bóveda descifra de la base central (ver `control-directory.ts`).
@@ -9,6 +11,11 @@ export type TenantRef = {
   databaseUrl: string;
   /** Subdominio del negocio. Solo para el registro y la lectura humana: nunca decide a qué base se conecta nadie. */
   slug?: string;
+  /**
+   * Lo que el plan del negocio le permite (módulos, límites y si está en gracia o en solo lectura). Lo llena el directorio de
+   * hosts para atender una petición; ausente = sin restricciones (una sola tienda, procesos y negocios sin plan).
+   */
+  entitlements?: TenantEntitlements;
 };
 
 /** No hay negocio en contexto: el acceso a datos **falla cerrado** en vez de caer a una base "por defecto". */

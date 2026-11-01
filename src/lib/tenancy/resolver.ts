@@ -1,5 +1,6 @@
 import type { PrismaClient } from "@/generated/prisma/client";
 import { getTenantDirectory } from "@/lib/tenancy/control-directory";
+import { guardCall } from "@/lib/tenancy/read-only-guard";
 import { normalizeHost, type DirectoryEntry } from "@/lib/tenancy/directory";
 import { acquireTenantClient, type TenantLease } from "@/lib/tenancy/tenant-clients";
 import {
@@ -121,7 +122,7 @@ export function createTenantResolver(getLease: () => Promise<TenantLease> = leas
           throw new TypeError("`db` no se puede llamar como función");
         }
         return (async () => {
-          const { client, release } = await getLease();
+          const { client, release, readOnly } = await getLease();
           try {
             const parent = path
               .slice(0, -1)
@@ -129,7 +130,8 @@ export function createTenantResolver(getLease: () => Promise<TenantLease> = leas
             const method = (parent as Record<string, unknown>)[
               path[path.length - 1] as string
             ] as Method;
-            return await method.apply(parent, args);
+            // Negocio en solo lectura: las escrituras no llegan a la base (ver `read-only-guard.ts`).
+            return await method.apply(parent, readOnly ? guardCall(path, args) : args);
           } finally {
             release();
           }

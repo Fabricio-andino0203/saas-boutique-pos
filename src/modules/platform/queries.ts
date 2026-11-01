@@ -1,4 +1,5 @@
 import type { Prisma, ProvisioningStatus, TenantStatus } from "@/generated/control/client";
+import { computeBillingPosition, type BillingPosition } from "@/lib/tenancy/billing";
 import { controlDb, type ControlDb } from "@/lib/tenancy/control-db";
 import { getVault } from "@/lib/tenancy/vault";
 import type { PlatformAuditFilters } from "@/modules/platform/schemas";
@@ -13,10 +14,15 @@ export type TenantRow = {
   schemaVersion: string | null;
   canary: boolean;
   createdAt: Date;
+  /** Su suscripción vigente; `null` si no tiene plan (se atiende sin restricciones). */
+  subscription: { plan: string; isTrial: boolean; position: BillingPosition } | null;
 };
 
-export async function listTenants(client: ControlDb = controlDb): Promise<TenantRow[]> {
-  return client.tenant.findMany({
+export async function listTenants(
+  client: ControlDb = controlDb,
+  now: Date = new Date(),
+): Promise<TenantRow[]> {
+  const tenants = await client.tenant.findMany({
     orderBy: { createdAt: "asc" }, // el negocio #1 primero
     select: {
       id: true,
@@ -26,7 +32,27 @@ export async function listTenants(client: ControlDb = controlDb): Promise<Tenant
       schemaVersion: true,
       canary: true,
       createdAt: true,
+      subscriptions: {
+        where: { status: { not: "EXPIRED" } },
+        take: 1,
+        select: {
+          isTrial: true,
+          currentPeriodEnd: true,
+          graceDays: true,
+          readOnlyDays: true,
+          plan: { select: { name: true } },
+        },
+      },
     },
+  });
+  return tenants.map(({ subscriptions, ...tenant }) => {
+    const sub = subscriptions[0];
+    return {
+      ...tenant,
+      subscription: sub
+        ? { plan: sub.plan.name, isTrial: sub.isTrial, position: computeBillingPosition(sub, now) }
+        : null,
+    };
   });
 }
 
@@ -72,6 +98,7 @@ export async function getTenantDetail(
     schemaVersion: tenant.schemaVersion,
     canary: tenant.canary,
     createdAt: tenant.createdAt,
+    subscription: null,
     ownerEmail: tenant.ownerEmail,
     dbName: tenant.dbName,
     archivedDbName: tenant.archivedDbName,

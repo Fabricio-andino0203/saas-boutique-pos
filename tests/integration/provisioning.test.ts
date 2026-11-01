@@ -20,6 +20,7 @@ import { closeAllTenantClients } from "@/lib/tenancy/tenant-clients";
 import { runWithTenant, setProcessDefaultTenant } from "@/lib/tenancy/tenant-context";
 import { getVault, setVault, vaultContext } from "@/lib/tenancy/vault";
 import { login } from "@/modules/auth/service";
+import { createPlan, setPlanActive } from "@/modules/platform/billing";
 import {
   provisioningConfig,
   ProvisioningUnavailableError,
@@ -212,12 +213,19 @@ describe("registering a business end to end", () => {
   });
 
   it("does nothing, and says why, when the server has no provisioning account", async () => {
-    expect(() => provisioningConfig({}, {})).toThrow(ProvisioningUnavailableError);
-    const before = await controlTestDb.tenant.count();
-    await expect(
-      startProvisioning(input(), context, { config: { templateDb: TEMPLATE } }),
-    ).rejects.toBeInstanceOf(ProvisioningUnavailableError);
-    expect(await controlTestDb.tenant.count()).toBe(before);
+    // Independiente del entorno de quien corre las pruebas: un servidor sin la variable no puede dar de alta nada.
+    const saved = process.env.TENANT_PROVISIONING_URL;
+    vi.stubEnv("TENANT_PROVISIONING_URL", "");
+    try {
+      expect(() => provisioningConfig({}, {})).toThrow(ProvisioningUnavailableError);
+      const before = await controlTestDb.tenant.count();
+      await expect(
+        startProvisioning(input(), context, { config: { templateDb: TEMPLATE } }),
+      ).rejects.toBeInstanceOf(ProvisioningUnavailableError);
+      expect(await controlTestDb.tenant.count()).toBe(before);
+    } finally {
+      vi.stubEnv("TENANT_PROVISIONING_URL", saved ?? "");
+    }
   });
 
   it("stops with a clear reason if the template is missing", async () => {
@@ -230,6 +238,108 @@ describe("registering a business end to end", () => {
     expect((await tenantRow(data.slug)).status).toBe("FAILED");
     await undoProvisioning(data.slug, context, { config });
   });
+});
+
+describe("registering a business with a plan", () => {
+  const planData = (name: string, trialDays = 10) => ({
+    name,
+    description: null,
+    priceCents: 90_000,
+    interval: "MONTHLY" as const,
+    limits: { users: 5, products: null, terminals: null, locations: null },
+    features: ["reports"],
+    trialDays,
+    sortOrder: 1,
+  });
+
+  it("starts the business on a trial of that plan, in the same transaction that activates it", async () => {
+    const { id: planId } = await createPlan(planData("Con prueba"), context, {
+      client: controlTestDb,
+    });
+    const data = input();
+    const before = Date.now();
+    expect(await startProvisioning({ ...data, planId }, context, { config })).toMatchObject({
+      status: "SUCCEEDED",
+    });
+
+    const tenant = await tenantRow(data.slug);
+    const subscription = await controlTestDb.subscription.findFirstOrThrow({
+      where: { tenantId: tenant.id },
+    });
+    expect(subscription).toMatchObject({ planId, isTrial: true, status: "TRIAL" });
+    const trialMs = subscription.currentPeriodEnd.getTime() - before;
+    expect(trialMs).toBeGreaterThan(10 * 24 * 3_600_000 - 120_000);
+    expect(trialMs).toBeLessThan(10 * 24 * 3_600_000 + 120_000);
+
+    const audit = await controlTestDb.platformAuditLog.findMany({
+      where: { tenantId: tenant.id },
+      orderBy: { at: "asc" },
+    });
+    expect(audit.map((row) => row.action)).toEqual([
+      "TENANT_PROVISION_STARTED",
+      "SUBSCRIPTION_ASSIGNED",
+      "TENANT_PROVISIONED",
+    ]);
+
+    // El directorio ya entrega el plan al atender sus peticiones.
+    const entry = await directory.lookupByHost(`${data.slug}.localhost`);
+    expect(entry).toMatchObject({
+      state: "active",
+      tenant: {
+        entitlements: {
+          planName: "Con prueba",
+          features: ["reports"],
+          limits: { users: 5 },
+          mode: "full",
+          status: "TRIAL",
+        },
+      },
+    });
+  }, 120_000);
+
+  it("without a plan the business gets no subscription and is not restricted", async () => {
+    const data = input();
+    await startProvisioning(data, context, { config });
+    const tenant = await tenantRow(data.slug);
+    expect(await controlTestDb.subscription.count({ where: { tenantId: tenant.id } })).toBe(0);
+    const entry = await directory.lookupByHost(`${data.slug}.localhost`);
+    expect(entry && "tenant" in entry && "entitlements" in entry.tenant).toBe(false);
+  }, 120_000);
+
+  it("refuses an unknown or deactivated plan before creating anything", async () => {
+    const { id: planId } = await createPlan(planData("Retirado"), context, {
+      client: controlTestDb,
+    });
+    await setPlanActive(planId, false, context, { client: controlTestDb });
+    const before = await controlTestDb.tenant.count();
+    await expect(
+      startProvisioning({ ...input(), planId }, context, { config }),
+    ).rejects.toBeInstanceOf(ConflictError);
+    await expect(
+      startProvisioning({ ...input(), planId: "no-existe" }, context, { config }),
+    ).rejects.toBeInstanceOf(NotFoundError);
+    expect(await controlTestDb.tenant.count()).toBe(before);
+  });
+
+  it("keeps the chosen plan when the recipe fails and is resumed later", async () => {
+    const { id: planId } = await createPlan(planData("Sobrevive"), context, {
+      client: controlTestDb,
+    });
+    const data = input();
+    const failed = await startProvisioning({ ...data, planId }, context, {
+      config: { adminUrl, templateDb: "rt3_no_existe" },
+    });
+    expect(failed).toMatchObject({ status: "FAILED" });
+    const tenant = await tenantRow(data.slug);
+    expect(await controlTestDb.subscription.count({ where: { tenantId: tenant.id } })).toBe(0);
+
+    expect(await resumeProvisioning(data.slug, context, { config })).toMatchObject({
+      status: "SUCCEEDED",
+    });
+    expect(
+      await controlTestDb.subscription.findFirstOrThrow({ where: { tenantId: tenant.id } }),
+    ).toMatchObject({ planId, isTrial: true });
+  }, 120_000);
 });
 
 describe("a failed step stops the recipe; retrying continues from there", () => {

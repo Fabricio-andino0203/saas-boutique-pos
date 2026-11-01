@@ -2,13 +2,14 @@ import Link from "next/link";
 
 import { PageHeader } from "@/components/shared/page-header";
 import { NativeSelect } from "@/components/shared/native-select";
+import { PlanUsageHint } from "@/components/shared/plan-usage-hint";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { messages } from "@/config/messages.es";
 import { requirePageCapability } from "@/lib/auth";
 import { hasCapability } from "@/lib/permissions";
 import { ProductsTable } from "@/modules/products/components/products-table";
-import { getFormOptions, listProducts } from "@/modules/products/service";
+import { countActiveProducts, getFormOptions, listProducts } from "@/modules/products/service";
 import type { ProductListParams } from "@/modules/products/types";
 
 type SearchParams = {
@@ -45,7 +46,11 @@ export default async function ProductsPage({
     status,
     page,
   };
-  const [list, options] = await Promise.all([listProducts(params), getFormOptions()]);
+  const [list, options, activeProducts] = await Promise.all([
+    listProducts(params),
+    getFormOptions(),
+    countActiveProducts(),
+  ]);
   const copy = messages.products;
   const hasFilters = Boolean(q || categoryId || brandId || status !== "active");
   const lastPage = Math.max(1, Math.ceil(list.total / list.pageSize));
@@ -77,6 +82,8 @@ export default async function ProductsPage({
           </>
         }
       />
+
+      <PlanUsageHint kind="products" used={activeProducts} />
 
       <form method="get" role="search" className="flex flex-wrap items-end gap-3">
         <div className="min-w-56 flex-1 space-y-1.5">

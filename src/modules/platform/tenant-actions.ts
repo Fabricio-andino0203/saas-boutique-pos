@@ -220,6 +220,7 @@ export async function provisionTenantAction(
     ownerName: text("ownerName"),
     ownerUsername: text("ownerUsername"),
     ownerEmail: text("ownerEmail"),
+    planId: text("planId"),
   };
   const actorPassword = text("actorPassword");
   if (!actorPassword) {

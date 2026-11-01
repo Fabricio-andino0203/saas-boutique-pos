@@ -1,16 +1,17 @@
 import Link from "next/link";
 
 import { PageHeader } from "@/components/shared/page-header";
+import { PlanUsageHint } from "@/components/shared/plan-usage-hint";
 import { buttonVariants } from "@/components/ui/button";
 import { messages } from "@/config/messages.es";
 import { requirePageCapability } from "@/lib/auth";
 import { formatLocalDateTime } from "@/lib/dates";
 import { UsersTable, type UserRow } from "@/modules/users/components/users-table";
-import { listUsers } from "@/modules/users/service";
+import { countActiveUsers, listUsers } from "@/modules/users/service";
 
 export default async function UsersPage() {
   await requirePageCapability("user.manage");
-  const users = await listUsers();
+  const [users, activeUsers] = await Promise.all([listUsers(), countActiveUsers()]);
   const now = new Date();
 
   const rows: UserRow[] = users.map((user) => ({
@@ -37,6 +38,7 @@ export default async function UsersPage() {
           </Link>
         }
       />
+      <PlanUsageHint kind="users" used={activeUsers} />
       <UsersTable rows={rows} />
     </div>
   );

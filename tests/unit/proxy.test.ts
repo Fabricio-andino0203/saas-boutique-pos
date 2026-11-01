@@ -4,6 +4,20 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { proxy } from "@/proxy";
 import { setTenantDirectory } from "@/lib/tenancy/control-directory";
 import { TenantDirectoryError, type TenantDirectory } from "@/lib/tenancy/directory";
+import type { TenantEntitlements } from "@/lib/tenancy/billing";
+
+/** El plan «Básico»: clientes sí; reportes, apartados, compras, devoluciones, etiquetas y conteos no. */
+const basic: TenantEntitlements = {
+  planName: "Básico",
+  features: ["customers"],
+  limits: {},
+  mode: "full",
+  status: "ACTIVE",
+  periodEnd: "2026-12-01T00:00:00.000Z",
+  graceEndsAt: "2026-12-08T00:00:00.000Z",
+  readOnlyEndsAt: "2027-02-06T00:00:00.000Z",
+  daysToPeriodEnd: 20,
+};
 
 function request(url: string, init: { cookie?: string } = {}): NextRequest {
   const { host } = new URL(url);
@@ -20,6 +34,19 @@ const directory: TenantDirectory = {
     }
     if (host === "s.localhost") {
       return { state: "suspended", tenant: { id: "s", slug: "s", name: "Tienda S" } };
+    }
+    if (host === "e.localhost") {
+      return {
+        state: "suspended",
+        reason: "billing",
+        tenant: { id: "e", slug: "e", name: "Tienda E" },
+      };
+    }
+    if (host === "p.localhost") {
+      return {
+        state: "active",
+        tenant: { id: "p", slug: "p", databaseUrl: "postgresql://p", entitlements: basic },
+      };
     }
     if (host === "m.localhost") {
       return { state: "maintenance", tenant: { id: "m", slug: "m", name: "Tienda M" } };
@@ -165,6 +192,72 @@ describe("proxy — business hosts", () => {
   });
 });
 
+describe("proxy — modules the plan does not include", () => {
+  it("cuts the screens and the endpoints of a module that is not in the plan", async () => {
+    for (const path of [
+      "/reportes",
+      "/reportes/ventas",
+      "/api/reportes/ventas.csv",
+      "/apartados",
+      "/apartados/abc",
+      "/imprimir/apartado/abc",
+      "/devoluciones",
+      "/compras",
+      "/compras/recepciones",
+      "/catalogos/suppliers",
+      "/inventario/etiquetas",
+      "/inventario/conteos",
+    ]) {
+      const response = await proxy(
+        request(`http://p.localhost:3000${path}`, { cookie: "boutique_session=x" }),
+      );
+      expect(response.status, path).toBe(403);
+      expect(response.headers.get("cache-control")).toBe("no-store");
+      const html = await response.text();
+      expect(html, path).toContain("No incluido en tu plan");
+      expect(html, path).toContain("Volver al inicio");
+    }
+  });
+
+  it("does not need a session to say no: the plan is checked before the cookie", async () => {
+    expect((await proxy(request("http://p.localhost:3000/reportes"))).status).toBe(403);
+  });
+
+  it("leaves the core and the modules the plan includes alone", async () => {
+    for (const path of [
+      "/",
+      "/vender",
+      "/ventas",
+      "/caja",
+      "/productos",
+      "/inventario",
+      "/clientes",
+    ]) {
+      const response = await proxy(
+        request(`http://p.localhost:3000${path}`, { cookie: "boutique_session=x" }),
+      );
+      expect(response.status, path).toBe(200);
+    }
+  });
+
+  it("a business without a plan reaches every module, as before", async () => {
+    for (const path of ["/reportes", "/apartados", "/compras", "/inventario/etiquetas"]) {
+      const response = await proxy(
+        request(`http://a.localhost:3000${path}`, { cookie: "boutique_session=x" }),
+      );
+      expect(response.status, path).toBe(200);
+    }
+  });
+
+  it("is only for the multi-business mode: a single store has no plans", async () => {
+    process.env.TENANCY_MODE = "single";
+    const response = await proxy(
+      request("http://p.localhost:3000/reportes", { cookie: "boutique_session=x" }),
+    );
+    expect(response.status).toBe(200);
+  });
+});
+
 describe("proxy — a business that cannot operate", () => {
   it("a suspended business gets the suspended page (403) on every route, before any cookie is read", async () => {
     for (const path of ["/", "/login", "/productos", "/vender"]) {
@@ -190,6 +283,20 @@ describe("proxy — a business that cannot operate", () => {
       expect(html).not.toContain("Tienda M");
     }
     expect((await proxy(request("http://m.localhost:3000/api/health"))).status).toBe(200);
+  });
+
+  it("a business whose subscription ended shows its own page (403) and nothing else", async () => {
+    for (const path of ["/", "/login", "/productos", "/vender"]) {
+      const response = await proxy(
+        request(`http://e.localhost:3000${path}`, { cookie: "boutique_session=x" }),
+      );
+      expect(response.status, path).toBe(403);
+      expect(response.headers.get("cache-control")).toBe("no-store");
+      const html = await response.text();
+      expect(html).toContain("Suscripción vencida");
+      expect(html).not.toContain("Tienda E");
+    }
+    expect((await proxy(request("http://e.localhost:3000/api/health"))).status).toBe(200);
   });
 
   it("a suspended business cannot reach /platform either", async () => {

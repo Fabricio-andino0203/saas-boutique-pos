@@ -10,6 +10,16 @@ if [ "${TENANCY_MODE:-single}" = "multi" ]; then
   echo '{"level":"info","event":"control_migrate.done"}'
 fi
 
+# Suscripciones: se anotan los vencimientos al arrancar (el cron diario lo repite; ver docs/RUNBOOK.md §15). Si falla, no
+# detiene el arranque: el acceso de cada negocio se calcula con la hora en cada petición, el barrido solo lo anota y avisa.
+if [ "${TENANCY_MODE:-single}" = "multi" ]; then
+  if node_modules/.bin/tsx scripts/billing.ts sweep; then
+    echo '{"level":"info","event":"billing_sweep.done"}'
+  else
+    echo '{"level":"warn","event":"billing_sweep.failed","hint":"revisa pnpm billing:sweep"}'
+  fi
+fi
+
 # La base de DATABASE_URL (la tienda de siempre, o el negocio #1 en modo multi-negocio). Si falla, el contenedor se detiene.
 echo '{"level":"info","event":"migrate.start"}'
 node_modules/.bin/prisma migrate deploy

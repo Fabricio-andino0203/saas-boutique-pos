@@ -21,6 +21,9 @@ import {
   LayawayStateError,
   PhoneTakenError,
   ActiveRangeExistsError,
+  FeatureNotIncludedError,
+  PlanLimitError,
+  ReadOnlyAccountError,
   CountInProgressError,
   CountStateError,
   OrderStateError,
@@ -86,6 +89,13 @@ const table = [
   { create: () => new LayawayDepositError(), code: "LAYAWAY_DEPOSIT", status: 422 },
   { create: () => new PhoneTakenError(), code: "PHONE_TAKEN", status: 409 },
   { create: () => new CustomerInUseError(), code: "CUSTOMER_IN_USE", status: 409 },
+  { create: () => new ReadOnlyAccountError(), code: "READ_ONLY", status: 403 },
+  {
+    create: () => new FeatureNotIncludedError("layaways"),
+    code: "FEATURE_NOT_INCLUDED",
+    status: 403,
+  },
+  { create: () => new PlanLimitError("users", 5), code: "PLAN_LIMIT", status: 409 },
 ] as const;
 
 describe("AppError subclasses", () => {

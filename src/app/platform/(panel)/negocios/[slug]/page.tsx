@@ -6,6 +6,7 @@ import { platformMessages } from "@/config/messages.platform.es";
 import { formatLocalDateTime } from "@/lib/dates";
 import { requirePlatformSession } from "@/lib/platform-auth";
 import { TenantActions } from "@/modules/platform/components/tenant-actions";
+import { TenantSubscription } from "@/modules/platform/components/tenant-subscription";
 import { getTenantDetail } from "@/modules/platform/queries";
 
 const copy = platformMessages.tenants;
@@ -105,6 +106,8 @@ export default async function PlatformTenantDetailPage({ params }: Props) {
           <Fact label={copy.columns.created}>{formatLocalDateTime(tenant.createdAt)}</Fact>
         </dl>
       </section>
+
+      <TenantSubscription slug={tenant.slug} tenantStatus={tenant.status} />
 
       <TenantActions
         slug={tenant.slug}
