@@ -65,7 +65,8 @@ export function provisioningConfig(
   overrides: Partial<ProvisioningConfig> = {},
   env: EnvSource = process.env,
 ): ProvisioningConfig {
-  const adminUrl = overrides.adminUrl ?? env.TENANT_PROVISIONING_URL;
+  // Una variable vacía (como la deja un compose sin valor) cuenta como no definida.
+  const adminUrl = overrides.adminUrl || env.TENANT_PROVISIONING_URL;
   if (!adminUrl) {
     throw new ProvisioningUnavailableError(
       "El alta de negocios no está configurada en este servidor (falta TENANT_PROVISIONING_URL)",
@@ -74,7 +75,7 @@ export function provisioningConfig(
   return {
     adminUrl,
     templateDb: assertIdentifier(
-      overrides.templateDb ?? env.TENANT_TEMPLATE_DB ?? DEFAULT_TEMPLATE_DB,
+      overrides.templateDb || env.TENANT_TEMPLATE_DB || DEFAULT_TEMPLATE_DB,
     ),
   };
 }

@@ -92,6 +92,17 @@ describe("provisioningConfig", () => {
     });
   });
 
+  it("treats empty variables (as an unset compose value leaves them) as undefined", () => {
+    expect(
+      provisioningConfig({}, { TENANT_PROVISIONING_URL: "postgresql://a", TENANT_TEMPLATE_DB: "" })
+        .templateDb,
+    ).toBe(DEFAULT_TEMPLATE_DB);
+    expect(() => provisioningConfig({}, { TENANT_PROVISIONING_URL: "" })).toThrow(
+      ProvisioningUnavailableError,
+    );
+    expect(provisioningAvailable({ TENANT_PROVISIONING_URL: "" })).toBe(false);
+  });
+
   it("refuses a template name that is not a safe identifier", () => {
     expect(() =>
       provisioningConfig({ adminUrl: "postgresql://a", templateDb: 'x"; DROP DATABASE y; --' }, {}),

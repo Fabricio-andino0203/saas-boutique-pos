@@ -305,3 +305,76 @@ El servicio `backup` respalda **también la base central** (`control-AAAAMMDDTHH
 ### Lo que todavía no hace esta etapa
 
 El alta automática de negocios nuevos, la migración de todas las bases y el borrado controlado llegan en la Etapa 3; planes, vencimientos y límites en la Etapa 4; respaldos individuales por negocio en la Etapa 5. El negocio #1 se conecta con la cuenta principal de Postgres tal como lo hacía la tienda; los negocios nuevos tendrán un rol propio con permisos solo de datos.
+
+## 14. Plataforma SaaS: altas, actualizaciones y bajas de negocios (Etapa 3)
+
+> Solo aplica con `TENANCY_MODE=multi` (§13). Diseño, pruebas y límites: `docs/SAAS_ETAPA_3.md`.
+
+### Qué hace falta
+
+- **La cuenta que crea bases:** `TENANT_PROVISIONING_URL` (el compose de producción ya la pasa, con la cuenta de Postgres de la instalación). Sin ella el panel dice que el alta está desactivada y no se crea nada.
+- **La plantilla** (`boutique_plantilla`, o `TENANT_TEMPLATE_DB`): una base ya migrada de la que se copia cada negocio nuevo (milisegundos). **Se deja al día sola** en cada arranque; a mano: `dc exec app pnpm tenants:template` (`--force` la rehace).
+
+### Dar de alta un negocio
+
+Desde el panel: **Negocios → Registrar un negocio** (nombre, subdominio, propietario con una contraseña temporal y tu contraseña para confirmar). Tarda unos segundos y termina en la página del negocio con los siete pasos hechos. Desde el servidor:
+
+```bash
+dc exec -e OWNER_PASSWORD='Temporal-2026' app pnpm tenants:provision --slug tienda-b --name "Boutique B" --owner-name "Rosa Pérez" --owner-username rosa
+```
+
+Entrega la contraseña temporal al propietario por un medio seguro: **no se guarda en ningún registro** y debe cambiarla al entrar (Mi cuenta). El sistema todavía no obliga a cambiarla.
+
+Cada negocio recibe **su propia base y su propio rol** de Postgres, que solo puede entrar a esa base y no puede cambiar el esquema; el nombre de ambos lo genera el sistema (`t_<id>`). La contraseña de ese rol queda cifrada en la base central.
+
+### Si el alta falla o se interrumpe
+
+El alta queda **detenida en el paso que falló** (verás el motivo en la página del negocio, sección *Intentos de alta*) y el negocio queda «Con error»; nada se atiende.
+
+| Situación | Qué hacer |
+| --- | --- |
+| Falló un paso (falta la plantilla, disco lleno, servidor sin conexiones…) | Corrige la causa y pulsa **Retomar el alta** (o `pnpm tenants:resume <subdominio>`): continúa desde el paso que falló y no repite lo ya hecho. |
+| Quieres empezar de cero | **Deshacer el alta** (o `pnpm tenants:undo <subdominio>`): borra la base y el rol de ese intento. Después se puede registrar el mismo subdominio otra vez. |
+| El proceso murió a la mitad (corte de luz, reinicio) | La receta queda «en marcha» sin signos de vida. A los **5 minutos** ya se puede retomar (o deshacer); antes, el sistema lo impide para no pisar a un proceso que sigue trabajando. |
+
+Un negocio ya dado de alta **nunca** se deshace con esta herramienta; se da de baja (abajo).
+
+### Actualizar la versión de los datos
+
+Cada negocio tiene su propia base, así que cada actualización del sistema debe migrarlas **todas**. Se hace sola al arrancar: se deja al día la plantilla y se migra a toda la flota (`fleet_migrate.start/done` en el registro). Reglas:
+
+- Solo se migra a quien lo necesita (su versión anotada no es la última).
+- Los **canarios** van primero: `pnpm tenants:canary <subdominio> on`. Si un canario falla, **no se toca a nadie más** (verás «sin tocar» en el resumen). Marca como canarios uno o dos negocios propios o de prueba.
+- Un negocio cuya migración falla pasa a **«En mantenimiento»** (quien entra ve una pantalla de actualización, 503) con el motivo en su página; **los demás siguen**. El arranque no se detiene (`fleet_migrate.partial` en el registro).
+- Reparado el problema: **Actualizar sus datos** en su página, o `pnpm tenants:migrate --only <subdominio>`; si funciona, vuelve a operar. **Revisión del servidor → Actualizar todos** hace toda la flota.
+- Las migraciones deben ser compatibles hacia atrás (agregar antes de quitar): así un negocio puede ir un paso atrás por unos minutos sin romperse.
+
+### Dar de baja un negocio
+
+1. **Pedir la baja** (página del negocio, o `pnpm tenants:delete <subdominio> --reason "…"`): deja de atender («cuenta suspendida») y empieza una **retención de 30 días** en la que no se borra nada.
+2. **Cancelar la baja** en cualquier momento de la retención: vuelve a como estaba.
+3. **Archivar** (cumplida la retención; exige escribir el subdominio y tu contraseña; `--early` solo si de verdad no puede esperar): la base **se renombra** a `z_archived_<id>` y se elimina su rol. **No se destruye nada.** El negocio queda «Archivado».
+
+**Borrar de verdad** una base archivada es una decisión aparte y manual (no hay comando a propósito): antes guarda un volcado (`pg_dump -Fc z_archived_<id>` en el contenedor `db`, cifrado y fuera del servidor) y luego `DROP DATABASE "z_archived_<id>"`. El borrado guiado llega con la Etapa 5. Las bases archivadas **no entran en el respaldo diario** (son estáticas: guarda un volcado antes de borrar).
+
+### Respaldos de los negocios dados de alta
+
+El respaldo diario (§5) recorre **todas las bases `t_<id>` que existen en el servidor** además de la tienda #1 y la base central: genera `tenant-t_<id>-AAAAMMDDTHHMMSSZ.dump.enc`, cifrado y comprobado igual que los demás. Si el respaldo de un negocio falla se anota (`backup.tenant_failed`) y se sigue con los demás; al final el respaldo termina con error. Se restaura con el mismo `restore.sh` (§6) en una base de prueba y se revisa con `VERIFY_DATABASE=<base> pnpm db:verify --tenant …`. Un respaldo **por negocio** con retención propia y restauración guiada llega con la Etapa 5; con muchos negocios el tiempo del respaldo crece en proporción.
+
+### Revisión del servidor (conciliación)
+
+**Negocios → Revisión del servidor**, o `pnpm tenants:reconcile` (sale con error si hay algo que revisar). No arregla nada sola:
+
+| Hallazgo | Qué significa y qué hacer |
+| --- | --- |
+| Base o rol que ningún negocio reclama | Quedó de un alta que se borró del registro a mano. Revísalo y, si no es de nadie, bórralo a mano. |
+| Negocio cuya base no está en el servidor | Alguien la borró o renombró. Restaura desde un respaldo (§6) o devuélvele su nombre `t_<id>`. |
+| Archivado cuya base archivada no está | Igual: se perdió el archivo; restaura si lo necesitas. |
+| Alta «en marcha» sin signos de vida | Retómala o deshazla (arriba). |
+| Datos atrasados | `pnpm tenants:migrate`. |
+
+### Límites a tener presentes
+
+- Cada rol de negocio tiene `CONNECTION LIMIT 10` y `statement_timeout 60 s`: un negocio no puede acaparar el servidor. Cada proceso de la app abre un pool pequeño por negocio y cierra los que llevan 5 minutos sin uso (tope de 50 abiertos a la vez).
+- La prueba de capacidad dio de alta 20 negocios (5 a la vez) sin problema; para cientos de negocios hay que vigilar `max_connections` de Postgres (Etapa 6).
+- Todo lo que se hace queda en **Auditoría** (altas, fallos, retomadas, deshechas, migraciones fallidas, bajas, archivados), sin contraseñas ni secretos.

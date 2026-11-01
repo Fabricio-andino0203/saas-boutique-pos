@@ -47,6 +47,7 @@ backup_one() {
 
   if ! verify_archive "$partial"; then
     log error backup.verify_failed ",\"file\":\"$(basename "$final")\""
+    rm -f "$partial"
     exit 1
   fi
 
@@ -75,4 +76,21 @@ if [ -z "$control_db" ] && [ "${TENANCY_MODE:-single}" = "multi" ]; then
 fi
 if [ -n "$control_db" ]; then
   backup_one control "$control_db"
+fi
+
+# Negocios dados de alta por la plataforma (Etapa 3): cada uno tiene su base `t_<id>` en el mismo servidor. Se respaldan todas
+# las que existan (archivo `tenant-t_<id>-….dump.enc`), una a una: si una falla se anota y se sigue con las demás, y al final el
+# respaldo termina con error. (El respaldo individual con retención por plan y restauración guiada llega con la Etapa 5.)
+if [ "${TENANCY_MODE:-single}" = "multi" ]; then
+  failed=0
+  tenant_dbs="$(psql --dbname postgres --no-psqlrc --tuples-only --no-align \
+    --command "SELECT datname FROM pg_database WHERE NOT datistemplate AND datname LIKE 't\\_%' ORDER BY datname")"
+  for tenant_db in $tenant_dbs; do
+    # En un subshell: `backup_one` termina con `exit` si algo falla, y eso no debe cortar a los demás negocios.
+    if ! (backup_one "tenant-$tenant_db" "$tenant_db"); then
+      log error backup.tenant_failed ",\"database\":\"$tenant_db\""
+      failed=1
+    fi
+  done
+  [ "$failed" = "0" ] || exit 1
 fi

@@ -64,6 +64,8 @@ pnpm platform:create-admin | platform:reset-2fa | platform:unlock | platform:gen
 pnpm platform:adopt-store --slug <subdominio> --name "<negocio>"   # SaaS: registra la tienda en uso (DATABASE_URL) como el negocio #1, sin tocar sus datos (docs/SAAS_ETAPA_2.md)
 pnpm platform:suspend <subdominio> | platform:reactivate <subdominio> | platform:tenants   # SaaS: estado de los negocios
 pnpm job:expire-layaways --all     # con TENANCY_MODE=multi: recorre todos los negocios (los demás comandos de negocio llevan --tenant <subdominio>)
+pnpm tenants:provision | tenants:resume <s> | tenants:undo <s> | tenants:migrate | tenants:canary <s> on|off | tenants:reconcile | tenants:delete <s> | tenants:cancel-delete <s> | tenants:archive <s>   # SaaS: alta, actualización y baja de negocios (docs/SAAS_ETAPA_3.md)
+pnpm tenants:template  # SaaS: deja al día la base plantilla de la que se copia cada negocio nuevo
 pnpm test:e2e:platform # SaaS: pruebas de navegador del panel y de dos negocios por subdominio (base central de pruebas)
 E2E_TENANCY=multi pnpm test:e2e   # SaaS: las mismas pruebas de la tienda, con la tienda como negocio #1 en tienda.localhost
 ```
@@ -144,7 +146,7 @@ Estas reglas existen porque un error aquí descuadra caja o inventario. Si una t
 | `docs/RUNBOOK.md` | Operar el servidor: instalar, actualizar, respaldar, restaurar, incidentes |
 | `docs/manual/` | Manuales de uso por rol (cajero en 1 página, gerente, propietario, almacén) |
 | `docs/CAPACITACION.md` · `docs/UX_FEEDBACK.md` | Capacitación de 10 minutos y registro de fricciones de uso |
-| `docs/SAAS_PROPUESTA.md` · `docs/SAAS_ETAPA_0.md` · `docs/SAAS_ETAPA_1.md` · `docs/SAAS_ETAPA_2.md` | Iniciativa SaaS multi-negocio (rama de la plataforma): propuesta aprobada por etapas e informes de cada etapa |
+| `docs/SAAS_PROPUESTA.md` · `docs/SAAS_ETAPA_0.md` · `docs/SAAS_ETAPA_1.md` · `docs/SAAS_ETAPA_2.md` · `docs/SAAS_ETAPA_3.md` | Iniciativa SaaS multi-negocio (rama de la plataforma): propuesta aprobada por etapas e informes de cada etapa |
 
 ## 11. Build de la Fase 0
 
