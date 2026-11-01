@@ -108,6 +108,8 @@ jobs:
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm test:e2e
       - run: pnpm test:e2e:platform
+      # Las mismas pruebas de la tienda, ahora con la tienda como negocio #1 de la plataforma (tienda.localhost, modo multi).
+      - run: E2E_TENANCY=multi pnpm test:e2e
 
   docker:
     if: github.ref == 'refs/heads/main'

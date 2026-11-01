@@ -2,7 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 
 import { platformMessages } from "../../src/config/messages.platform.es";
 import { totpCode, totpStep } from "../../src/lib/totp";
-import { E2E_PASSWORD as PASSWORD } from "./constants";
+import { E2E_PASSWORD as PASSWORD, TENANTS } from "./constants";
 
 const copy = platformMessages;
 // `global-setup.ts` da de alta al administrador en otro proceso (el cliente de Prisma no carga dentro de Playwright).
@@ -89,6 +89,16 @@ test.describe.serial("recorrido completo del superadministrador", () => {
     await page.getByRole("button", { name: copy.enroll.submit }).click();
     await expect(summaryHeading(page)).toBeVisible();
     await expect(page.getByText(`@${username}`).first()).toBeVisible();
+  });
+
+  test("negocios: el panel lista los negocios registrados con su dirección, su estado y su versión de datos", async () => {
+    await page.getByRole("link", { name: copy.nav.tenants }).click();
+    await expect(page.getByRole("heading", { level: 1, name: copy.tenants.title })).toBeVisible();
+    for (const tenant of Object.values(TENANTS)) {
+      const row = page.getByRole("row").filter({ hasText: tenant.name });
+      await expect(row).toContainText(`${tenant.slug}.localhost`);
+      await expect(row).toContainText(copy.tenants.status.ACTIVE);
+    }
   });
 
   test("administradores: la confirmación con la contraseña protege el alta; la auditoría lo registra", async () => {

@@ -34,10 +34,15 @@ const masterKey = Buffer.alloc(32, 3).toString("base64url");
 // Los procesos de prueba (que dan de alta al administrador) usan la misma base central que el servidor.
 process.env.CONTROL_DATABASE_URL = controlUrl;
 process.env.PLATFORM_MASTER_KEY = masterKey;
+// Los negocios de prueba se crean en el mismo servidor de Postgres que usa la suite de integración.
+if (!process.env.DATABASE_URL_TEST) {
+  throw new Error("Falta DATABASE_URL_TEST en el entorno.");
+}
 
 export default defineConfig({
   testDir: "tests/e2e-platform",
   globalSetup: "./tests/e2e-platform/global-setup.ts",
+  globalTeardown: "./tests/e2e-platform/global-teardown.ts",
   fullyParallel: false,
   workers: 1,
   expect: { timeout: 15_000 },
@@ -55,9 +60,14 @@ export default defineConfig({
     env: {
       TENANCY_MODE: "multi",
       PLATFORM_HOST: "admin.localhost",
+      // Los negocios de prueba viven en <subdominio>.localhost (Chromium lo resuelve solo). Caché corta del directorio para que
+      // una suspensión se note en menos de un segundo.
+      TENANT_BASE_DOMAIN: "localhost",
+      TENANT_DIRECTORY_TTL_MS: "300",
       CONTROL_DATABASE_URL: controlUrl,
       PLATFORM_MASTER_KEY: masterKey,
       PLATFORM_LOGIN_RATE_LIMIT_MAX: "1000",
+      LOGIN_RATE_LIMIT_MAX: "1000",
     },
   },
 });
