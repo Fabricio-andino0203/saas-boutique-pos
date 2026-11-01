@@ -1,0 +1,55 @@
+# Caddy para VARIOS NEGOCIOS (TENANCY_MODE=multi): HTTPS automático para el panel y para cada subdominio de negocio.
+# Se usa con  CADDYFILE=./Caddyfile.multi  en .env.production (una sola tienda usa ./Caddyfile).
+#
+# DOMAIN  = el dominio del panel de la plataforma (el mismo PLATFORM_HOST), p. ej. admin.tuplataforma.com.
+# Los negocios viven en <subdominio>.<TENANT_BASE_DOMAIN>. En el DNS hace falta un registro comodín  *.tuplataforma.com  hacia
+# este servidor (además del registro del panel).
+#
+# Certificados de los negocios: HTTPS "bajo demanda". La primera vez que alguien entra a un subdominio, Caddy le pide a la app
+# si ese nombre es de un negocio; solo si lo es, emite el certificado (Let's Encrypt, por HTTP). Un nombre inventado no obtiene
+# certificado y no gasta los cupos de la autoridad. Con cientos de altas por semana conviene un certificado comodín (reto DNS):
+# ver docs/RUNBOOK.md §12.
+{
+	on_demand_tls {
+		ask http://app:3000/api/internal/tls-allowed
+	}
+}
+
+# Lo común a todas las direcciones: compresión, HSTS y el proxy hacia la app.
+(app) {
+	encode zstd gzip
+
+	header {
+		# Solo tiene sentido sobre HTTPS, por eso lo pone Caddy y no la app.
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		-Server
+	}
+
+	# La pregunta de los certificados es solo para Caddy, por la red interna: hacia afuera no existe.
+	@internal path /api/internal/*
+	respond @internal 404
+
+	reverse_proxy app:3000 {
+		# La app usa estas cabeceras para registrar y limitar intentos por IP: se pisa lo que mande el navegador.
+		header_up X-Forwarded-For {remote_host}
+		header_up X-Real-IP {remote_host}
+	}
+}
+
+# El panel de la plataforma: certificado normal.
+{$DOMAIN} {
+	import app
+}
+
+# Los negocios: cualquier otro nombre, con certificado bajo demanda (la app decide cuáles existen).
+https:// {
+	tls {
+		on_demand
+	}
+	import app
+}
+
+# HTTP → HTTPS para todo lo demás (los retos de emisión de certificados los atiende Caddy antes de llegar aquí).
+http:// {
+	redir https://{host}{uri} permanent
+}

@@ -59,6 +59,16 @@ sql "ALTER DATABASE \"$staging\" RENAME TO \"$target\"" > /dev/null
 done_ok=yes
 
 echo "4/4 Listo. Lo que quedó en $target:"
-psql --dbname "$target" --no-psqlrc --tuples-only --no-align --field-separator ' · ' --command \
-  'SELECT (SELECT count(*) FROM "User") AS usuarios, (SELECT count(*) FROM "Product") AS productos, (SELECT count(*) FROM "Sale") AS ventas, (SELECT count(*) FROM "StockMovement") AS movimientos, COALESCE((SELECT max("number") FROM "Sale"), '"'"'ninguna'"'"') AS "ultima venta"'
-echo "Falta el último paso: revisar que los libros cuadran con  VERIFY_DATABASE=$target pnpm db:verify"
+case "$(basename "$file")" in
+  control-*)
+    # Respaldo de la base CENTRAL de la plataforma (negocios, superadministradores, auditoría).
+    psql --dbname "$target" --no-psqlrc --tuples-only --no-align --field-separator ' · ' --command \
+      'SELECT (SELECT count(*) FROM "Tenant") AS negocios, (SELECT count(*) FROM "PlatformUser") AS administradores, (SELECT count(*) FROM "PlatformAuditLog") AS auditoria'
+    echo "Los secretos de esta base solo se abren con la llave maestra (PLATFORM_MASTER_KEY) de la plataforma: sin ella no se recuperan."
+    ;;
+  *)
+    psql --dbname "$target" --no-psqlrc --tuples-only --no-align --field-separator ' · ' --command \
+      'SELECT (SELECT count(*) FROM "User") AS usuarios, (SELECT count(*) FROM "Product") AS productos, (SELECT count(*) FROM "Sale") AS ventas, (SELECT count(*) FROM "StockMovement") AS movimientos, COALESCE((SELECT max("number") FROM "Sale"), '"'"'ninguna'"'"') AS "ultima venta"'
+    echo "Falta el último paso: revisar que los libros cuadran con  VERIFY_DATABASE=$target pnpm db:verify"
+    ;;
+esac
