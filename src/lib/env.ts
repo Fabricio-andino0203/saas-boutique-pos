@@ -20,6 +20,19 @@ function optionalText() {
     .transform((value) => (value ? value : undefined));
 }
 
+/** Número opcional con la misma regla: `NOMBRE=` (vacío) cuenta como no configurado en vez de ser un 0 inválido. */
+function optionalInt(min: number, max: number) {
+  return z.preprocess(
+    (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+    z.coerce.number().int().min(min).max(max).optional(),
+  );
+}
+
+/** Un nombre de host sin puerto: `tuplataforma.com`, `localhost` o una IP. */
+const HOSTNAME_PATTERN = /^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$/i;
+/** Hosts que solo existen en el equipo de quien desarrolla. */
+const LOCAL_HOST_PATTERN = /^(localhost|127\.|\[?::1\]?|.*\.localhost)(:\d+)?$/i;
+
 const envSchema = z
   .object({
     NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
@@ -41,18 +54,25 @@ const envSchema = z
     LOGIN_RATE_LIMIT_MAX: z.coerce.number().int().min(1).default(20),
 
     // ── Plataforma SaaS (docs/SAAS_PROPUESTA.md) ──
-    /** `single` = una sola tienda con `DATABASE_URL` (hoy). `multi` = una base por negocio (aún solo prueba, ver Etapa 2). */
+    /** `single` = una sola tienda con `DATABASE_URL` (hoy). `multi` = una base por negocio, cada uno en su subdominio. */
     TENANCY_MODE: z.enum(["single", "multi"]).default("single"),
     /** Nombre de host del panel del superadministrador (p. ej. `admin.tuplataforma.com`). Sin él, el panel no existe. */
     PLATFORM_HOST: optionalText(),
-    /** Base central de la plataforma (negocios, superadministradores, auditoría). Obligatoria si hay `PLATFORM_HOST`. */
+    /** Dominio bajo el que viven los negocios (`tuplataforma.com` → `tienda-a.tuplataforma.com`). Obligatorio en `multi`. */
+    TENANT_BASE_DOMAIN: optionalText(),
+    /** Servidor donde están las bases de los negocios; por omisión, el de la base central. */
+    TENANT_DB_HOST: optionalText(),
+    TENANT_DB_PORT: optionalInt(1, 65535),
+    /** Cuánto se recuerda qué negocio es cada host (milisegundos). Es lo que tarda en notarse una suspensión; 0 = sin caché. */
+    TENANT_DIRECTORY_TTL_MS: optionalInt(0, 600_000),
+    /** Base central de la plataforma (negocios, superadministradores, auditoría). Obligatoria en `multi`. */
     CONTROL_DATABASE_URL: optionalText(),
     /** Llave que cifra los secretos de la plataforma (32 bytes en base64). Se genera con `pnpm platform:gen-key`. */
     PLATFORM_MASTER_KEY: optionalText(),
     PLATFORM_MASTER_KEY_VERSION: z.coerce.number().int().min(1).default(1),
     /** Solo mientras se rota la llave: la anterior, para seguir descifrando hasta re-cifrar todo. */
     PLATFORM_MASTER_KEY_PREVIOUS: optionalText(),
-    PLATFORM_MASTER_KEY_PREVIOUS_VERSION: z.coerce.number().int().min(1).optional(),
+    PLATFORM_MASTER_KEY_PREVIOUS_VERSION: optionalInt(1, 1_000_000),
     /** Intentos fallidos de entrada al panel de la plataforma por IP cada 15 minutos (más estricto que el de una tienda). */
     PLATFORM_LOGIN_RATE_LIMIT_MAX: z.coerce.number().int().min(1).default(10),
   })
@@ -73,18 +93,34 @@ const envSchema = z
           "PLATFORM_HOST debe ser solo un nombre de host (sin https:// ni rutas)",
         );
       }
+    }
+    if (value.TENANCY_MODE === "multi") {
+      // Cada negocio es un subdominio del dominio base y su base se descifra con la llave maestra: sin estas tres piezas el
+      // modo multi-negocio no puede decir de quién es una petición, y es mejor no arrancar.
       if (!value.CONTROL_DATABASE_URL || !/^postgres(ql)?:\/\//.test(value.CONTROL_DATABASE_URL)) {
         problem(
           "CONTROL_DATABASE_URL",
-          "CONTROL_DATABASE_URL es obligatoria cuando hay PLATFORM_HOST",
+          "CONTROL_DATABASE_URL es obligatoria con TENANCY_MODE=multi",
         );
       }
       if (!value.PLATFORM_MASTER_KEY) {
+        problem("PLATFORM_MASTER_KEY", "PLATFORM_MASTER_KEY es obligatoria con TENANCY_MODE=multi");
+      }
+      if (!value.TENANT_BASE_DOMAIN) {
         problem(
-          "PLATFORM_MASTER_KEY",
-          "PLATFORM_MASTER_KEY es obligatoria cuando hay PLATFORM_HOST",
+          "TENANT_BASE_DOMAIN",
+          "TENANT_BASE_DOMAIN es obligatorio con TENANCY_MODE=multi (p. ej. tuplataforma.com)",
         );
       }
+    }
+    if (value.TENANT_BASE_DOMAIN && !HOSTNAME_PATTERN.test(value.TENANT_BASE_DOMAIN)) {
+      problem(
+        "TENANT_BASE_DOMAIN",
+        "TENANT_BASE_DOMAIN debe ser solo un dominio (sin https://, puerto ni rutas)",
+      );
+    }
+    if (value.TENANT_DB_HOST && !HOSTNAME_PATTERN.test(value.TENANT_DB_HOST)) {
+      problem("TENANT_DB_HOST", "TENANT_DB_HOST debe ser solo un nombre de host o una IP");
     }
     for (const name of ["PLATFORM_MASTER_KEY", "PLATFORM_MASTER_KEY_PREVIOUS"] as const) {
       const key = value[name];
@@ -97,9 +133,29 @@ const envSchema = z
       return;
     }
     if (value.TENANCY_MODE === "multi") {
-      problem("TENANCY_MODE", "El modo multi-negocio aún no está habilitado en producción");
+      if (!value.PLATFORM_HOST) {
+        problem(
+          "PLATFORM_HOST",
+          "En producción con TENANCY_MODE=multi hace falta PLATFORM_HOST: sin el panel no se pueden administrar los negocios",
+        );
+      }
+      if (value.TENANT_BASE_DOMAIN && LOCAL_HOST_PATTERN.test(value.TENANT_BASE_DOMAIN)) {
+        problem(
+          "TENANT_BASE_DOMAIN",
+          "TENANT_BASE_DOMAIN no puede ser un host local en producción",
+        );
+      }
+      if (value.TENANT_BASE_DOMAIN && PLACEHOLDER_PATTERN.test(value.TENANT_BASE_DOMAIN)) {
+        problem(
+          "TENANT_BASE_DOMAIN",
+          "TENANT_BASE_DOMAIN es un texto de ejemplo: usa tu dominio real",
+        );
+      }
+      if (value.PLATFORM_HOST && PLACEHOLDER_PATTERN.test(value.PLATFORM_HOST)) {
+        problem("PLATFORM_HOST", "PLATFORM_HOST es un texto de ejemplo: usa tu dominio real");
+      }
     }
-    if (value.PLATFORM_HOST && /^(localhost|127\.|.*\.localhost)/.test(value.PLATFORM_HOST)) {
+    if (value.PLATFORM_HOST && LOCAL_HOST_PATTERN.test(value.PLATFORM_HOST)) {
       problem("PLATFORM_HOST", "PLATFORM_HOST no puede ser un host local en producción");
     }
     if (value.PLATFORM_MASTER_KEY && PLACEHOLDER_PATTERN.test(value.PLATFORM_MASTER_KEY)) {

@@ -6,6 +6,8 @@
  * `[REDACTED]`, sin importar a qué profundidad venga. Es código solo de servidor (usa `process`).
  */
 
+import { tenantFromContext } from "@/lib/tenancy/tenant-context";
+
 type Level = "debug" | "info" | "warn" | "error";
 type LogFields = Record<string, unknown>;
 
@@ -70,10 +72,14 @@ export function sanitize(value: unknown, depth = 0): unknown {
 }
 
 export function formatLogLine(level: Level, event: string, fields: LogFields = {}): string {
+  // Multi-negocio: el trabajo que corre "como" un negocio (`runWithTenant`: tareas y scripts) lo deja en cada línea. En una
+  // petición web el negocio sale del host (se resuelve de forma asíncrona), así que ahí quien registra pasa `tenant` a mano.
+  const tenant = tenantFromContext();
   return JSON.stringify({
     time: new Date().toISOString(),
     level,
     event,
+    ...(tenant ? { tenant: tenant.slug ?? tenant.id } : {}),
     ...(sanitize(fields) as LogFields),
   });
 }

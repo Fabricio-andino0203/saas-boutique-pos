@@ -1,5 +1,6 @@
 import { AppError, type ErrorCode } from "@/lib/errors";
 import { logger } from "@/lib/logger";
+import { currentTenantLabel } from "@/lib/tenancy/resolver";
 
 export type ActionErrorCode = ErrorCode | "UNEXPECTED";
 
@@ -17,8 +18,9 @@ export function fail(code: ActionErrorCode, message: string): ActionResult<never
   return { ok: false, error: { code, message } };
 }
 
+/** Multi-negocio: la línea lleva el negocio de la petición (en `single` no hay `tenant`, como siempre). */
 function logUnexpected(error: unknown): void {
-  logger.error("action.unexpected", { error });
+  void currentTenantLabel().then((tenant) => logger.error("action.unexpected", { tenant, error }));
 }
 
 export async function toActionResult<T>(

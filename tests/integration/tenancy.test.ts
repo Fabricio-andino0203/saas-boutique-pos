@@ -10,7 +10,8 @@ import {
   withClient,
   type ProvisionedDatabase,
 } from "@/lib/tenancy/provision-db";
-import { setTenantDirectory, staticDirectory } from "@/lib/tenancy/directory";
+import { setTenantDirectory } from "@/lib/tenancy/control-directory";
+import { staticDirectory } from "@/lib/tenancy/directory";
 import { resolveCurrentTenant } from "@/lib/tenancy/resolver";
 import {
   closeAllTenantClients,

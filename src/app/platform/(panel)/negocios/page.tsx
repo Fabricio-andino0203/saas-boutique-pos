@@ -21,6 +21,7 @@ const copy = platformMessages.tenants;
 export default async function PlatformTenantsPage() {
   await requirePlatformSession();
   const tenants = await listTenants();
+  const baseDomain = process.env.TENANT_BASE_DOMAIN;
 
   return (
     <div className="space-y-6">
@@ -37,8 +38,9 @@ export default async function PlatformTenantsPage() {
           <TableHeader>
             <TableRow>
               <TableHead>{copy.columns.name}</TableHead>
-              <TableHead>{copy.columns.slug}</TableHead>
+              <TableHead>{copy.columns.address}</TableHead>
               <TableHead>{copy.columns.status}</TableHead>
+              <TableHead>{copy.columns.schema}</TableHead>
               <TableHead>{copy.columns.created}</TableHead>
             </TableRow>
           </TableHeader>
@@ -46,8 +48,11 @@ export default async function PlatformTenantsPage() {
             {tenants.map((tenant) => (
               <TableRow key={tenant.id}>
                 <TableCell className="font-medium">{tenant.name}</TableCell>
-                <TableCell>{tenant.slug}</TableCell>
+                <TableCell>{baseDomain ? `${tenant.slug}.${baseDomain}` : tenant.slug}</TableCell>
                 <TableCell>{copy.status[tenant.status]}</TableCell>
+                <TableCell className="font-mono text-xs">
+                  {tenant.schemaVersion ?? copy.noSchema}
+                </TableCell>
                 <TableCell className="whitespace-nowrap">
                   {formatLocalDateTime(tenant.createdAt)}
                 </TableCell>

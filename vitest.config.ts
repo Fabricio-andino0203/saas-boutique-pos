@@ -71,6 +71,8 @@ export default defineConfig({
             // Base central de la plataforma y llave maestra de prueba (Etapa 1). Nunca las de desarrollo.
             CONTROL_DATABASE_URL: process.env.CONTROL_DATABASE_URL_TEST ?? "",
             PLATFORM_MASTER_KEY: TEST_MASTER_KEY,
+            // Con TENANCY_MODE=multi (la corrida estricta) el dominio de los negocios es obligatorio; las pruebas usan `localhost`.
+            TENANT_BASE_DOMAIN: "localhost",
           },
         },
       },

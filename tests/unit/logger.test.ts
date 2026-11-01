@@ -1,12 +1,40 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { formatLogLine, logger, sanitize } from "@/lib/logger";
+import { runWithTenant } from "@/lib/tenancy/tenant-context";
 
 afterEach(() => vi.unstubAllEnvs());
 
 function parse(line: string): Record<string, unknown> {
   return JSON.parse(line) as Record<string, unknown>;
 }
+
+describe("formatLogLine — business", () => {
+  const tenant = { id: "ten1", slug: "tienda-a", databaseUrl: "postgresql://secreto@db/x" };
+
+  it("adds no business outside a business context (single-store logs stay as they were)", () => {
+    expect(parse(formatLogLine("info", "evento"))).not.toHaveProperty("tenant");
+  });
+
+  it("names the business when the work runs as one, by subdomain or by id", () => {
+    expect(parse(runWithTenant(tenant, () => formatLogLine("info", "evento"))).tenant).toBe(
+      "tienda-a",
+    );
+    expect(
+      parse(
+        runWithTenant({ id: "ten2", databaseUrl: "postgresql://x" }, () =>
+          formatLogLine("info", "evento"),
+        ),
+      ).tenant,
+    ).toBe("ten2");
+  });
+
+  it("lets the caller name the business explicitly, and never leaks the database url", () => {
+    const line = runWithTenant(tenant, () => formatLogLine("warn", "evento", { tenant: "otra" }));
+    expect(parse(line).tenant).toBe("otra");
+    expect(line).not.toContain("secreto");
+  });
+});
 
 describe("formatLogLine", () => {
   it("writes one JSON object with time, level and event", () => {

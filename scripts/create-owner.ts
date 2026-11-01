@@ -7,6 +7,7 @@ import { seedBase } from "../prisma/seed/run-seed";
 import { db } from "../src/lib/db";
 import { AppError } from "../src/lib/errors";
 import { createFirstOwner } from "../src/modules/users/bootstrap";
+import { finishScript, reportScriptError, runForTenant } from "./lib/tenant-run";
 
 /**
  * Primer arranque de una instalación: deja la base lista (ubicación, caja, catálogos y ajustes iniciales, sin usuarios
@@ -14,6 +15,7 @@ import { createFirstOwner } from "../src/modules/users/bootstrap";
  *
  * Pide los datos por teclado (la contraseña no se muestra). Para automatizarlo se pueden pasar OWNER_NAME,
  * OWNER_USERNAME, OWNER_PASSWORD y, opcional, OWNER_PIN como variables de entorno; en ese caso no se pregunta nada.
+ * Con varios negocios (TENANCY_MODE=multi) se indica el negocio: `--tenant <subdominio>`.
  */
 
 /** Salida que se puede silenciar mientras se teclea la contraseña. */
@@ -80,8 +82,10 @@ async function main(): Promise<void> {
       }
     : await askAll();
 
-  await seedBase(db);
-  await createFirstOwner(input, db);
+  await runForTenant(async () => {
+    await seedBase(db);
+    await createFirstOwner(input, db);
+  });
   console.log(`Listo: el propietario "${input.username}" ya puede iniciar sesión.`);
   console.log("Entra al sistema y completa la bienvenida (datos del negocio, impuestos y cajas).");
 }
@@ -95,8 +99,8 @@ main()
     } else if (error instanceof AppError && error.code === "VALIDATION") {
       console.error(`Dato inválido: ${error.message}`);
     } else {
-      console.error(error);
+      reportScriptError(error);
     }
     process.exitCode = 1;
   })
-  .finally(() => db.$disconnect());
+  .finally(() => finishScript());

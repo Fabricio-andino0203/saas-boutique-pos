@@ -6,6 +6,17 @@ import { messages } from "@/config/messages.es";
  */
 export const platformMessages = {
   app: { name: "Plataforma Boutique POS", short: "Plataforma" },
+  /** Pantallas que ve cualquier persona que llega a la dirección de un negocio que no puede atender (las dibuja el proxy). */
+  unavailable: {
+    suspended: {
+      title: "Cuenta suspendida",
+      body: "El acceso a este negocio está suspendido. Comunícate con quien administra tu servicio para reactivarlo. Tus datos están a salvo.",
+    },
+    directoryDown: {
+      title: "Servicio no disponible por un momento",
+      body: "No pudimos atender tu solicitud en este momento. Espera un minuto y vuelve a intentarlo.",
+    },
+  },
   nav: {
     summary: "Resumen",
     tenants: "Negocios",
@@ -68,7 +79,16 @@ export const platformMessages = {
   tenants: {
     title: "Negocios",
     description: "Las tiendas que usan la plataforma, cada una con su propia base de datos.",
-    columns: { name: "Negocio", slug: "Dirección", status: "Estado", created: "Registrado" },
+    columns: {
+      name: "Negocio",
+      slug: "Subdominio",
+      address: "Dirección",
+      status: "Estado",
+      schema: "Versión de datos",
+      created: "Registrado",
+    },
+    noAddress: "Sin dominio base configurado",
+    noSchema: "—",
     status: {
       PROVISIONING: "Preparándose",
       ACTIVE: "Activo",
@@ -80,7 +100,7 @@ export const platformMessages = {
     empty: {
       title: "Aún no hay negocios registrados",
       description:
-        "El alta automática de negocios (con su base de datos propia) llega en la Etapa 3. Por ahora esta lista solo muestra lo que la plataforma ya conoce.",
+        "La tienda que ya usas se registra como el negocio #1 con el comando «pnpm platform:adopt-store», sin tocar sus datos. El alta automática de negocios nuevos (con su base de datos propia) llega en la Etapa 3.",
     },
   },
   admins: {
@@ -168,6 +188,9 @@ export const platformMessages = {
       PLATFORM_USER_UNLOCKED: "Desbloqueó una cuenta",
       PLATFORM_PASSWORD_CHANGED: "Cambió su contraseña",
       PLATFORM_KEY_ROTATED: "Rotó la llave maestra",
+      TENANT_ADOPTED: "Registró un negocio existente",
+      TENANT_SUSPENDED: "Suspendió un negocio",
+      TENANT_REACTIVATED: "Reactivó un negocio",
     },
   },
   account: {

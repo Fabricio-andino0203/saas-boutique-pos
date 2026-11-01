@@ -6,12 +6,14 @@ import { Writable } from "node:stream";
 import { AppError } from "../src/lib/errors";
 import { closeControlDb, controlDb } from "../src/lib/tenancy/control-db";
 import { generateMasterKey } from "../src/lib/tenancy/vault";
+import { listTenants } from "../src/modules/platform/queries";
 import { rotateVaultSecrets } from "../src/modules/platform/rotation";
 import {
   createPlatformUser,
   resetPlatformUserTwoFactor,
   unlockPlatformUser,
 } from "../src/modules/platform/service";
+import { adoptExistingStore, setTenantStatus } from "../src/modules/platform/tenants";
 
 /**
  * Operaciones de la plataforma que se hacen desde el servidor, no desde el panel (el panel no existe todavía la primera
@@ -22,6 +24,11 @@ import {
  *   pnpm platform:unlock <usuario>        Levanta el bloqueo por intentos fallidos.
  *   pnpm platform:gen-key                 Imprime una llave maestra nueva para PLATFORM_MASTER_KEY.
  *   pnpm platform:rotate-key              Re-cifra los secretos con la llave maestra actual.
+ *   pnpm platform:adopt-store --slug <subdominio> --name "<negocio>" [--email <correo>]
+ *                                         Registra la tienda que ya está en uso (DATABASE_URL) como el negocio #1, sin tocar sus datos.
+ *   pnpm platform:suspend <subdominio>    Suspende un negocio (muestra "cuenta suspendida"); los datos no se tocan.
+ *   pnpm platform:reactivate <subdominio> Lo vuelve a poner en marcha.
+ *   pnpm platform:tenants                 Lista los negocios registrados.
  *
  * Para automatizar `create-admin` se pueden pasar ADMIN_NAME, ADMIN_USERNAME y ADMIN_PASSWORD como variables de entorno.
  * Todo queda en la auditoría de la plataforma como acción del sistema.
@@ -70,6 +77,12 @@ async function askCreateAdmin(): Promise<{ name: string; username: string; passw
   } finally {
     rl.close();
   }
+}
+
+/** `--nombre valor` de la línea de comandos. */
+function flag(name: string): string | undefined {
+  const index = process.argv.indexOf(`--${name}`);
+  return index === -1 ? undefined : process.argv[index + 1];
 }
 
 async function findUserId(username: string): Promise<string> {
@@ -139,9 +152,65 @@ async function main(): Promise<void> {
       );
       return;
     }
+    case "adopt-store": {
+      const slug = flag("slug") ?? process.env.TENANT_SLUG;
+      const name = flag("name") ?? process.env.TENANT_NAME;
+      const databaseUrl = process.env.DATABASE_URL;
+      if (!slug || !name) {
+        throw new Error(
+          'Uso: pnpm platform:adopt-store --slug <subdominio> --name "<nombre del negocio>" [--email <correo>]',
+        );
+      }
+      if (!databaseUrl) {
+        throw new Error("Falta DATABASE_URL: es la base de la tienda que se va a registrar.");
+      }
+      const tenant = await adoptExistingStore(
+        { slug, name, ownerEmail: flag("email"), databaseUrl },
+        { actor: null },
+      );
+      const base = process.env.TENANT_BASE_DOMAIN;
+      console.log(`Listo: la tienda quedó registrada como el negocio "${tenant.slug}" (#1).`);
+      console.log(`Sus datos no se tocaron. Versión de datos: ${tenant.schemaVersion}.`);
+      console.log(
+        base
+          ? `Dirección: ${tenant.slug}.${base} — apunta ahí el DNS y avisa a su personal del cambio de dirección.`
+          : "Define TENANT_BASE_DOMAIN para que la tienda se atienda en <subdominio>.<dominio base>.",
+      );
+      return;
+    }
+    case "suspend":
+    case "reactivate": {
+      if (!argument) {
+        throw new Error(`Uso: pnpm platform:${command} <subdominio>`);
+      }
+      await setTenantStatus(
+        { slug: argument, status: command === "suspend" ? "SUSPENDED" : "ACTIVE" },
+        { actor: null },
+      );
+      console.log(
+        command === "suspend"
+          ? `El negocio "${argument}" quedó suspendido. Sus datos no se tocaron.`
+          : `El negocio "${argument}" volvió a operar.`,
+      );
+      console.log("El cambio se nota en segundos (cuando vence la caché del directorio).");
+      return;
+    }
+    case "tenants": {
+      const tenants = await listTenants();
+      if (tenants.length === 0) {
+        console.log("Aún no hay negocios registrados.");
+        return;
+      }
+      for (const tenant of tenants) {
+        console.log(
+          `${tenant.slug.padEnd(24)} ${tenant.status.padEnd(18)} ${tenant.schemaVersion ?? "-"}  ${tenant.name}`,
+        );
+      }
+      return;
+    }
     default:
       throw new Error(
-        "Uso: pnpm platform:create-admin | platform:reset-2fa <usuario> | platform:unlock <usuario> | platform:gen-key | platform:rotate-key",
+        "Uso: pnpm platform:create-admin | platform:reset-2fa <usuario> | platform:unlock <usuario> | platform:gen-key | platform:rotate-key | platform:adopt-store | platform:suspend <subdominio> | platform:reactivate <subdominio> | platform:tenants",
       );
   }
 }

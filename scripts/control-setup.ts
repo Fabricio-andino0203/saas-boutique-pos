@@ -5,10 +5,12 @@ import { execSync } from "node:child_process";
 import { ensureDatabase } from "../src/lib/tenancy/provision-db";
 
 /**
- * Deja lista la base CENTRAL de la plataforma: la crea si no existe (solo en local) y le aplica las migraciones de
- * `prisma/control/`. En producción la base la crea el servidor de Postgres y este script solo migra.
+ * Deja lista la base CENTRAL de la plataforma: la crea si no existe y le aplica las migraciones de `prisma/control/`.
+ * Es seguro repetirlo (el arranque del contenedor lo corre en cada inicio en modo multi-negocio).
  *
  *   pnpm control:setup
+ *
+ * Si la cuenta no puede crear bases (un Postgres administrado donde la base ya existe), la creación se omite y solo se migra.
  */
 async function main(): Promise<void> {
   const url = process.env.CONTROL_DATABASE_URL;
@@ -17,9 +19,13 @@ async function main(): Promise<void> {
   }
   const name = new URL(url).pathname.replace(/^\//, "");
 
-  if (process.env.DEPLOYMENT !== "production") {
+  try {
     const created = await ensureDatabase(url, name);
     console.log(created ? `Base central "${name}" creada.` : `Base central "${name}" ya existía.`);
+  } catch (error) {
+    console.warn(
+      `No se pudo comprobar o crear la base central "${name}" (${error instanceof Error ? error.message : error}); se intenta migrar tal cual.`,
+    );
   }
   execSync("pnpm exec prisma migrate deploy --config prisma/control/prisma.config.ts", {
     stdio: "inherit",

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { TooManyAttemptsError } from "@/lib/errors";
 import { createRateLimiter, sharedRateLimiter } from "@/lib/rate-limit";
-import { assertNotThrottled, recordFailedAttempt } from "@/modules/auth/throttle";
+import { assertNotThrottled, recordFailedAttempt, throttleKey } from "@/modules/auth/throttle";
 
 function clock(start = 1_000_000) {
   let current = start;
@@ -93,5 +93,20 @@ describe("login throttle", () => {
     const limiter = createRateLimiter({ max: 1, windowMs: 60_000 }, clock().now);
     recordFailedAttempt(undefined, "INVALID_CREDENTIALS", limiter);
     expect(() => assertNotThrottled(undefined, limiter)).toThrow(TooManyAttemptsError);
+  });
+
+  it("without a business the key is the plain IP, as before", () => {
+    expect(throttleKey("9.9.9.9")).toBe("9.9.9.9");
+    expect(throttleKey(undefined)).toBe("unknown");
+  });
+
+  it("counts failures per business: the same IP blocked in one business is free in another", () => {
+    const limiter = createRateLimiter({ max: 2, windowMs: 60_000 }, clock().now);
+    recordFailedAttempt("9.9.9.9", "INVALID_CREDENTIALS", limiter, "tienda-a");
+    recordFailedAttempt("9.9.9.9", "INVALID_CREDENTIALS", limiter, "tienda-a");
+    expect(() => assertNotThrottled("9.9.9.9", limiter, "tienda-a")).toThrow(TooManyAttemptsError);
+    expect(() => assertNotThrottled("9.9.9.9", limiter, "tienda-b")).not.toThrow();
+    // y los fallos de un negocio tampoco cuentan para la IP "sin negocio"
+    expect(() => assertNotThrottled("9.9.9.9", limiter)).not.toThrow();
   });
 });

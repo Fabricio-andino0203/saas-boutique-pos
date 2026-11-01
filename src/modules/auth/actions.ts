@@ -18,6 +18,7 @@ import {
 import { changePassword, login, switchUserWithPin } from "@/modules/auth/service";
 import { assertNotThrottled, recordFailedAttempt } from "@/modules/auth/throttle";
 import { logger } from "@/lib/logger";
+import { currentTenantLabel } from "@/lib/tenancy/resolver";
 
 export async function loginAction(_previous: FormState, formData: FormData): Promise<FormState> {
   const parsed = loginSchema.safeParse({
@@ -30,8 +31,9 @@ export async function loginAction(_previous: FormState, formData: FormData): Pro
 
   const requestHeaders = await headers();
   const ip = clientIpFrom(requestHeaders);
+  const tenant = await currentTenantLabel();
   const result = await toActionResult(async () => {
-    assertNotThrottled(ip);
+    assertNotThrottled(ip, undefined, tenant);
     try {
       return await login({
         ...parsed.data,
@@ -40,7 +42,7 @@ export async function loginAction(_previous: FormState, formData: FormData): Pro
       });
     } catch (error) {
       if (error instanceof InvalidCredentialsError || error instanceof AccountLockedError) {
-        recordFailedAttempt(ip, error.code);
+        recordFailedAttempt(ip, error.code, undefined, tenant);
       }
       throw error;
     }
@@ -102,8 +104,9 @@ export async function switchCashierAction(input: {
   const { sessionId } = await requireUserCapability("sale.create");
   const requestHeaders = await headers();
   const ip = clientIpFrom(requestHeaders);
+  const tenant = await currentTenantLabel();
   try {
-    assertNotThrottled(ip);
+    assertNotThrottled(ip, undefined, tenant);
     const result = await switchUserWithPin({
       username,
       pin,
@@ -118,17 +121,17 @@ export async function switchCashierAction(input: {
       return { ok: false, message: messages.errors.RATE_LIMITED };
     }
     if (error instanceof InvalidCredentialsError) {
-      recordFailedAttempt(ip, error.code);
+      recordFailedAttempt(ip, error.code, undefined, tenant);
       return { ok: false, message: copy.invalid };
     }
     if (error instanceof AccountLockedError) {
-      recordFailedAttempt(ip, error.code);
+      recordFailedAttempt(ip, error.code, undefined, tenant);
       return { ok: false, message: messages.errors.ACCOUNT_LOCKED };
     }
     if (error instanceof ForbiddenError) {
       return { ok: false, message: copy.cannotSell };
     }
-    logger.error("auth.switch_cashier_unexpected", { error });
+    logger.error("auth.switch_cashier_unexpected", { tenant, error });
     return { ok: false, message: messages.errors.UNEXPECTED };
   }
 }

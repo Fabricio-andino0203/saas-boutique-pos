@@ -3,8 +3,9 @@ import { normalizeHost, type TenantDirectory } from "@/lib/tenancy/directory";
 /**
  * Qué atiende cada nombre de host (propuesta SaaS §3.3):
  * - `platform`: el panel del superadministrador (`admin.<dominio>`). Solo existe en modo `multi` y con `PLATFORM_HOST`.
- * - `tenant`: el sistema de un negocio. En modo `single` cualquier host es "el negocio" (como siempre); en modo `multi`
- *   solo los hosts que están en el directorio.
+ * - `tenant`: el sistema de un negocio que opera. En modo `single` cualquier host es "el negocio" (como siempre); en modo
+ *   `multi` solo `<slug>.<dominio base>` de un negocio activo.
+ * - `suspended`: un negocio que existe pero no puede operar (suspendido o pendiente de baja): pantalla de cuenta suspendida.
  * - `unknown`: nadie. Se responde 404 antes de tocar cookies o datos.
  *
  * Por qué el panel exige el modo `multi`: cuando una acción del servidor redirige (o la página que se vuelve a dibujar tras
@@ -14,7 +15,7 @@ import { normalizeHost, type TenantDirectory } from "@/lib/tenancy/directory";
  * host. En modo `single` cualquier host sería "el negocio" y el servidor devolvería la pantalla de la tienda dentro del
  * panel. Por eso `PLATFORM_HOST` solo se admite junto con `TENANCY_MODE=multi` (también lo valida `env.ts`).
  */
-export type HostKind = "platform" | "tenant" | "unknown";
+export type HostKind = "platform" | "tenant" | "suspended" | "unknown";
 
 export type HostConfig = {
   mode: "single" | "multi";
@@ -23,7 +24,11 @@ export type HostConfig = {
   directory: Pick<TenantDirectory, "lookupByHost">;
 };
 
-export function classifyHost(rawHost: string | null | undefined, config: HostConfig): HostKind {
+/** Lanza `TenantDirectoryError` si el directorio no puede responder: quien llama decide cómo atenderlo (503). */
+export async function classifyHost(
+  rawHost: string | null | undefined,
+  config: HostConfig,
+): Promise<HostKind> {
   const host = normalizeHost(rawHost);
   if (config.mode === "single") {
     return "tenant";
@@ -32,5 +37,12 @@ export function classifyHost(rawHost: string | null | undefined, config: HostCon
   if (platform && host === platform) {
     return "platform";
   }
-  return host && config.directory.lookupByHost(host) ? "tenant" : "unknown";
+  if (!host) {
+    return "unknown";
+  }
+  const entry = await config.directory.lookupByHost(host);
+  if (!entry) {
+    return "unknown";
+  }
+  return entry.state === "active" ? "tenant" : "suspended";
 }

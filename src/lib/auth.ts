@@ -5,7 +5,7 @@ import { cache } from "react";
 
 import { env } from "@/lib/env";
 import { hasCapability, requireCapability, type Capability } from "@/lib/permissions";
-import { SESSION_COOKIE } from "@/lib/session-cookie";
+import { sessionCookieName } from "@/lib/session-cookie";
 import { findSession, revokeSession, type ActiveSession } from "@/modules/auth/service";
 
 /**
@@ -14,7 +14,7 @@ import { findSession, revokeSession, type ActiveSession } from "@/modules/auth/s
  */
 export const getSession = cache(async (): Promise<ActiveSession | null> => {
   const store = await cookies();
-  const token = store.get(SESSION_COOKIE)?.value;
+  const token = store.get(sessionCookieName())?.value;
   if (!token) {
     return null;
   }
@@ -53,7 +53,7 @@ export async function requirePageCapability(capability: Capability): Promise<Act
 
 export async function setSessionCookie(token: string, expires: Date): Promise<void> {
   const store = await cookies();
-  store.set(SESSION_COOKIE, token, {
+  store.set(sessionCookieName(), token, {
     httpOnly: true,
     secure: env.NODE_ENV === "production",
     sameSite: "lax",
@@ -64,9 +64,9 @@ export async function setSessionCookie(token: string, expires: Date): Promise<vo
 
 export async function clearSession(): Promise<void> {
   const store = await cookies();
-  const token = store.get(SESSION_COOKIE)?.value;
+  const token = store.get(sessionCookieName())?.value;
   if (token) {
     await revokeSession(token);
   }
-  store.delete(SESSION_COOKIE);
+  store.delete(sessionCookieName());
 }

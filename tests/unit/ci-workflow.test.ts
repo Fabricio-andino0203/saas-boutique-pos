@@ -40,6 +40,7 @@ describe("ci.yml", () => {
     "pnpm build",
     "pnpm test:e2e",
     "pnpm test:e2e:platform",
+    "E2E_TENANCY=multi pnpm test:e2e",
   ])("runs the full command line: %s", (command) => {
     expect(workflow).toMatch(new RegExp(`^\\s*- run: ${escapeRegExp(command)}$`, "m"));
   });

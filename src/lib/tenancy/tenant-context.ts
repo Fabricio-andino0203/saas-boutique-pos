@@ -1,12 +1,14 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 
 /**
- * Un negocio (tenant) tal como lo necesita el acceso a datos: quién es y a qué base conectarse. En la Etapa 0 la URL llega
- * ya armada; en las etapas siguientes saldrá de la base central y de la bóveda de credenciales cifradas.
+ * Un negocio (tenant) tal como lo necesita el acceso a datos: quién es y a qué base conectarse. La URL se arma con la
+ * credencial que la bóveda descifra de la base central (ver `control-directory.ts`).
  */
 export type TenantRef = {
   id: string;
   databaseUrl: string;
+  /** Subdominio del negocio. Solo para el registro y la lectura humana: nunca decide a qué base se conecta nadie. */
+  slug?: string;
 };
 
 /** No hay negocio en contexto: el acceso a datos **falla cerrado** en vez de caer a una base "por defecto". */

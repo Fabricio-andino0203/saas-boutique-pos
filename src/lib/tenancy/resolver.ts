@@ -1,5 +1,6 @@
 import type { PrismaClient } from "@/generated/prisma/client";
-import { getTenantDirectory, normalizeHost } from "@/lib/tenancy/directory";
+import { getTenantDirectory } from "@/lib/tenancy/control-directory";
+import { normalizeHost, type DirectoryEntry } from "@/lib/tenancy/directory";
 import { acquireTenantClient, type TenantLease } from "@/lib/tenancy/tenant-clients";
 import {
   processDefaultTenant,
@@ -29,7 +30,7 @@ function mode(): "single" | "multi" {
  * Negocio de una petición web: el host (ya normalizado) buscado en el directorio. Nunca otra cosa. `inRequest` distingue
  * "no estoy en una petición" de "estoy en una petición cuyo host no es de ningún negocio" (que debe fallar, no caer a un default).
  */
-async function tenantFromRequest(): Promise<{ inRequest: boolean; tenant?: TenantRef }> {
+async function tenantFromRequest(): Promise<{ inRequest: boolean; entry?: DirectoryEntry }> {
   let host: string | null;
   try {
     // Import dinámico: los scripts y las pruebas no cargan Next. Fuera de una petición, `headers()` lanza.
@@ -41,7 +42,7 @@ async function tenantFromRequest(): Promise<{ inRequest: boolean; tenant?: Tenan
   const normalized = normalizeHost(host);
   return {
     inRequest: true,
-    tenant: normalized ? getTenantDirectory().lookupByHost(normalized) : undefined,
+    entry: normalized ? await getTenantDirectory().lookupByHost(normalized) : undefined,
   };
 }
 
@@ -60,16 +61,37 @@ export async function resolveCurrentTenant(): Promise<TenantRef> {
   }
   const request = await tenantFromRequest();
   if (request.inRequest) {
-    if (request.tenant) {
-      return request.tenant;
+    if (request.entry?.state === "active") {
+      return request.entry.tenant;
     }
-    throw new TenantContextError("El host de la petición no corresponde a ningún negocio");
+    throw new TenantContextError(
+      request.entry
+        ? "El negocio de la petición no puede operar (cuenta suspendida)"
+        : "El host de la petición no corresponde a ningún negocio",
+    );
   }
   const fallback = processDefaultTenant();
   if (fallback) {
     return fallback;
   }
   throw new TenantContextError();
+}
+
+/**
+ * Cómo se nombra el negocio actual en el registro y en el limitador de intentos: su subdominio (o su id). En modo `single` no
+ * hay otro negocio al que distinguir y devuelve `undefined`, con lo que el registro y las claves quedan como siempre. Nunca
+ * lanza: un registro que falla por no saber el negocio no debe esconder el problema original.
+ */
+export async function currentTenantLabel(): Promise<string | undefined> {
+  if (mode() === "single") {
+    return undefined;
+  }
+  try {
+    const tenant = await resolveCurrentTenant();
+    return tenant.slug ?? tenant.id;
+  } catch {
+    return undefined;
+  }
 }
 
 async function lease(): Promise<TenantLease> {

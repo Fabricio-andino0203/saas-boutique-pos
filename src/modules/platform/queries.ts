@@ -10,13 +10,21 @@ export type TenantRow = {
   slug: string;
   name: string;
   status: TenantStatus;
+  schemaVersion: string | null;
   createdAt: Date;
 };
 
 export async function listTenants(client: ControlDb = controlDb): Promise<TenantRow[]> {
   return client.tenant.findMany({
-    orderBy: { createdAt: "desc" },
-    select: { id: true, slug: true, name: true, status: true, createdAt: true },
+    orderBy: { createdAt: "asc" }, // el negocio #1 primero
+    select: {
+      id: true,
+      slug: true,
+      name: true,
+      status: true,
+      schemaVersion: true,
+      createdAt: true,
+    },
   });
 }
 
