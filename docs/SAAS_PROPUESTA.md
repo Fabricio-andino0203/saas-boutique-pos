@@ -1,6 +1,6 @@
 # Propuesta técnica — Boutique POS como SaaS multi-negocio
 
-> **Propuesta aprobada el 2026-10-31. Etapas hechas:** Etapa 0 (prueba de concepto, [`SAAS_ETAPA_0.md`](SAAS_ETAPA_0.md)), Etapa 1 (plano de control y superadministrador con 2FA, [`SAAS_ETAPA_1.md`](SAAS_ETAPA_1.md)) Etapa 2 (negocios por subdominio y modo multi-negocio listo para producción, [`SAAS_ETAPA_2.md`](SAAS_ETAPA_2.md)), Etapa 3 (alta automática, migración de la flota y baja controlada, [`SAAS_ETAPA_3.md`](SAAS_ETAPA_3.md)) y Etapa 4 (planes, suscripciones, límites, módulos y cobros manuales, [`SAAS_ETAPA_4.md`](SAAS_ETAPA_4.md)). Cada etapa siguiente se muestra funcionando y se aprueba antes de empezar la otra.
+> **Propuesta aprobada el 2026-10-31. Etapas hechas:** Etapa 0 (prueba de concepto, [`SAAS_ETAPA_0.md`](SAAS_ETAPA_0.md)), Etapa 1 (plano de control y superadministrador con 2FA, [`SAAS_ETAPA_1.md`](SAAS_ETAPA_1.md)) Etapa 2 (negocios por subdominio y modo multi-negocio listo para producción, [`SAAS_ETAPA_2.md`](SAAS_ETAPA_2.md)), Etapa 3 (alta automática, migración de la flota y baja controlada, [`SAAS_ETAPA_3.md`](SAAS_ETAPA_3.md)) Etapa 4 (planes, suscripciones, límites, módulos y cobros manuales, [`SAAS_ETAPA_4.md`](SAAS_ETAPA_4.md)) y Etapa 5 (respaldos por negocio, uso, alertas y soporte, [`SAAS_ETAPA_5.md`](SAAS_ETAPA_5.md)). Cada etapa siguiente se muestra funcionando y se aprueba antes de empezar la otra.
 
 ## Resumen en cinco líneas
 

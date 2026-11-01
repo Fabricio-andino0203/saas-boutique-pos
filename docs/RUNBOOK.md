@@ -304,7 +304,7 @@ El servicio `backup` respalda **también la base central** (`control-AAAAMMDDTHH
 
 ### Lo que todavía no hace esta etapa
 
-El alta automática de negocios nuevos, la migración de todas las bases y el borrado controlado llegan en la Etapa 3; planes, vencimientos y límites en la Etapa 4; respaldos individuales por negocio en la Etapa 5. El negocio #1 se conecta con la cuenta principal de Postgres tal como lo hacía la tienda; los negocios nuevos tendrán un rol propio con permisos solo de datos.
+El alta automática de negocios nuevos, la migración de todas las bases y el borrado controlado llegan en la Etapa 3; planes, vencimientos y límites en la Etapa 4; respaldos individuales por negocio en la Etapa 5 (§16). El negocio #1 se conecta con la cuenta principal de Postgres tal como lo hacía la tienda; los negocios nuevos tendrán un rol propio con permisos solo de datos.
 
 ## 14. Plataforma SaaS: altas, actualizaciones y bajas de negocios (Etapa 3)
 
@@ -355,11 +355,11 @@ Cada negocio tiene su propia base, así que cada actualización del sistema debe
 2. **Cancelar la baja** en cualquier momento de la retención: vuelve a como estaba.
 3. **Archivar** (cumplida la retención; exige escribir el subdominio y tu contraseña; `--early` solo si de verdad no puede esperar): la base **se renombra** a `z_archived_<id>` y se elimina su rol. **No se destruye nada.** El negocio queda «Archivado».
 
-**Borrar de verdad** una base archivada es una decisión aparte y manual (no hay comando a propósito): antes guarda un volcado (`pg_dump -Fc z_archived_<id>` en el contenedor `db`, cifrado y fuera del servidor) y luego `DROP DATABASE "z_archived_<id>"`. El borrado guiado llega con la Etapa 5. Las bases archivadas **no entran en el respaldo diario** (son estáticas: guarda un volcado antes de borrar).
+**Borrar de verdad** una base archivada es una decisión aparte, con su propio procedimiento guiado (§16): El borrado guiado existe desde la Etapa 5 (§16, «Bases apartadas y borrado definitivo»): primero un volcado final comprobado, después el borrado. Las bases archivadas **no entran en el respaldo diario** (son estáticas).
 
 ### Respaldos de los negocios dados de alta
 
-El respaldo diario (§5) recorre **todas las bases `t_<id>` que existen en el servidor** además de la tienda #1 y la base central: genera `tenant-t_<id>-AAAAMMDDTHHMMSSZ.dump.enc`, cifrado y comprobado igual que los demás. Si el respaldo de un negocio falla se anota (`backup.tenant_failed`) y se sigue con los demás; al final el respaldo termina con error. Se restaura con el mismo `restore.sh` (§6) en una base de prueba y se revisa con `VERIFY_DATABASE=<base> pnpm db:verify --tenant …`. Un respaldo **por negocio** con retención propia y restauración guiada llega con la Etapa 5; con muchos negocios el tiempo del respaldo crece en proporción.
+El respaldo diario (§5) respalda **cada negocio por separado** (`tenant-t_<id>-AAAAMMDDTHHMMSSZ.dump.enc`), además de la tienda #1 y la base central, cifrado y comprobado. Desde la Etapa 5 cada negocio tiene su propia llave, la retención de su plan, un registro visible en el panel y un procedimiento de restauración individual: ver §16. Con muchos negocios el tiempo del respaldo crece en proporción.
 
 ### Revisión del servidor (conciliación)
 
@@ -443,3 +443,158 @@ Los plazos se ajustan por negocio en **Ajustar vencimiento** (días de gracia 0�
 - El cobro es manual; no hay pasarela. La facturación de la propia plataforma (facturas a tus clientes) queda fuera.
 - El tope de **cajas y sucursales** existe en el plan pero no se aplica todavía (no hay pantalla para crearlas).
 - En solo lectura, `db` corta las escrituras de las tablas del negocio; no vigila SQL crudo de lectura (`$queryRaw`), que la aplicación usa solo para leer y para candados dentro de transacciones.
+
+## 16. Plataforma SaaS: respaldos por negocio, uso, alertas y soporte (Etapa 5)
+
+> Solo aplica con `TENANCY_MODE=multi` (§13). Diseño, pruebas y límites: `docs/SAAS_ETAPA_5.md`. Los comandos de la aplicación corren con `dc exec app pnpm …`; los del servicio de respaldos, con `dc exec -T backup /scripts/…`. Todo lo que cambia algo queda en la auditoría de la plataforma, y el panel lo hace con tu contraseña de confirmación.
+
+### Cómo se reparten el trabajo la aplicación y el servicio de respaldos
+
+La clave de los respaldos (`BACKUP_PASSPHRASE`) y la carpeta de archivos **solo existen en el contenedor `backup`**; la aplicación no las tiene a propósito (una aplicación comprometida no puede abrir ningún respaldo). Se hablan por la base central:
+
+- El servicio `backup` respalda, comprueba, retira lo vencido y **anota cada respaldo** (tabla `TenantBackup`).
+- La aplicación **lee** ese registro para el panel y solo **agrega pedidos** («respalda ahora»), que el servicio toma en unos 15 segundos.
+
+### Respaldos por negocio
+
+- **A diario** (02:00 por omisión) el servicio respalda **cada negocio por separado** (`tenant-t_<id>-AAAAMMDDTHHMMSSZ.dump.enc`), la tienda #1 (`boutique-…`) y la base central (`control-…`). Si el respaldo de un negocio falla se anota y se sigue con los demás.
+- **Llave propia por negocio:** el respaldo de cada negocio se cifra con una llave derivada de `BACKUP_PASSPHRASE` y del nombre de su base. Sirve para **entregarle a alguien la copia de UN negocio** con su llave sin abrir los demás (ver «Entregar la copia de un negocio»). Los respaldos de la Etapa 3 (cifrados con la clave sola) se siguen pudiendo restaurar.
+- **Retención por plan:** los días que se conservan los respaldos de un negocio salen de su plan (**Planes → Días que se conservan los respaldos**, de 7 a 3650). Un negocio sin plan usa `BACKUP_RETENTION_DAYS` (30). Un archivo retirado deja su fila en el historial con la marca «Retirado».
+- **Su primer respaldo** se pide al dar de alta el negocio (en segundos), sin esperar a la noche.
+- **Pedir uno ahora:** panel → negocio → **Respaldar ahora** (o `pnpm backups:request <subdominio>`, y `--control` para la base central). Si el servicio de respaldos no está corriendo, el pedido queda esperando y la alerta lo avisa a los 10 minutos.
+- **Ver cómo están:** panel → **Respaldos** (todos los negocios y la base central, con su estado), la página de cada negocio (los últimos respaldos, con el error si falló) o `pnpm backups:status`, que sale con error si algún negocio está atrasado, falló o nunca se respaldó. Estados: **al día** (hay uno bueno de las últimas 26 horas), **atrasado**, **falló**, **sin respaldo** y **pendiente** (negocio nuevo).
+- **Copiarlos fuera del servidor** sigue siendo obligatorio (§5): la carpeta `./backups` contiene todos los archivos, ya cifrados.
+
+### Tareas diarias
+
+Además del barrido de cobros (§15), una vez al día la foto de uso y la revisión de alertas:
+
+```cron
+20 3 * * * cd /opt/boutique-pos && docker compose --env-file .env.production -f docker-compose.prod.yml exec -T app pnpm usage:collect >> /var/log/boutique-uso.log 2>&1
+30 3 * * * cd /opt/boutique-pos && docker compose --env-file .env.production -f docker-compose.prod.yml exec -T app pnpm alerts:check || echo "Boutique POS: hay alertas, mira el panel" | mail -s "Alertas de la plataforma" tu@correo.com
+```
+
+`alerts:check` imprime cada alerta y **sale con código 1 si hay algo grave o que conviene revisar** (las de información no lo hacen fallar): úsalo con tu servicio de avisos favorito. Un monitor externo (§7) sigue siendo lo que avisa de que se cayó el servidor entero.
+
+### Restaurar UN negocio (sin tocar a los demás)
+
+Vuelve a la fecha del respaldo: **lo vendido después se pierde** (y queda guardado en una base apartada, ver abajo). Hazlo con el negocio suspendido y deja a quien opera el local avisado.
+
+1. **Suspende el negocio** (panel → negocio → Suspender). Así nadie escribe mientras se cambia la base. Los demás negocios siguen atendiendo.
+2. **Elige el respaldo** (la página del negocio muestra el último bueno, con los comandos ya escritos) y restaura. El servicio comprueba el archivo, restaura en una base temporal y **solo si todo salió bien** la pone en el lugar de la actual (cierra las conexiones de **ese** negocio aunque la aplicación siga corriendo); la actual **no se borra**: queda como `z_replaced_<base>_<fecha>`.
+
+   ```bash
+   dc exec -T -e RESTORE_REPLACE=yes backup /scripts/restore-tenant.sh /backups/tenant-t_<id>-AAAAMMDDTHHMMSSZ.dump.enc t_<id>
+   ```
+
+3. **Termina la restauración**: un volcado trae los datos, pero no el rol de aplicación del negocio ni sus permisos, y el respaldo puede ser de una versión anterior del sistema. Este paso lo deja todo como estaba y comprueba que el negocio **puede entrar con su rol**.
+
+   ```bash
+   dc exec app pnpm tenants:relink <subdominio>      # o el botón «Terminar la restauración» de su página
+   dc exec app pnpm db:verify --tenant <subdominio>  # los libros cuadran
+   ```
+
+4. **Reactiva el negocio** (panel → Reactivar), entra, comprueba la última venta y abre caja. Lo vendido después del respaldo hay que registrarlo a mano; la base apartada (`z_replaced_…`) tiene esos datos por si hace falta consultarlos.
+
+Con una clave equivocada o un archivo dañado, el script se detiene al principio con un mensaje claro y no cambia nada. Para **ensayar** sin tocar el negocio, restaura a otro nombre de base (`restore-tenant.sh <archivo> t_ensayo_1`) y revísalo con `VERIFY_DATABASE=… pnpm db:verify` (§6A); después bórrala con `DROP DATABASE`.
+
+### Restaurar todo en un servidor nuevo
+
+Es el desastre completo: el servidor murió y hay que levantar la plataforma desde los respaldos. Hace falta **la carpeta de respaldos, `BACKUP_PASSPHRASE` y `PLATFORM_MASTER_KEY`** (sin la llave maestra, las credenciales de las bases de los negocios no se pueden abrir) y **la misma `POSTGRES_USER` y `POSTGRES_PASSWORD`**: la credencial de la tienda #1 es la cuenta principal de Postgres y está guardada, cifrada, en la base central.
+
+1. Instala el servidor como en la §2 (hasta el paso 3) con **la misma `PLATFORM_MASTER_KEY` y `BACKUP_PASSPHRASE`**, y copia los respaldos a `./backups`. Levanta solo la base: `dc up -d db backup`.
+2. Restaura la **base central** y la **tienda #1**. La base `POSTGRES_DB` existe vacía, por eso `RESTORE_REPLACE=yes`: la vacía queda apartada como `boutique_pos_old_<fecha>` (bórrala con `DROP DATABASE`).
+
+   ```bash
+   dc exec -T backup /scripts/restore.sh /backups/control-AAAAMMDDTHHMMSSZ.dump.enc boutique_pos_control
+   dc exec -T -e RESTORE_REPLACE=yes backup /scripts/restore.sh /backups/boutique-AAAAMMDDTHHMMSSZ.dump.enc boutique_pos
+   ```
+
+3. Restaura **cada negocio** con su último respaldo. Los nombres `t_<id>` salen de la base central que acabas de restaurar (la tienda #1 es `POSTGRES_DB`, ya restaurada):
+
+   ```bash
+   dc exec -T db psql -U <POSTGRES_USER> -d boutique_pos_control -Atc 'SELECT slug, "dbName" FROM "Tenant" WHERE "dbName" IS NOT NULL'
+   dc exec -T backup /scripts/restore-tenant.sh /backups/tenant-t_<id>-AAAAMMDDTHHMMSSZ.dump.enc t_<id>
+   ```
+
+4. Levanta la aplicación (`dc up -d`). Al arrancar migra lo que falte. Mientras no termines la restauración de un negocio, su `/api/health` responde 503 (su rol aún no existe en el servidor nuevo). Luego, **por cada negocio**, créale el rol con la contraseña que guarda la bóveda, dale sus permisos y comprueba que los libros cuadran:
+
+   ```bash
+   dc exec app pnpm tenants:relink <subdominio>
+   dc exec app pnpm db:verify --tenant <subdominio>
+   ```
+
+5. Entra al panel, revisa **Respaldos**, **Revisión del servidor** y el **Resumen** (sin alertas), y pide un respaldo nuevo de todo (`dc exec -T backup /scripts/backup.sh`).
+
+Ensayado (ver `docs/SAAS_ETAPA_5.md` §7): en un servidor vacío, con la base central, la tienda #1 y un negocio restaurados de los respaldos, el rol del negocio no existía antes de `tenants:relink` (su `/api/health` daba 503); después existía, `db:verify` dio «Libros cuadrados» y el negocio respondió 200.
+
+### Entregar la copia de un negocio
+
+Si un negocio se va y quiere su información, o necesitas darle su respaldo a alguien: entrégale **el archivo de ese negocio y su llave**, no `BACKUP_PASSPHRASE`. La llave se obtiene dentro del servicio de respaldos y **se trata como una contraseña**:
+
+```bash
+dc exec -T backup sh -c '. /scripts/lib.sh && derive_key t_<id>'
+```
+
+Con esa llave el archivo se abre con `openssl enc -d -aes-256-cbc -pbkdf2 -iter 600000 -pass pass:<llave> -in <archivo>` y el resultado es un volcado de Postgres (`pg_restore`). No abre ningún otro negocio.
+
+### Bases apartadas y borrado definitivo
+
+El sistema **nunca destruye por sí solo** una base con datos de un negocio. Quedan apartadas dos clases:
+
+- **Archivadas** (`z_archived_<id>`): el negocio se dio de baja y se archivó (§14).
+- **Reemplazadas** (`z_replaced_<base>_<fecha>`): una restauración las dejó apartadas al poner el respaldo en su lugar; tienen lo que se vendió después de ese respaldo.
+
+Panel → **Respaldos → Bases apartadas** (o `pnpm backups:retired`) las lista. Borrar una es irreversible, así que son **dos pasos que no se pueden saltar**:
+
+1. **Guardar el volcado final** (`pnpm backups:final <base>`): el servicio de respaldos hace un volcado cifrado y comprobado de esa base y lo guarda `FINAL_BACKUP_RETENTION_DAYS` (365 por omisión).
+2. **Borrar definitivamente** (`pnpm backups:drop <base> --confirm <base>`): exige que ese volcado exista y todavía esté guardado, que escribas el nombre de la base tal cual y tu contraseña. Queda en la auditoría con el archivo del volcado.
+
+El volcado final se restaura como cualquier otro (`restore-tenant.sh /backups/final-<base>-….dump.enc <nombre nuevo>`), por si un negocio dado de baja vuelve.
+
+### Uso de cada negocio
+
+La página de cada negocio muestra su **uso**: usuarios activos y productos (contra los topes de su plan), ventas de los últimos 30 días, última venta, último ingreso y el peso de su base. **Son solo números** de una lista fija: el panel sabe *cuánto* usa un negocio, nunca *qué* vende ni a quién. La foto se toma a diario (`pnpm usage:collect`) y se puede actualizar a mano en la página del negocio. Un negocio que llega al 90 % de un tope aparece como información en las alertas (es el momento de ofrecerle un plan mayor).
+
+### Soporte: mirar los datos de un negocio
+
+Sin una **sesión de soporte** abierta, el panel no muestra nada de un negocio salvo los números de uso. Para ayudar a alguien con un problema real: página del negocio → **Soporte → Abrir una sesión** con un **motivo** (10 a 300 caracteres) y una duración (15 minutos a 2 horas; la base no admite más).
+
+- Abrirla **deja un aviso en la auditoría del propio negocio** (quién, por qué y hasta cuándo). Una persona solo puede tener una abierta por negocio.
+- Con ella se ven: las personas con acceso (sin contraseñas), las ventas recientes, los cierres de caja y lo que se hizo en el negocio (sin el contenido de los cambios).
+- Y se pueden hacer **dos correcciones**: **desbloquear** a una persona que se quedó sin poder entrar, y darle una **contraseña temporal** (se muestra una sola vez, cierra sus sesiones y no se guarda en ningún lado). Ambas quedan en las dos auditorías.
+- **No hay «entrar como» esa persona.** Cierra la sesión al terminar (o vence sola).
+
+### Alertas
+
+Panel → **Resumen → Alertas** (y `pnpm alerts:check`), de lo más grave a lo menos:
+
+| Alerta | Gravedad | Qué hacer |
+| --- | --- | --- |
+| El último respaldo de un negocio (o de la base central) falló / no existe | Grave | Mira el error en su página; corrige la causa y pide uno. |
+| Respaldos pedidos que nadie atiende (10 min) | Grave | El servicio `backup` no está corriendo: `dc ps`, `dc logs backup`. |
+| Un negocio en mantenimiento (falló su actualización) | Grave | §14: actualizar sus datos. |
+| La base de un negocio no está en el servidor | Grave | Restáurala (arriba). |
+| El respaldo de un negocio tiene más de 26 horas | Aviso | Mira los registros del servicio de respaldos. |
+| Bases o roles que nadie reclama, o negocios con datos atrasados | Aviso | Revisión del servidor (§14). |
+| Un alta que no terminó | Aviso | Retómala o deshazla (§14). |
+| Un negocio cerca de su tope, bases apartadas por borrar, sesiones de soporte abiertas | Información | Sin urgencia. |
+
+### Si algo no cuadra
+
+| Síntoma | Qué mirar |
+| --- | --- |
+| «Falló» en un respaldo | La página del negocio muestra el error. `dc logs backup` lo detalla (`backup.dump_failed`, `backup.verify_failed`). |
+| Un pedido de respaldo se queda en «Pedido» | El servicio `backup` no corre o no alcanza la base central. Con `dc logs backup`: `backup.requests_failed`. |
+| `restore-tenant.sh` dice que no pudo abrir el archivo | La clave no es la del respaldo, o el archivo está dañado. Prueba con el respaldo anterior. |
+| `restore-tenant.sh` no pudo renombrar la base | Algo sigue conectado a ella: suspende el negocio y repite (cierra las conexiones él mismo). |
+| `tenants:relink` dice que no puede entrar con su rol | Mira el motivo que imprime; repetirlo es seguro. Si la llave maestra no es la que cifró la credencial, ver §12. |
+| Quedó una base `z_replaced_…` | Es lo esperado: se borra con el borrado guiado cuando ya no la necesites. |
+
+### Límites a tener presentes
+
+- La restauración de un negocio **vuelve a la fecha del respaldo**: no hay recuperación a un instante exacto (no se archivan los registros de transacciones de Postgres).
+- Restaurar sigue siendo una decisión de quien opera el servidor (necesita acceso al contenedor y la clave): el panel no ofrece un botón de «restaurar», a propósito.
+- El registro de respaldos lo escribe el servicio de respaldos con la cuenta principal de Postgres; una aplicación comprometida puede pedir respaldos y leer el registro, pero no abrir ningún archivo.
+- El panel guarda solo los números de uso; las **sesiones de soporte sí leen datos reales** (ventas y personas) durante el tiempo que dure la sesión, con su motivo y su rastro.
+- Los avisos de alertas son el panel y `alerts:check`: **el sistema no envía correos** por su cuenta.
