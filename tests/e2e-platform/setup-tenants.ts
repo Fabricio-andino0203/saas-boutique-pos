@@ -54,7 +54,7 @@ async function main(): Promise<void> {
     }
   }
   await controlDb.$executeRawUnsafe(
-    `TRUNCATE TABLE "TenantUsageSnapshot", "TenantBackup", "PlatformPayment", "Subscription", "Plan" CASCADE`,
+    `TRUNCATE TABLE "SupportSession", "TenantUsageSnapshot", "TenantBackup", "PlatformPayment", "Subscription", "Plan" CASCADE`,
   );
   await controlDb.provisioningRun.deleteMany({
     where: { tenantId: { in: leftovers.map((tenant) => tenant.id) } },

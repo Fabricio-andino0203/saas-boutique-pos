@@ -16,7 +16,7 @@ async function main(): Promise<void> {
   }
   // Una corrida anterior pudo dejar el registro: se parte de cero (la base central de pruebas es desechable).
   await controlDb.$executeRawUnsafe(
-    'TRUNCATE TABLE "TenantUsageSnapshot", "TenantBackup", "PlatformPayment", "Subscription", "ProvisioningRun", "Tenant"',
+    'TRUNCATE TABLE "SupportSession", "TenantUsageSnapshot", "TenantBackup", "PlatformPayment", "Subscription", "ProvisioningRun", "Tenant"',
   );
   const tenant = await adoptExistingStore(
     { slug: "tienda", name: "Tienda E2E", databaseUrl },

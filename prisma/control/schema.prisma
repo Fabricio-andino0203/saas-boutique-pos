@@ -139,6 +139,7 @@ model Tenant {
   payments         PlatformPayment[]
   backups          TenantBackup[]
   usageSnapshots   TenantUsageSnapshot[]
+  supportSessions  SupportSession[]
 
   @@index([status])
 }
@@ -335,6 +336,30 @@ model TenantUsageSnapshot {
   schemaVersion String?
 
   @@index([tenantId, takenAt])
+}
+
+// ───────────────────────────── Soporte (Etapa 5) ─────────────────────────────
+
+/// Una sesión de soporte: el permiso, con motivo y duración limitada, para que un superadministrador mire los datos reales de un
+/// negocio y haga las dos correcciones de acceso (desbloquear y restablecer la contraseña de una persona). Sin una sesión abierta,
+/// el panel no muestra nada del negocio. Cada vista y cada acción queda en la auditoría de la plataforma, y abrirla deja un aviso
+/// en la auditoría del propio negocio. Una persona solo puede tener una sesión abierta por negocio (lo exige un índice en la base).
+model SupportSession {
+  id            String   @id @default(cuid())
+  tenantId      String
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  adminId       String
+  /// Copia del usuario al abrirla: sobrevive aunque el administrador se desactive.
+  adminUsername String
+  reason        String
+  startedAt     DateTime @default(now())
+  /// Cuándo deja de valer (a lo sumo dos horas después de abrirla).
+  expiresAt     DateTime
+  /// Cuándo se cerró a mano o se reemplazó. Una sesión vencida que nadie cerró se cierra sola al abrir otra.
+  endedAt       DateTime?
+
+  @@index([tenantId, startedAt])
+  @@index([adminId, expiresAt])
 }
 
 // ───────────────────────────── Superadministradores ─────────────────────────────

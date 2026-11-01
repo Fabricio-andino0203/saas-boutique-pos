@@ -3,6 +3,7 @@ import { backupOverview } from "@/modules/platform/backups";
 import { nearLimit } from "@/modules/platform/usage";
 import { provisioningAvailable, type ProvisioningDeps } from "@/modules/platform/provisioning";
 import { reconcileTenants } from "@/modules/platform/reconcile";
+import { countOpenSupportSessions } from "@/modules/platform/support";
 import { listRetiredDatabases } from "@/modules/platform/retired";
 
 /**
@@ -28,6 +29,7 @@ export const ALERT_CODES = [
   "server_behind",
   "near_limit",
   "retired_databases",
+  "support_open",
 ] as const;
 export type AlertCode = (typeof ALERT_CODES)[number];
 
@@ -146,6 +148,12 @@ export async function collectAlerts(deps: AlertsDeps = {}): Promise<PlatformAler
     } catch {
       // Sin acceso al servidor de bases no hay conciliación; las demás alertas siguen valiendo.
     }
+  }
+
+  // Alguien está mirando datos reales de un negocio.
+  const openSupport = await countOpenSupportSessions({ client, now: () => now });
+  if (openSupport > 0) {
+    alerts.push({ code: "support_open", severity: "info", detail: String(openSupport) });
   }
 
   // Negocios que llegaron al 90 % de un tope de su plan (según la última foto de uso).

@@ -389,6 +389,80 @@ test.describe.serial("recorrido completo del superadministrador", () => {
     }
   });
 
+  test("soporte: sin sesión no se ve nada; con un motivo se abre, se mira, se da una contraseña temporal y todo queda registrado", async ({
+    browser,
+  }) => {
+    const support = copy.support;
+
+    // Sin una sesión abierta, la página de soporte no muestra ningún dato del negocio.
+    await page.goto(`/negocios/${newSlug}/soporte`);
+    await expect(page.getByTestId("support-no-session")).toBeVisible();
+    await expect(page.getByTestId("support-users")).toHaveCount(0);
+
+    // Abrir una sesión pide el motivo y la contraseña de quien la abre.
+    await page.goto(`/negocios/${newSlug}`);
+    await page
+      .locator("#support-reason")
+      .fill("La dueña olvidó su contraseña y no puede abrir caja");
+    await page.locator("#support-open-password").fill(PASSWORD);
+    await page.getByRole("button", { name: support.open.submit }).click();
+    await expect(page.getByTestId("support-current")).toBeVisible();
+    await expect(page.getByTestId("support-current")).toContainText("olvidó su contraseña");
+
+    // Con la sesión se ven las personas, las ventas, la caja y lo que se hizo, sin secretos.
+    await page.getByRole("link", { name: support.current.view }).click();
+    await expect(page.getByTestId("support-view")).toBeVisible();
+    const owner = page.getByTestId("support-user-rosa");
+    await expect(owner).toContainText(support.view.roles.OWNER);
+    await expect(page.getByTestId("support-audit")).toContainText("SUPPORT_SESSION_OPENED");
+    expect(await page.content()).not.toMatch(/argon2/i);
+
+    // Una contraseña temporal: se muestra una sola vez y con ella la dueña entra a su negocio.
+    const reset = owner.locator("details").filter({ hasText: support.actions.reset });
+    await reset.locator("summary").click();
+    await reset.getByLabel(support.actions.confirmPassword).fill(PASSWORD);
+    await reset.locator("form").getByRole("button", { name: support.actions.reset }).click();
+    const notice = reset.getByRole("status");
+    await expect(notice).toContainText("Contraseña temporal de rosa:");
+    const temporary = /de rosa: (\S+) /.exec((await notice.textContent()) ?? "")?.[1] ?? "";
+    expect(temporary).toHaveLength(16);
+
+    const ownerPage = await browser.newPage();
+    try {
+      await ownerPage.goto(`${newTenantUrl}/login`);
+      await ownerPage.getByLabel(messages.auth.login.username).fill("rosa");
+      await ownerPage.getByLabel(messages.auth.login.password).fill(temporary);
+      await ownerPage.getByRole("button", { name: messages.auth.login.submit }).click();
+      await expect(
+        ownerPage.getByRole("heading", { level: 1, name: messages.home.title }),
+      ).toBeVisible();
+    } finally {
+      await ownerPage.close();
+    }
+
+    // Cerrar la sesión: la página vuelve a no mostrar nada, y el historial lo dice.
+    await page.goto(`/negocios/${newSlug}`);
+    await page.locator("#support-close-password").fill(PASSWORD);
+    await page.getByRole("button", { name: support.current.close }).click();
+    await expect(page.getByTestId("support-current")).toHaveCount(0);
+    await expect(page.getByTestId("support-history")).toContainText(support.history.closed);
+    await page.goto(`/negocios/${newSlug}/soporte`);
+    await expect(page.getByTestId("support-no-session")).toBeVisible();
+
+    // Todo quedó en la auditoría de la plataforma.
+    await page.goto("/auditoria");
+    for (const action of [
+      "SUPPORT_SESSION_OPENED",
+      "SUPPORT_VIEWED",
+      "SUPPORT_PASSWORD_RESET",
+      "SUPPORT_SESSION_CLOSED",
+    ] as const) {
+      await expect(
+        page.getByRole("cell", { name: copy.audit.actions[action] }).first(),
+      ).toBeVisible();
+    }
+  });
+
   test("revisión del servidor: muestra qué revisar y actualiza los datos de todos los negocios", async () => {
     const review = copy.tenants.review;
     await page.goto("/negocios/revision");
@@ -556,11 +630,13 @@ test.describe.serial("recorrido completo del superadministrador", () => {
 
     await page.getByRole("link", { name: copy.nav.audit }).click();
     await expect(page.getByRole("heading", { level: 1, name: copy.audit.title })).toBeVisible();
+    // La auditoría tiene muchas filas a estas alturas del recorrido: se busca cada acción con su filtro.
     for (const action of [
       "PLATFORM_USER_CREATED",
       "PLATFORM_LOGIN",
       "PLATFORM_2FA_ENABLED",
     ] as const) {
+      await page.goto(`/auditoria?action=${action}`);
       await expect(
         page.getByRole("cell", { name: copy.audit.actions[action] }).first(),
       ).toBeVisible();

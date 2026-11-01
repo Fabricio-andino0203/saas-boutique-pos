@@ -16,6 +16,8 @@ export function describeAlert(alert: PlatformAlert): { text: string; href: strin
     ? `/negocios/${alert.slug}`
     : alert.code.startsWith("backup") || alert.code === "retired_databases"
       ? "/respaldos"
-      : "/negocios/revision";
+      : alert.code === "support_open"
+        ? "/negocios"
+        : "/negocios/revision";
   return { text, href };
 }
