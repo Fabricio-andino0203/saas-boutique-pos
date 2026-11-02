@@ -16,8 +16,9 @@ WORKDIR /app
 # ---- dependencias (capa que casi nunca cambia) ----
 FROM base AS deps
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-RUN --mount=type=cache,id=pnpm-store,target=/pnpm-store \
-    pnpm install --frozen-lockfile --store-dir /pnpm-store
+# Sin `--mount=type=cache`: Railway exige que el id de un caché de construcción lleve el prefijo `s/<id del servicio>-` y rechaza
+# el Dockerfile entero si falta. La capa de dependencias ya se reutiliza mientras no cambie el archivo de bloqueo.
+RUN pnpm install --frozen-lockfile --store-dir /pnpm-store
 
 # ---- compilación ----
 FROM base AS build
