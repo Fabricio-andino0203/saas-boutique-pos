@@ -1,0 +1,443 @@
+<!doctype html>
+<html lang="es-HN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Boutique POS · Propuestas de identidad visual</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Onest:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ───────────── Tres direcciones × dos modos. Todo el color y la forma salen de estas variables. ───────────── */
+:root { --radius: 10px; --radius-sm: 7px; }
+
+/* A · Añil — el tinte índigo de los textiles de Centroamérica */
+[data-dir="anil"] { --font: "Onest", system-ui, sans-serif; --h-track: -0.022em; }
+[data-dir="anil"][data-mode="light"] {
+  --bg: #F3F4F7; --surface: #FFFFFF; --surface-2: #F8F9FB; --line: #E3E5EC; --line-strong: #CDD1DD;
+  --text: #1A1D2E; --muted: #5F6578; --primary: #2F3FA3; --on-primary: #FFFFFF; --soft: #E9ECFB; --soft-text: #2A3794;
+  --accent: #E9B03F; --good: #1F7A4D; --good-soft: #E2F3EA; --warn: #9A6212; --warn-soft: #FBF0DA; --bad: #C0352E; --bad-soft: #FBE7E5;
+  --side: #FFFFFF; --ticket: #FFFFFF; --photo-tint: 1;
+}
+[data-dir="anil"][data-mode="dark"] {
+  --bg: #0E1120; --surface: #161A2E; --surface-2: #1B2038; --line: #262C48; --line-strong: #353C5E;
+  --text: #E9EBF7; --muted: #9AA1C2; --primary: #8F9CFF; --on-primary: #0E1120; --soft: #222A55; --soft-text: #B4BDFF;
+  --accent: #F0BD58; --good: #5FCB93; --good-soft: #17352A; --warn: #E8B45A; --warn-soft: #3A2D14; --bad: #FF8A82; --bad-soft: #3B1C1F;
+  --side: #121528; --ticket: #1B2038; --photo-tint: .92;
+}
+
+/* B · Bosque — la evolución del verde actual, más profundo y sobre porcelana fría */
+[data-dir="bosque"] { --font: "Hanken Grotesk", system-ui, sans-serif; --h-track: -0.02em; }
+[data-dir="bosque"][data-mode="light"] {
+  --bg: #F2F5F3; --surface: #FFFFFF; --surface-2: #F7F9F8; --line: #DFE6E2; --line-strong: #C6D1CB;
+  --text: #15211B; --muted: #5A6A62; --primary: #1F5E47; --on-primary: #FFFFFF; --soft: #E1F0E9; --soft-text: #1A5240;
+  --accent: #B98A2E; --good: #1F7A4D; --good-soft: #E2F3EA; --warn: #8F5E10; --warn-soft: #FAEFD7; --bad: #B8352F; --bad-soft: #FAE6E4;
+  --side: #FFFFFF; --ticket: #FFFFFF; --photo-tint: 1;
+}
+[data-dir="bosque"][data-mode="dark"] {
+  --bg: #0C1410; --surface: #131E19; --surface-2: #182520; --line: #22332B; --line-strong: #314A3F;
+  --text: #E5EEE9; --muted: #92A89C; --primary: #7FCFA6; --on-primary: #0C1410; --soft: #1B3A2D; --soft-text: #A8E3C4;
+  --accent: #D9B566; --good: #67D49A; --good-soft: #173526; --warn: #E3B35C; --warn-soft: #382C14; --bad: #FF8F86; --bad-soft: #3A1D1F;
+  --side: #101A15; --ticket: #182520; --photo-tint: .92;
+}
+
+/* C · Grafito — UI neutra para que la ropa ponga el color; un solo acento, como Linear o Notion */
+[data-dir="grafito"] { --font: "Inter", system-ui, sans-serif; --h-track: -0.025em; }
+[data-dir="grafito"][data-mode="light"] {
+  --bg: #F6F6F5; --surface: #FFFFFF; --surface-2: #FAFAF9; --line: #E7E7E4; --line-strong: #D2D2CE;
+  --text: #191919; --muted: #6B6B66; --primary: #191919; --on-primary: #FFFFFF; --soft: #ECECEA; --soft-text: #191919;
+  --accent: #3B5BDB; --good: #1F7A4D; --good-soft: #E2F3EA; --warn: #8F5E10; --warn-soft: #FAEFD7; --bad: #C0352E; --bad-soft: #FBE7E5;
+  --side: #FBFBFA; --ticket: #FFFFFF; --photo-tint: 1;
+}
+[data-dir="grafito"][data-mode="dark"] {
+  --bg: #121212; --surface: #1A1A1A; --surface-2: #202020; --line: #2B2B2B; --line-strong: #3B3B3B;
+  --text: #ECECEA; --muted: #9D9D97; --primary: #F2F2F0; --on-primary: #151515; --soft: #2A2A2A; --soft-text: #F2F2F0;
+  --accent: #8FA6FF; --good: #62D095; --good-soft: #17342A; --warn: #E3B35C; --warn-soft: #382C14; --bad: #FF8F86; --bad-soft: #3A1D1F;
+  --side: #161616; --ticket: #202020; --photo-tint: .92;
+}
+
+* { box-sizing: border-box; }
+html { color-scheme: light dark; }
+body { margin: 0; font-family: var(--font); background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+[data-dir][data-mode="light"] body, body { transition: background .2s; }
+.num { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
+h1, h2, h3 { letter-spacing: var(--h-track); margin: 0; }
+
+/* Barra de control (no es parte de la aplicación) */
+.control { position: sticky; top: 0; z-index: 20; background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); padding: 12px 20px; display: flex; flex-wrap: wrap; gap: 14px 24px; align-items: center; }
+.control .group { display: flex; align-items: center; gap: 8px; }
+.control .label { color: var(--muted); font-size: 12px; margin-right: 2px; }
+.seg { display: inline-flex; background: var(--surface); border: 1px solid var(--line); border-radius: 9px; padding: 3px; gap: 2px; }
+.seg button { font: inherit; font-size: 13px; font-weight: 500; color: var(--muted); background: none; border: 0; border-radius: 6px; padding: 5px 12px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--primary); color: var(--on-primary); }
+.seg button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.brief { max-width: 1180px; margin: 22px auto 6px; padding: 0 20px; display: grid; gap: 14px; grid-template-columns: 1.2fr 1fr; align-items: start; }
+.brief h2 { font-size: 20px; font-weight: 650; }
+.brief p { margin: 6px 0 0; color: var(--muted); max-width: 62ch; }
+.swatches { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+.sw { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 4px 10px 4px 5px; }
+.sw i { width: 18px; height: 18px; border-radius: 50%; border: 1px solid var(--line-strong); display: block; }
+.frame-title { max-width: 1180px; margin: 28px auto 10px; padding: 0 20px; font-size: 13px; color: var(--muted); }
+
+/* ───────────── La aplicación de mentira ───────────── */
+.app { max-width: 1180px; margin: 0 auto 22px; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; display: grid; grid-template-columns: 226px 1fr; background: var(--bg); min-height: 560px; }
+.side { background: var(--side); border-right: 1px solid var(--line); padding: 14px 10px; display: flex; flex-direction: column; gap: 14px; }
+.brand { display: flex; align-items: center; gap: 10px; padding: 4px 8px 10px; }
+.mark { width: 30px; height: 30px; border-radius: 8px; background: var(--primary); color: var(--on-primary); display: grid; place-items: center; flex: none; }
+.brand b { font-size: 15px; letter-spacing: var(--h-track); }
+.brand small { display: block; color: var(--muted); font-size: 11px; line-height: 1.2; }
+.nav-group { display: grid; gap: 1px; }
+.nav-label { font-size: 11px; color: var(--muted); padding: 8px 10px 4px; font-weight: 500; }
+.nav a { display: flex; align-items: center; gap: 10px; padding: 7px 10px; border-radius: 8px; color: var(--muted); text-decoration: none; font-weight: 500; position: relative; }
+.nav a svg { width: 17px; height: 17px; flex: none; }
+.nav a[aria-current="page"] { color: var(--text); background: var(--soft); }
+.nav a[aria-current="page"]::before { content: ""; position: absolute; left: -10px; top: 8px; bottom: 8px; width: 3px; border-radius: 0 3px 3px 0; background: var(--primary); }
+.nav a:hover { color: var(--text); }
+.who { margin-top: auto; border-top: 1px solid var(--line); padding: 12px 8px 2px; display: flex; align-items: center; gap: 10px; }
+.avatar { width: 30px; height: 30px; border-radius: 50%; background: var(--soft); color: var(--soft-text); display: grid; place-items: center; font-weight: 650; font-size: 12px; }
+.who small { color: var(--muted); display: block; font-size: 11px; line-height: 1.2; }
+
+.main { min-width: 0; display: flex; flex-direction: column; }
+.top { display: flex; align-items: center; gap: 12px; padding: 12px 22px; border-bottom: 1px solid var(--line); background: var(--bg); }
+.search { flex: 1; max-width: 420px; display: flex; align-items: center; gap: 8px; background: var(--surface); border: 1px solid var(--line); border-radius: 9px; padding: 7px 11px; color: var(--muted); }
+.search svg { width: 16px; height: 16px; }
+.search kbd { margin-left: auto; font: inherit; font-size: 11px; border: 1px solid var(--line); border-radius: 5px; padding: 0 5px; color: var(--muted); }
+.btn { font: inherit; font-weight: 600; font-size: 13px; border-radius: 9px; border: 1px solid var(--line-strong); background: var(--surface); color: var(--text); padding: 7px 13px; display: inline-flex; align-items: center; gap: 7px; cursor: pointer; }
+.btn.primary { background: var(--primary); color: var(--on-primary); border-color: transparent; }
+.btn.ghost { background: none; border-color: transparent; color: var(--muted); }
+.btn svg { width: 15px; height: 15px; }
+.top .push { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+.page { padding: 24px 26px 28px; display: grid; gap: 26px; align-content: start; }
+.page h1 { font-size: 24px; font-weight: 650; }
+.page .sub { color: var(--muted); margin-top: 3px; }
+.sect-title { font-size: 13px; font-weight: 600; color: var(--muted); margin-bottom: 8px; display: flex; justify-content: space-between; align-items: baseline; }
+.sect-title a { color: var(--primary); font-weight: 600; text-decoration: none; font-size: 12.5px; }
+[data-dir="grafito"] .sect-title a { color: var(--accent); }
+
+/* Inicio: una hoja, no una pared de tarjetas */
+.hero { display: grid; grid-template-columns: 1.1fr 1fr; gap: 24px; align-items: end; padding-bottom: 22px; border-bottom: 1px solid var(--line); }
+.hero .big { font-size: 46px; font-weight: 650; letter-spacing: -0.035em; line-height: 1.05; }
+.hero .big span { font-size: 20px; font-weight: 500; color: var(--muted); letter-spacing: 0; margin-right: 6px; }
+.delta { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; color: var(--good); background: var(--good-soft); border-radius: 999px; padding: 2px 9px; margin-top: 10px; }
+.spark { width: 100%; height: 74px; }
+.spark .line { stroke: var(--primary); }
+[data-dir="grafito"] .spark .line { stroke: var(--accent); }
+.spark .area { fill: var(--primary); opacity: .08; }
+[data-dir="grafito"] .spark .area { fill: var(--accent); }
+.kpis { display: grid; grid-template-columns: repeat(4, 1fr); border-bottom: 1px solid var(--line); }
+.kpi { padding: 0 18px 20px; border-left: 1px solid var(--line); }
+.kpi:first-child { border-left: 0; padding-left: 0; }
+.kpi small { color: var(--muted); font-size: 12.5px; }
+.kpi b { display: block; font-size: 22px; font-weight: 650; letter-spacing: -0.02em; margin-top: 2px; }
+.kpi em { font-style: normal; font-size: 12px; color: var(--muted); }
+.two { display: grid; grid-template-columns: 1.35fr 1fr; gap: 28px; align-items: start; }
+.row { display: grid; grid-template-columns: 40px 1fr auto; gap: 12px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.row:last-child { border-bottom: 0; }
+.thumb { width: 40px; height: 50px; border-radius: 7px; overflow: hidden; background: var(--soft); display: block; }
+.thumb svg { width: 100%; height: 100%; display: block; filter: saturate(var(--photo-tint)); }
+.row b { font-weight: 600; display: block; line-height: 1.25; }
+.row small { color: var(--muted); }
+.stock { text-align: right; min-width: 92px; }
+.stock .bar { height: 4px; border-radius: 4px; background: var(--line); margin-top: 6px; overflow: hidden; }
+.stock .bar i { display: block; height: 100%; background: var(--warn); border-radius: 4px; }
+.chip { display: inline-block; font-size: 11.5px; font-weight: 600; border-radius: 999px; padding: 1px 8px; }
+.chip.warn { background: var(--warn-soft); color: var(--warn); }
+.chip.good { background: var(--good-soft); color: var(--good); }
+.chip.bad { background: var(--bad-soft); color: var(--bad); }
+.chip.soft { background: var(--soft); color: var(--soft-text); }
+
+/* El boleto: la única cosa atrevida. Muescas a los lados y una línea de corte, como un ticket de verdad. */
+.ticket { --r: 8px; --cut: var(--cut-at, 68%); position: relative; background: var(--ticket); border: 1px solid var(--line); border-radius: 12px;
+  -webkit-mask: radial-gradient(var(--r) at 0 var(--cut), #0000 97%, #000) left / 51% 100% no-repeat, radial-gradient(var(--r) at 100% var(--cut), #0000 97%, #000) right / 51% 100% no-repeat;
+          mask: radial-gradient(var(--r) at 0 var(--cut), #0000 97%, #000) left / 51% 100% no-repeat, radial-gradient(var(--r) at 100% var(--cut), #0000 97%, #000) right / 51% 100% no-repeat; }
+.ticket::after { content: ""; position: absolute; left: 14px; right: 14px; top: var(--cut); border-top: 1.5px dashed color-mix(in srgb, var(--muted) 55%, transparent); }
+.ticket .pad { padding: 16px 18px; }
+.ticket .head { display: flex; justify-content: space-between; align-items: center; }
+.ticket h3 { font-size: 15px; font-weight: 650; }
+.ticket .lines { display: grid; gap: 0; margin-top: 8px; }
+.ticket .ln { display: grid; grid-template-columns: 1fr auto; padding: 7px 0; border-bottom: 1px dotted var(--line-strong); }
+.ticket .ln small { color: var(--muted); }
+.ticket .sum { display: grid; gap: 3px; margin-top: 4px; color: var(--muted); }
+.ticket .sum div { display: flex; justify-content: space-between; }
+.ticket .total { display: flex; justify-content: space-between; align-items: baseline; font-size: 26px; font-weight: 650; letter-spacing: -0.025em; margin: 14px 0 12px; color: var(--text); }
+.ticket .total span { font-size: 13px; color: var(--muted); font-weight: 500; letter-spacing: 0; }
+.ticket .pay { width: 100%; justify-content: center; padding: 12px; font-size: 15px; border-radius: 10px; }
+
+/* Tablas densas */
+.tbl { width: 100%; border-collapse: collapse; }
+.tbl th { text-align: left; font-weight: 500; font-size: 12px; color: var(--muted); padding: 8px 10px; border-bottom: 1px solid var(--line-strong); background: var(--surface-2); position: sticky; top: 0; }
+.tbl td { padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+.tbl tr:hover td { background: var(--surface-2); }
+.tbl .r { text-align: right; }
+.tbl .prod { display: flex; align-items: center; gap: 11px; }
+.tbl .prod b { font-weight: 600; display: block; line-height: 1.2; }
+.tbl .prod small { color: var(--muted); font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 11.5px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+
+/* Punto de venta */
+.pos { display: grid; grid-template-columns: 1fr 330px; gap: 22px; align-items: start; }
+.pills { display: flex; gap: 6px; flex-wrap: wrap; margin: 12px 0 14px; }
+.pill { border: 1px solid var(--line-strong); border-radius: 999px; padding: 4px 12px; font-weight: 500; color: var(--muted); background: var(--surface); }
+.pill.on { background: var(--primary); color: var(--on-primary); border-color: transparent; }
+.tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.tile { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 8px; display: grid; gap: 7px; align-content: start; }
+.tile .ph { aspect-ratio: 4 / 5; border-radius: 7px; overflow: hidden; }
+.tile .ph svg { width: 100%; height: 100%; display: block; filter: saturate(var(--photo-tint)); }
+.tile b { font-weight: 600; line-height: 1.25; font-size: 13px; }
+.tile .pr { font-weight: 650; font-size: 15px; letter-spacing: -0.015em; }
+.tile small { color: var(--muted); }
+.tile.sel { outline: 2px solid var(--primary); outline-offset: -1px; }
+[data-dir="grafito"] .tile.sel { outline-color: var(--accent); }
+.scan { display: flex; align-items: center; gap: 10px; background: var(--surface); border: 1.5px solid var(--line-strong); border-radius: 11px; padding: 11px 14px; color: var(--muted); }
+.scan svg { width: 18px; height: 18px; }
+
+@media (max-width: 900px) {
+  .app { grid-template-columns: 1fr; } .side { display: none; }
+  .brief, .hero, .two, .pos { grid-template-columns: 1fr; } .swatches { justify-content: flex-start; }
+  .kpis { grid-template-columns: repeat(2, 1fr); row-gap: 14px; } .kpi:nth-child(3) { border-left: 0; padding-left: 0; }
+  .tiles { grid-template-columns: repeat(2, 1fr); }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body data-dir="anil" data-mode="light">
+<script>document.documentElement.dataset.dir = "anil"; document.documentElement.dataset.mode = "light";</script>
+
+<!-- Símbolos: prendas de mentira que se usan como fotos -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="g-dress" viewBox="0 0 120 150"><rect width="120" height="150" fill="#EFD9CF"/><path d="M46 22 60 34 74 22 86 34 80 54 90 128Q60 138 30 128L40 54 34 34Z" fill="#B8553A"/><path d="M50 22Q60 40 70 22" fill="none" stroke="#fff" stroke-width="2.5" opacity=".7"/></symbol>
+    <symbol id="g-blouse" viewBox="0 0 120 150"><rect width="120" height="150" fill="#DDE6F2"/><path d="M40 28 60 38 80 28 100 46 88 62 82 56 82 118 38 118 38 56 32 62 20 46Z" fill="#F5F1E8"/><path d="M52 28Q60 42 68 28" fill="none" stroke="#9AA9C4" stroke-width="2"/></symbol>
+    <symbol id="g-jeans" viewBox="0 0 120 150"><rect width="120" height="150" fill="#E6E4DE"/><path d="M38 20h44l6 112H66L60 62 54 132H32Z" fill="#33477A"/><path d="M38 28h44" stroke="#22315A" stroke-width="3"/></symbol>
+    <symbol id="g-bag" viewBox="0 0 120 150"><rect width="120" height="150" fill="#E5DDEB"/><path d="M42 58Q42 30 60 30T78 58" fill="none" stroke="#4E3A62" stroke-width="5"/><rect x="28" y="56" width="64" height="58" rx="8" fill="#6B4E84"/></symbol>
+    <symbol id="g-shirt" viewBox="0 0 120 150"><rect width="120" height="150" fill="#D8E8DF"/><path d="M40 26 60 36 80 26 102 44 90 62 84 56 84 120 36 120 36 56 30 62 18 44Z" fill="#2F6B52"/></symbol>
+    <symbol id="g-skirt" viewBox="0 0 120 150"><rect width="120" height="150" fill="#F1E3C9"/><path d="M42 34h36l18 90H24Z" fill="#C9962F"/><path d="M42 34h36" stroke="#8E6A1B" stroke-width="3"/></symbol>
+    <symbol id="i-home" viewBox="0 0 24 24"><path d="M4 11 12 4l8 7v9H4Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></symbol>
+    <symbol id="i-cart" viewBox="0 0 24 24"><path d="M4 5h2l2 10h10l2-7H8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/><circle cx="10" cy="19" r="1.4" fill="currentColor"/><circle cx="17" cy="19" r="1.4" fill="currentColor"/></symbol>
+    <symbol id="i-box" viewBox="0 0 24 24"><path d="M4 8 12 4l8 4v8l-8 4-8-4Z M4 8l8 4 8-4 M12 12v8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></symbol>
+    <symbol id="i-tag" viewBox="0 0 24 24"><path d="M4 12V5h7l9 9-7 7Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><circle cx="8" cy="9" r="1.3" fill="currentColor"/></symbol>
+    <symbol id="i-chart" viewBox="0 0 24 24"><path d="M5 20V10 M12 20V4 M19 20v-7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+    <symbol id="i-cash" viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="11" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="12.5" r="2.4" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+    <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="9" r="3.2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M3.5 19c.6-3 2.7-4.5 5.5-4.5s4.9 1.5 5.5 4.5 M16 6.5a3 3 0 0 1 0 5.8 M17.5 14.8c1.8.5 3 1.8 3.5 4.2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="m16 16 4 4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></symbol>
+    <symbol id="i-scan" viewBox="0 0 24 24"><path d="M4 8V5h3 M20 8V5h-3 M4 16v3h3 M20 16v3h-3 M8 9v6 M11 9v6 M14 9v6 M17 9v6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></symbol>
+    <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 3v3 M12 18v3 M3 12h3 M18 12h3 M5.6 5.6l2.1 2.1 M16.3 16.3l2.1 2.1 M18.4 5.6l-2.1 2.1 M7.7 16.3l-2.1 2.1" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
+    <symbol id="i-mark" viewBox="0 0 24 24"><path d="M5 12V5.5A1.5 1.5 0 0 1 6.5 4H12l8 8-7 7Z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/><circle cx="9" cy="8.6" r="1.5" fill="currentColor"/></symbol>
+  </defs>
+</svg>
+
+<div class="control" role="toolbar" aria-label="Elige una dirección y un modo">
+  <div class="group"><span class="label">Dirección</span>
+    <div class="seg" id="dirs">
+      <button data-dir="anil" aria-pressed="true">A · Añil</button>
+      <button data-dir="bosque" aria-pressed="false">B · Bosque</button>
+      <button data-dir="grafito" aria-pressed="false">C · Grafito</button>
+    </div></div>
+  <div class="group"><span class="label">Modo</span>
+    <div class="seg" id="modes">
+      <button data-mode="light" aria-pressed="true">Claro</button>
+      <button data-mode="dark" aria-pressed="false">Oscuro</button>
+    </div></div>
+</div>
+
+<section class="brief">
+  <div>
+    <h2 id="d-name">A · Añil</h2>
+    <p id="d-text">El tinte índigo con el que se teñían los textiles de Centroamérica. Un azul profundo y sereno para las acciones, un hilo amarillo apenas como detalle y un papel frío y neutro: elegante sin parecer joyería, y distinto del verde de siempre.</p>
+  </div>
+  <div class="swatches" id="swatches"></div>
+</section>
+
+<!-- ═════════ Pantalla 1: Inicio ═════════ -->
+<div class="frame-title">1 · Inicio — una sola hoja con tipografía y líneas finas en vez de una pared de tarjetas</div>
+<div class="app">
+  <aside class="side">
+    <div class="brand"><div class="mark"><svg width="17" height="17"><use href="#i-mark"/></svg></div><div><b>Boutique POS</b><small>Boutique Rosa</small></div></div>
+    <nav class="nav" aria-label="Menú">
+      <div class="nav-group"><a href="#" aria-current="page"><svg><use href="#i-home"/></svg>Inicio</a></div>
+      <div class="nav-group"><div class="nav-label">Ventas</div>
+        <a href="#"><svg><use href="#i-cart"/></svg>Vender</a>
+        <a href="#"><svg><use href="#i-cash"/></svg>Caja</a>
+        <a href="#"><svg><use href="#i-chart"/></svg>Reportes</a></div>
+      <div class="nav-group"><div class="nav-label">Mercadería</div>
+        <a href="#"><svg><use href="#i-tag"/></svg>Productos</a>
+        <a href="#"><svg><use href="#i-box"/></svg>Existencias</a></div>
+      <div class="nav-group"><div class="nav-label">Gente</div>
+        <a href="#"><svg><use href="#i-users"/></svg>Clientes</a>
+        <a href="#"><svg><use href="#i-gear"/></svg>Configuración</a></div>
+    </nav>
+    <div class="who"><div class="avatar">MR</div><div><b style="font-weight:600">María Reyes</b><small>Cajera · Caja 1</small></div></div>
+  </aside>
+  <div class="main">
+    <div class="top">
+      <div class="search"><svg><use href="#i-search"/></svg>Buscar producto, cliente o venta<kbd>Ctrl K</kbd></div>
+      <div class="push"><button class="btn primary"><svg><use href="#i-plus"/></svg>Nueva venta</button></div>
+    </div>
+    <div class="page">
+      <div><h1>Buenos días, María</h1><div class="sub">Domingo 2 de noviembre · Caja 1 abierta desde las 8:02</div></div>
+
+      <div class="hero">
+        <div><div class="sect-title" style="margin:0 0 6px">Ventas de hoy</div>
+          <div class="big num"><span>L</span>18,420<small style="font-size:22px;color:var(--muted);font-weight:500">.00</small></div>
+          <div class="delta">▲ 12 % más que el domingo pasado</div></div>
+        <svg class="spark" viewBox="0 0 300 74" preserveAspectRatio="none" aria-label="Ventas por hora">
+          <path class="area" d="M0 74 0 58 25 54 50 60 75 44 100 48 125 30 150 36 175 22 200 28 225 12 250 20 275 8 300 14 300 74Z"/>
+          <path class="line" d="M0 58 25 54 50 60 75 44 100 48 125 30 150 36 175 22 200 28 225 12 250 20 275 8 300 14" fill="none" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/>
+        </svg>
+      </div>
+
+      <div class="kpis">
+        <div class="kpi"><small>Tickets</small><b class="num">23</b><em>3 en espera</em></div>
+        <div class="kpi"><small>Ticket promedio</small><b class="num">L 800.87</b><em>sube L 42.10</em></div>
+        <div class="kpi"><small>Utilidad del día</small><b class="num">L 6,310.40</b><em>34 % de margen</em></div>
+        <div class="kpi"><small>Prendas vendidas</small><b class="num">41</b><em>12 modelos</em></div>
+      </div>
+
+      <div class="two">
+        <div>
+          <div class="sect-title">Por reponer <a href="#">Ver todo</a></div>
+          <div class="row"><span class="thumb"><svg><use href="#g-dress"/></svg></span><div><b>Vestido floral</b><small>Talla M · Rojo</small></div><div class="stock num"><span class="chip warn">quedan 2</span><div class="bar"><i style="width:22%"></i></div></div></div>
+          <div class="row"><span class="thumb"><svg><use href="#g-jeans"/></svg></span><div><b>Jeans recto</b><small>Talla 32 · Azul</small></div><div class="stock num"><span class="chip warn">quedan 3</span><div class="bar"><i style="width:30%"></i></div></div></div>
+          <div class="row"><span class="thumb"><svg><use href="#g-blouse"/></svg></span><div><b>Blusa de lino</b><small>Talla S · Blanco</small></div><div class="stock num"><span class="chip bad">agotada</span><div class="bar"><i style="width:0"></i></div></div></div>
+          <div class="row"><span class="thumb"><svg><use href="#g-bag"/></svg></span><div><b>Bolso de mano</b><small>Único · Morado</small></div><div class="stock num"><span class="chip warn">quedan 4</span><div class="bar"><i style="width:38%"></i></div></div></div>
+        </div>
+        <div>
+          <div class="sect-title">Tu caja</div>
+          <div class="ticket" style="--cut-at: 62%">
+            <div class="pad">
+              <div class="head"><h3>Caja 1</h3><span class="chip good">Abierta</span></div>
+              <div class="lines">
+                <div class="ln"><span>Fondo inicial</span><span class="num">L 500.00</span></div>
+                <div class="ln"><span>Ventas en efectivo</span><span class="num">L 5,120.00</span></div>
+                <div class="ln"><span>Salidas</span><span class="num">− L 1,370.00</span></div>
+              </div>
+              <div style="height:34px"></div>
+              <div class="total"><span>Efectivo esperado</span><b class="num">L 4,250.00</b></div>
+              <button class="btn primary pay">Cerrar caja</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═════════ Pantalla 2: Vender ═════════ -->
+<div class="frame-title">2 · Vender — las fotos mandan; el ticket es un ticket</div>
+<div class="app">
+  <aside class="side">
+    <div class="brand"><div class="mark"><svg width="17" height="17"><use href="#i-mark"/></svg></div><div><b>Boutique POS</b><small>Boutique Rosa</small></div></div>
+    <nav class="nav" aria-label="Menú">
+      <div class="nav-group"><a href="#"><svg><use href="#i-home"/></svg>Inicio</a></div>
+      <div class="nav-group"><div class="nav-label">Ventas</div>
+        <a href="#" aria-current="page"><svg><use href="#i-cart"/></svg>Vender</a>
+        <a href="#"><svg><use href="#i-cash"/></svg>Caja</a>
+        <a href="#"><svg><use href="#i-chart"/></svg>Reportes</a></div>
+      <div class="nav-group"><div class="nav-label">Mercadería</div>
+        <a href="#"><svg><use href="#i-tag"/></svg>Productos</a>
+        <a href="#"><svg><use href="#i-box"/></svg>Existencias</a></div>
+    </nav>
+    <div class="who"><div class="avatar">MR</div><div><b style="font-weight:600">María Reyes</b><small>Cajera · Caja 1</small></div></div>
+  </aside>
+  <div class="main">
+    <div class="top"><div><b style="font-weight:650;font-size:15px">Vender</b> <span style="color:var(--muted)">· Caja 1 abierta (María Reyes)</span></div>
+      <div class="push"><button class="btn ghost">En espera <span class="chip soft">2</span></button><button class="btn">Cliente</button></div></div>
+    <div class="page">
+      <div class="pos">
+        <div>
+          <div class="scan"><svg><use href="#i-scan"/></svg>Escanea o busca por nombre, color o código…</div>
+          <div class="pills"><span class="pill on">Todas</span><span class="pill">Mujer</span><span class="pill">Hombre</span><span class="pill">Niños</span><span class="pill">Accesorios</span></div>
+          <div class="tiles">
+            <div class="tile sel"><div class="ph"><svg><use href="#g-dress"/></svg></div><b>Vestido floral</b><span class="pr num">L 650.00</span><small>12 quedan · 6 opciones</small></div>
+            <div class="tile"><div class="ph"><svg><use href="#g-blouse"/></svg></div><b>Blusa de lino</b><span class="pr num">L 320.00</span><small>4 quedan · 3 opciones</small></div>
+            <div class="tile"><div class="ph"><svg><use href="#g-jeans"/></svg></div><b>Jeans recto</b><span class="pr num">L 780.00</span><small>18 quedan · 5 opciones</small></div>
+            <div class="tile"><div class="ph"><svg><use href="#g-bag"/></svg></div><b>Bolso de mano</b><span class="pr num">L 540.00</span><small>7 quedan</small></div>
+            <div class="tile"><div class="ph"><svg><use href="#g-shirt"/></svg></div><b>Camisa básica</b><span class="pr num">L 410.00</span><small>25 quedan · 4 opciones</small></div>
+            <div class="tile"><div class="ph"><svg><use href="#g-skirt"/></svg></div><b>Falda midi</b><span class="pr num">L 480.00</span><small>9 quedan · 3 opciones</small></div>
+            <div class="tile"><div class="ph"><svg><use href="#g-dress"/></svg></div><b>Vestido corto</b><span class="pr num">L 590.00</span><small>2 quedan</small></div>
+            <div class="tile" style="opacity:.55"><div class="ph"><svg><use href="#g-blouse"/></svg></div><b>Blusa elegante</b><span class="pr num">L 375.00</span><small style="color:var(--bad)">Agotado</small></div>
+          </div>
+        </div>
+        <div class="ticket" style="--cut-at: 66%">
+          <div class="pad">
+            <div class="head"><h3>Ticket</h3><small style="color:var(--muted)">2 prendas</small></div>
+            <div class="lines">
+              <div class="ln"><span><b style="font-weight:600">Vestido floral</b><br><small>M · Rojo · 1 × L 650.00</small></span><span class="num">L 650.00</span></div>
+              <div class="ln"><span><b style="font-weight:600">Blusa de lino</b><br><small>S · Blanco · 1 × L 320.00</small></span><span class="num">L 320.00</span></div>
+            </div>
+            <div class="sum num"><div><span>Subtotal</span><span>L 970.00</span></div><div><span>Descuento</span><span>− L 0.00</span></div><div><span>ISV incluido (15 %)</span><span>L 126.52</span></div></div>
+            <div style="height:30px"></div>
+            <div class="total"><span>Total</span><b class="num">L 970.00</b></div>
+            <button class="btn primary pay">Cobrar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═════════ Pantalla 3: Productos ═════════ -->
+<div class="frame-title">3 · Productos — tabla densa, números alineados, foto al lado del nombre</div>
+<div class="app">
+  <aside class="side">
+    <div class="brand"><div class="mark"><svg width="17" height="17"><use href="#i-mark"/></svg></div><div><b>Boutique POS</b><small>Boutique Rosa</small></div></div>
+    <nav class="nav" aria-label="Menú">
+      <div class="nav-group"><a href="#"><svg><use href="#i-home"/></svg>Inicio</a></div>
+      <div class="nav-group"><div class="nav-label">Ventas</div>
+        <a href="#"><svg><use href="#i-cart"/></svg>Vender</a>
+        <a href="#"><svg><use href="#i-cash"/></svg>Caja</a></div>
+      <div class="nav-group"><div class="nav-label">Mercadería</div>
+        <a href="#" aria-current="page"><svg><use href="#i-tag"/></svg>Productos</a>
+        <a href="#"><svg><use href="#i-box"/></svg>Existencias</a></div>
+    </nav>
+    <div class="who"><div class="avatar">LP</div><div><b style="font-weight:600">Lucía Paz</b><small>Propietaria</small></div></div>
+  </aside>
+  <div class="main">
+    <div class="top"><div class="search"><svg><use href="#i-search"/></svg>Nombre, código o código de barras</div>
+      <div class="push"><button class="btn">Importar</button><button class="btn primary"><svg><use href="#i-plus"/></svg>Nuevo producto</button></div></div>
+    <div class="page">
+      <div><h1>Productos</h1><div class="sub">Las prendas que vendes, con sus tallas y colores.</div></div>
+      <div class="card">
+        <table class="tbl">
+          <thead><tr><th>Producto</th><th>Categoría</th><th class="r">Precio</th><th class="r">Existencia</th><th>Estado</th></tr></thead>
+          <tbody>
+            <tr><td><div class="prod"><span class="thumb"><svg><use href="#g-dress"/></svg></span><div><b>Vestido floral</b><small>VES-001</small></div></div></td><td>Mujer › Vestidos</td><td class="r num">L 650.00</td><td class="r num">12</td><td><span class="chip warn">Stock bajo</span></td></tr>
+            <tr><td><div class="prod"><span class="thumb"><svg><use href="#g-blouse"/></svg></span><div><b>Blusa de lino</b><small>BLU-014</small></div></div></td><td>Mujer › Blusas</td><td class="r num">L 320.00</td><td class="r num">0</td><td><span class="chip bad">Agotado</span></td></tr>
+            <tr><td><div class="prod"><span class="thumb"><svg><use href="#g-jeans"/></svg></span><div><b>Jeans recto</b><small>JEA-007</small></div></div></td><td>Hombre › Pantalones</td><td class="r num">L 780.00</td><td class="r num">18</td><td><span class="chip good">Disponible</span></td></tr>
+            <tr><td><div class="prod"><span class="thumb"><svg><use href="#g-bag"/></svg></span><div><b>Bolso de mano</b><small>ACC-021</small></div></div></td><td>Accesorios</td><td class="r num">L 540.00</td><td class="r num">7</td><td><span class="chip good">Disponible</span></td></tr>
+            <tr><td><div class="prod"><span class="thumb"><svg><use href="#g-skirt"/></svg></span><div><b>Falda midi</b><small>FAL-003</small></div></div></td><td>Mujer › Faldas</td><td class="r num">L 480.00</td><td class="r num">9</td><td><span class="chip soft">Nuevo</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="frame-title" style="margin-bottom:40px">Estos son dibujos de prueba, no tu aplicación: las prendas son figuras sencillas y el logo es un marcador. Cuando me pases tus logos y referencias, los colores y la marca se ajustan a ellos.</div>
+
+<script>
+const DIRS = {
+  anil: { name: "A · Añil", text: "El tinte índigo con el que se teñían los textiles de Centroamérica. Un azul profundo y sereno para las acciones, un hilo amarillo apenas como detalle y un papel frío y neutro: elegante sin parecer joyería, y distinto del verde de siempre. Tipografía Onest.",
+    sw: { light: [["Papel","#F3F4F7"],["Tinta","#1A1D2E"],["Añil","#2F3FA3"],["Hilo","#E9B03F"],["Bien","#1F7A4D"]], dark: [["Noche","#0E1120"],["Superficie","#161A2E"],["Añil claro","#8F9CFF"],["Hilo","#F0BD58"],["Bien","#5FCB93"]] } },
+  bosque: { name: "B · Bosque", text: "La evolución de lo que ya tienes: el verde se vuelve más profundo y serio, el fondo pasa de crema a porcelana fría y aparece un latón apagado como detalle, como la herrería de una boutique. La más cercana a tu aplicación de hoy. Tipografía Hanken Grotesk.",
+    sw: { light: [["Porcelana","#F2F5F3"],["Tinta","#15211B"],["Bosque","#1F5E47"],["Latón","#B98A2E"],["Bien","#1F7A4D"]], dark: [["Noche","#0C1410"],["Superficie","#131E19"],["Menta","#7FCFA6"],["Latón","#D9B566"],["Bien","#67D49A"]] } },
+  grafito: { name: "C · Grafito", text: "La más sobria, en la línea de Linear y Notion: la interfaz es gris y negra para que la ropa ponga el color, el botón principal es de tinta y hay un solo acento azul para enlaces y selección. Es la que más deja respirar las fotos. Tipografía Inter.",
+    sw: { light: [["Papel","#F6F6F5"],["Tinta","#191919"],["Acento","#3B5BDB"],["Línea","#E7E7E4"],["Bien","#1F7A4D"]], dark: [["Negro suave","#121212"],["Superficie","#1A1A1A"],["Marfil","#F2F2F0"],["Acento","#8FA6FF"],["Bien","#62D095"]] } }
+};
+const root = document.documentElement;
+function paint() {
+  const dir = root.dataset.dir, mode = root.dataset.mode;
+  document.body.dataset.dir = dir; document.body.dataset.mode = mode;
+  document.querySelectorAll("#dirs button").forEach(b => b.setAttribute("aria-pressed", b.dataset.dir === dir));
+  document.querySelectorAll("#modes button").forEach(b => b.setAttribute("aria-pressed", b.dataset.mode === mode));
+  document.getElementById("d-name").textContent = DIRS[dir].name;
+  document.getElementById("d-text").textContent = DIRS[dir].text;
+  document.getElementById("swatches").innerHTML = DIRS[dir].sw[mode].map(([n, h]) => `<span class="sw"><i style="background:${h}"></i>${n} <span class="num">${h}</span></span>`).join("");
+}
+document.querySelectorAll("#dirs button").forEach(b => b.addEventListener("click", () => { root.dataset.dir = b.dataset.dir; paint(); }));
+document.querySelectorAll("#modes button").forEach(b => b.addEventListener("click", () => { root.dataset.mode = b.dataset.mode; paint(); }));
+paint();
+</script>
+</body>
+</html>
