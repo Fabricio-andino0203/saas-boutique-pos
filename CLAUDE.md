@@ -23,6 +23,8 @@ Moneda: Lempira (HNL, símbolo `L`). Zona horaria: `America/Tegucigalpa`.
 - [x] Fase 5 — Clientes, reportes y dashboard (2026-10-27)
 - [x] Fase 6 — Endurecimiento y despliegue, lo imprescindible (2026-10-30); lo opcional (modo sin internet, ESC/POS, varias sucursales, modo oscuro) queda para la Fase 7
 
+- [x] Fotos de productos (2026-11-02, rama `saas/etapa-0`): varias por producto, con orden y color, módulo masivo `/productos/fotos`; archivos en `UPLOADS_DIR` (volumen), no en la base. Ver `docs/ARCHITECTURE.md` §9 y `docs/RUNBOOK.md` §18
+
 Actualiza esta lista al terminar cada fase (marca `[x]` y agrega la fecha).
 
 ## 3. Stack (decidido)

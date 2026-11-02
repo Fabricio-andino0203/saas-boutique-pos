@@ -50,6 +50,8 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-boutique_pos}?schema=public
       LOG_LEVEL: ${LOG_LEVEL:-info}
       LOGIN_RATE_LIMIT_MAX: ${LOGIN_RATE_LIMIT_MAX:-20}
+      # Carpeta de las fotos de los productos: el volumen `uploads` (más abajo). Es de lo que no se puede reconstruir (RUNBOOK §18).
+      UPLOADS_DIR: /data/uploads
       # Plataforma multi-negocio (docs/SAAS_ETAPA_2.md). Con TENANCY_MODE=single (por omisión) nada de esto se usa.
       TENANCY_MODE: ${TENANCY_MODE:-single}
       PLATFORM_HOST: ${PLATFORM_HOST:-}
@@ -72,6 +74,8 @@ services:
       PLATFORM_MASTER_KEY_VERSION: ${PLATFORM_MASTER_KEY_VERSION:-1}
       PLATFORM_MASTER_KEY_PREVIOUS: ${PLATFORM_MASTER_KEY_PREVIOUS:-}
       PLATFORM_MASTER_KEY_PREVIOUS_VERSION: ${PLATFORM_MASTER_KEY_PREVIOUS_VERSION:-}
+    volumes:
+      - uploads:/data/uploads
     expose:
       - "3000"
     logging: *logging
@@ -105,6 +109,8 @@ services:
     volumes:
       # Una carpeta normal del servidor: ahí quedan los archivos cifrados para copiarlos fuera del equipo.
       - ${BACKUP_PATH:-./backups}:/backups
+      # Las fotos de los productos, solo lectura: se archivan (photos-….tar.enc) junto al volcado de cada negocio.
+      - uploads:/photos:ro
     healthcheck:
       # "Sano" = hay un respaldo de las últimas 26 horas (y, con varios negocios, también de la base central). Si los
       # respaldos se detienen, `docker compose ps` lo muestra.
@@ -164,5 +170,6 @@ services:
 
 volumes:
   pgdata:
+  uploads:
   caddy_data:
   caddy_config:

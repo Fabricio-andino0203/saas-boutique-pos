@@ -13,7 +13,7 @@
 | `caddy` | HTTPS automático, HSTS, compresión; reescribe la IP real del cliente | Puertos 80 y 443 |
 | `backup` | Respaldo diario cifrado a las 02:00 (hora de la tienda) | No |
 
-Los respaldos quedan en la carpeta `./backups` del servidor (o en `BACKUP_PATH`). **El volumen `pgdata` y esa carpeta son lo único que no se puede reconstruir**: todo lo demás sale del repositorio.
+Los respaldos quedan en la carpeta `./backups` del servidor (o en `BACKUP_PATH`). **El volumen `pgdata`, esa carpeta y el volumen `uploads` (las fotos de los productos, §18) son lo único que no se puede reconstruir**: todo lo demás sale del repositorio.
 
 Para no escribir el comando largo cada vez, en el servidor:
 
@@ -701,3 +701,42 @@ Un `.xlsx` es un zip. La importación mira lo que el archivo **declara** antes d
 - Una instancia de la app y un Postgres atendieron 200 negocios con tráfico parejo. Más de ~200 negocios **trabajando a la vez** pide un segundo servidor de bases de datos. **Hoy el sistema solo conoce un servidor** (`primary`): repartir negocios en varios exige un mapa de servidores y que el alta, el respaldo y la conciliación lo usen (ver el informe, §7).
 - Un certificado comodín, `DEPLOYMENT=production` con un dominio real y una base de datos administrada por un proveedor **no se ensayaron** aquí.
 - La recuperación a un instante exacto y los avisos por correo siguen sin existir (Etapa 5).
+
+## 18. Fotos de los productos
+
+Las fotos **no están en la base de datos**: viven en el volumen `uploads` (la carpeta `/data/uploads` de la app, `UPLOADS_DIR`), una subcarpeta por negocio con el id del negocio (`single` en una instalación de una sola tienda) y dentro `<producto>/<foto>/{thumb,medium,large}.webp`. Junto con `pgdata` y `./backups`, **`uploads` es de lo que no se puede reconstruir**.
+
+### Respaldos y restauración
+
+- Cada noche, justo después del volcado de cada negocio, el servicio `backup` archiva su carpeta de fotos en `photos-boutique-AAAAMMDDTHHMMSSZ.tar.enc` (la tienda de siempre) o `photos-tenant-<base>-AAAAMMDDTHHMMSSZ.tar.enc` (un negocio), **cifrado con la misma llave que el volcado de ese negocio** y comprobado (se descifra y se lee el contenido antes de dejarlo).
+- Las fotos casi no cambian, así que **solo se repite si algo es más nuevo que el último archivo** (una foto agregada, quitada o reordenada). Si no, el registro dice `backup.photos_unchanged`. La retención es la del plan del negocio, pero **nunca se borra el archivo más reciente**, por viejo que sea: es el único que hay si nada cambió.
+- Si el respaldo de las fotos falla, el del volcado ya quedó bien, pero el servicio sale con error (`backup.photos_failed` en el registro): revísalo igual.
+- Al copiar `./backups` fuera del servidor (paso del operador), los `photos-*.tar.enc` van incluidos.
+
+Devolver las fotos de un negocio (después de restaurar su base, o si se perdió el volumen):
+
+```bash
+# El volumen se llama <proyecto>_uploads (docker volume ls). Se monta para ESCRIBIR solo en este comando.
+dc run --rm --no-deps -v boutique-pos-prod_uploads:/photos backup /scripts/restore-photos.sh /backups/photos-tenant-t_XXXX-AAAAMMDDTHHMMSSZ.tar.enc
+```
+
+El script prueba la llave del negocio (por el nombre del archivo) y luego la general, no borra nada (solo agrega o reemplaza archivos de la carpeta de ese negocio) y deja los archivos al usuario de la app (`PHOTOS_OWNER`, 1000:1000 por omisión). Una foto cuyo archivo falta **no rompe nada**: se ve un recuadro vacío y el resto funciona; basta con quitarla desde la ficha y subirla de nuevo.
+
+### Espacio y límites
+
+- Una foto ocupa unos 100–250 KB entre sus tres tamaños. Cuenta ~300 fotos por tienda: 30–75 MB por negocio.
+- El plan puede topar las fotos de todo el negocio (Panel → Planes → «Fotos de productos»; vacío = sin límite). Pasarse del tope no borra nada: solo impide agregar.
+- Hasta 6 fotos por producto, de 8 MB cada una; el navegador reduce las pesadas antes de subirlas.
+
+### Si algo no cuadra
+
+| Síntoma | Qué mirar |
+| --- | --- |
+| Las fotos se ven como recuadros vacíos | El volumen `uploads` no está montado en `/data/uploads` o se recreó vacío: `dc exec app ls /data/uploads`. Restaurar con el comando de arriba. |
+| «No se pudo subir» en todas | `dc logs app` (`photos.upload_failed`); suele ser permisos de la carpeta (debe ser de `node`) o disco lleno. |
+| La app no arranca con `UPLOADS_DIR` | En producción es obligatoria. El `Dockerfile` la fija en `/data/uploads`; fuera de Docker, defínela. |
+
+### Límites a tener presentes
+
+- **Con un volumen la app queda en una sola réplica** (no se puede escalar a dos `app` compartiendo la carpeta, ni en Railway, donde un volumen se adjunta a un servicio). Para más de una réplica hay que pasar el almacén a un servicio de objetos (R2/S3): la interfaz (`BlobStore`) ya está pensada para eso, el controlador no se ha escrito.
+- El respaldo y la restauración de fotos se ensayaron en el contenedor de respaldos con carpetas de prueba (llave propia y general, clave equivocada, archivo dañado, retención). La subida y entrega se prueban con la base y el almacén de las pruebas, no con un volumen de Docker en producción.

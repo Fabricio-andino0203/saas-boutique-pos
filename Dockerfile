@@ -38,8 +38,12 @@ ARG APP_VERSION=dev
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
     APP_VERSION=${APP_VERSION} \
-    PORT=3000
+    PORT=3000 \
+    UPLOADS_DIR=/data/uploads
 COPY --from=build --chown=node:node /app /app
+# Las fotos de los productos viven en un volumen montado aquí (docs/RUNBOOK.md §18); la carpeta existe y es de `node` para que
+# Docker la copie con ese dueño al crear el volumen. Sin volumen, las fotos se perderían al actualizar la imagen.
+RUN mkdir -p /data/uploads && chown -R node:node /data
 USER node
 EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=90s --retries=3 \

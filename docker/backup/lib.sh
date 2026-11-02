@@ -12,6 +12,8 @@
 
 : "${BACKUP_PASSPHRASE:?define BACKUP_PASSPHRASE en .env.production}"
 BACKUP_DIR="${BACKUP_DIR:-/backups}"
+# Donde está (solo lectura) la carpeta de fotos de los productos de la aplicación: una subcarpeta por negocio.
+PHOTOS_DIR="${PHOTOS_DIR:-/photos}"
 DEFAULT_RETENTION_DAYS="${BACKUP_RETENTION_DAYS:-30}"
 FINAL_RETENTION_DAYS="${FINAL_BACKUP_RETENTION_DAYS:-365}"
 CONTROL_DB="${CONTROL_PGDATABASE:-}"
@@ -185,6 +187,55 @@ backup_one() {
   b_deleted="$(find "$BACKUP_DIR" -maxdepth 1 -name "$b_prefix-*.dump.enc" -mtime "+$b_days" -print -delete | wc -l | tr -d ' ')"
   if [ "$b_deleted" -gt 0 ]; then
     log info backup.pruned ",\"file\":\"$b_prefix\",\"deleted\":$b_deleted,\"retentionDays\":$b_days"
+  fi
+
+  # Las fotos de los productos de este negocio van aparte, con la misma llave que su volcado. La carpeta del negocio se llama
+  # como su id (`single` en una instalación de una sola tienda, que no está registrada).
+  if [ "$b_scope" = "TENANT" ]; then
+    b_folder="$b_tenant"
+    [ "$b_folder" != "-" ] || b_folder="single"
+    backup_photos "$b_folder" "$b_prefix" "$b_days" "$b_stamp" || return 1
+  fi
+  return 0
+}
+
+# backup_photos <carpeta del negocio> <prefijo del respaldo> <días de retención> <marca de tiempo>
+# Archiva la carpeta de fotos del negocio en photos-<prefijo>-<marca>.tar.enc (cifrado con BACKUP_KEY, que ya es el de ese negocio),
+# lo comprueba y lo deja en su lugar. Las fotos casi nunca cambian: si nada es más nuevo que el último archivo, no se repite. La
+# retención nunca borra el archivo más reciente aunque sea viejo (es el único que hay si las fotos no han cambiado).
+backup_photos() {
+  p_folder="$1"
+  p_prefix="$2"
+  p_days="$3"
+  p_stamp="$4"
+  p_src="$PHOTOS_DIR/$p_folder"
+  [ -d "$p_src" ] || return 0
+  p_last="$(ls -1t "$BACKUP_DIR"/photos-"$p_prefix"-*.tar.enc 2> /dev/null | head -n 1)"
+  if [ -n "$p_last" ] && [ -z "$(find "$p_src" -newer "$p_last" 2> /dev/null | head -n 1)" ]; then
+    log info backup.photos_unchanged ",\"file\":\"$(basename "$p_last")\""
+    return 0
+  fi
+
+  p_final="$BACKUP_DIR/photos-$p_prefix-$p_stamp.tar.enc"
+  p_partial="$p_final.partial"
+  mkdir -p "$BACKUP_DIR"
+  if ! { tar -C "$PHOTOS_DIR" -cf - "$p_folder" \
+    | openssl enc -aes-256-cbc -pbkdf2 -iter 600000 -salt -pass env:BACKUP_KEY -out "$p_partial"; }; then
+    log error backup.photos_failed ",\"folder\":\"$p_folder\""
+    rm -f "$p_partial"
+    return 1
+  fi
+  if ! openssl enc -d -aes-256-cbc -pbkdf2 -iter 600000 -pass env:BACKUP_KEY -in "$p_partial" | tar -tf - > /dev/null; then
+    log error backup.photos_verify_failed ",\"file\":\"$(basename "$p_final")\""
+    rm -f "$p_partial"
+    return 1
+  fi
+  mv "$p_partial" "$p_final"
+  log info backup.photos_done ",\"file\":\"$(basename "$p_final")\",\"bytes\":$(wc -c < "$p_final" | tr -d ' ')"
+
+  p_deleted="$(find "$BACKUP_DIR" -maxdepth 1 -name "photos-$p_prefix-*.tar.enc" -mtime "+$p_days" ! -name "$(basename "$p_final")" -print -delete | wc -l | tr -d ' ')"
+  if [ "$p_deleted" -gt 0 ]; then
+    log info backup.photos_pruned ",\"file\":\"photos-$p_prefix\",\"deleted\":$p_deleted,\"retentionDays\":$p_days"
   fi
   return 0
 }

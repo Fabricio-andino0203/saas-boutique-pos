@@ -86,7 +86,8 @@ Contabilidad, planillas, CRM de marketing, integración bancaria. **Claude Code 
 
 ### 4.2 Catálogo (CAT)
 
-- **RF-CAT-1** Producto = prenda "madre" (nombre, marca, categoría, descripción, temporada, proveedor habitual, foto opcional).
+- **RF-CAT-1** Producto = prenda "madre" (nombre, marca, categoría, descripción, temporada, proveedor habitual, fotos opcionales).
+- **RF-CAT-11** **Fotos de productos:** hasta 6 por producto (JPG, PNG o WebP de hasta 8 MB), con orden (la primera es la principal) y, si se quiere, el color al que pertenecen. Se agregan al crear el producto, desde su ficha o en bloque desde el módulo **Fotos** (se arrastran muchas y el nombre del archivo empieza con el código del producto: `VES-001.jpg`, `VES-001_2.jpg`, `VES-001_rojo.jpg`; se muestra a quién se asigna cada una antes de subir). Se ven en la lista de productos, el inventario, el punto de venta y los selectores de prendas. El sistema las reduce (WebP en tres tamaños) y les quita los datos ocultos de la cámara. El plan del negocio puede limitar cuántas fotos tiene. Los datos (varias fotos por producto y por color, con orden) quedan listos para una futura tienda en línea, que sigue fuera de alcance.
 - **RF-CAT-2** Cada producto tiene **variantes** por talla y color; cada variante tiene su **SKU único**, **código de barras** y puede tener precio/costo propio (si no, hereda del producto).
 - **RF-CAT-3** **Generador de variantes:** el usuario marca tallas (S, M, L…) y colores y el sistema genera la matriz talla × color con SKU y barras automáticos, y pide la cantidad inicial por celda.
 - **RF-CAT-4** Categorías jerárquicas (p. ej. Mujer › Vestidos), marcas, temporadas/colecciones (editables por el usuario).

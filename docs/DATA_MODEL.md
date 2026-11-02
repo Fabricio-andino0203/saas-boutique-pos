@@ -114,8 +114,22 @@ Numeración correlativa interna sin saltos (ticket, devolución, apartado…). `
 | basePriceCents | precio público (con ISV incluido si así se configura) |
 | baseCostCents | costo de referencia |
 | taxCategory | enum `STANDARD, EXEMPT` (para ISV) |
-| imageUrl? | |
+| imageUrl? | **En desuso:** las fotos viven en `ProductImage`; nada lee ni escribe este campo |
 | archivedAt? | |
+
+### ProductImage (foto de un producto)
+| Campo | Notas |
+|---|---|
+| id | lo genera el servidor (`ph…`); es también la carpeta de sus archivos |
+| productId | |
+| colorId? | si la foto es de un color del producto (debe ser uno de los que tiene en sus variantes); `null` = foto general |
+| position | 0, 1, 2… sin huecos por producto; la 0 es la foto principal. Las altas, bajas y reordenamientos mantienen la secuencia bajo un candado por producto |
+| width, height | de la versión grande, ya orientada |
+| bytes | suma de las tres versiones (mide el espacio que usa el negocio) |
+| originalName? | solo para mostrar; nunca ubica nada |
+| createdAt | |
+
+Los archivos **no están en la base**: viven en el almacén de archivos (`UPLOADS_DIR`) en `<negocio>/<producto>/<foto>/{thumb,medium,large}.webp`, una dirección que sale de los ids y no se guarda. Tope: 6 fotos por producto y el límite `photos` del plan (sin tope por omisión).
 
 ### Variant (la unidad que se vende y se cuenta)
 | Campo | Notas |
