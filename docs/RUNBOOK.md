@@ -784,11 +784,19 @@ Trampas que ya se pisaron: **`redeploy` no aplica la configuración nueva** (vue
 
 ### Dominio
 
-Mientras se use la dirección gratuita de Railway (`*.up.railway.app`) **solo existe el panel de la plataforma**: Railway no da subdominios comodín sobre sus direcciones, y cada negocio necesita el suyo (`tienda.tudominio.com`). Para atender negocios hace falta un dominio propio:
+La instalación usa `andino-software.cloud` (comprado en Hostinger; el DNS se maneja en su panel, Dominios → DNS / Servidores de nombres → Registros DNS). El panel de la plataforma está en `https://admin.andino-software.cloud` y cada negocio en `https://<subdominio>.andino-software.cloud`.
 
-1. Railway → `app` → Settings → Networking → Custom Domain: agrega `admin.tudominio.com` y `*.tudominio.com` (un comodín cuenta como un dominio). Railway da dos registros CNAME y un TXT para el DNS.
-2. Variables de `app`: `PLATFORM_HOST=admin.tudominio.com`, `TENANT_BASE_DOMAIN=tudominio.com`, `APP_URL=https://admin.tudominio.com`.
-3. Las tareas heredan esos valores por referencia; basta reiniciarlas.
+En Railway el servicio `app` tiene **un solo dominio personalizado comodín**, `*.andino-software.cloud`, que sirve al panel y a todos los negocios (un comodín cuenta como un dominio) y trae su certificado. Railway pide tres registros, que se pegan en el DNS (los valores salen de `generate-domain` / Networking del servicio):
+
+| Tipo | Nombre | Apunta a |
+| --- | --- | --- |
+| CNAME | `*` | `<código>.up.railway.app` (el tráfico) |
+| CNAME | `_acme-challenge` | `<código>.authorize.railwaydns.net` (emitir el certificado) |
+| TXT | `_railway-verify` | `railway-verify=<valor>` (que el dominio es tuyo) |
+
+Con esos tres, el certificado pasa de *validando* a *válido* en unos minutos. Variables de `app`: `PLATFORM_HOST=admin.andino-software.cloud`, `TENANT_BASE_DOMAIN=andino-software.cloud`, `APP_URL=https://admin.andino-software.cloud`. **Ojo con el orden**: se cambian las variables solo cuando el certificado ya es válido, porque desde ese momento la dirección vieja (`*.up.railway.app`) deja de ser el panel y responde 404. Si el DNS está en Cloudflare, los registros van en «solo DNS» (nube gris). Las pantallas de Hostinger se ven traducidas por el navegador (`_acme-desafío`): lo guardado es el nombre en inglés.
+
+Para **otro dominio** (por ejemplo, el de un cliente) se repite lo mismo con ese dominio; hace falta la función de dominio propio por negocio, que **no está construida** (cada negocio vive hoy bajo `TENANT_BASE_DOMAIN`).
 
 ### Restaurar desde el bucket de respaldos
 
