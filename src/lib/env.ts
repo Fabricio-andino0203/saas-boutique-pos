@@ -52,6 +52,11 @@ const envSchema = z
     TZ: z.string().default("America/Tegucigalpa"),
     /** Intentos fallidos de inicio de sesión por IP cada 15 minutos antes de bloquear (el E2E lo sube porque comparte IP). */
     LOGIN_RATE_LIMIT_MAX: z.coerce.number().int().min(1).default(20),
+    /**
+     * Carpeta donde se guardan las fotos de los productos (una subcarpeta por negocio). En una instalación real debe ser un
+     * volumen que sobreviva a las actualizaciones (docs/RUNBOOK.md §18). Vacío = `.data/uploads` junto al proyecto (desarrollo).
+     */
+    UPLOADS_DIR: optionalText(),
 
     // ── Plataforma SaaS (docs/SAAS_PROPUESTA.md) ──
     /** `single` = una sola tienda con `DATABASE_URL` (hoy). `multi` = una base por negocio, cada uno en su subdominio. */
@@ -210,6 +215,12 @@ const envSchema = z
       problem(
         "CONTROL_DATABASE_URL",
         "CONTROL_DATABASE_URL tiene la contraseña de ejemplo: usa una propia",
+      );
+    }
+    if (!value.UPLOADS_DIR) {
+      problem(
+        "UPLOADS_DIR",
+        "En producción hace falta UPLOADS_DIR: la carpeta (un volumen persistente) donde se guardan las fotos de los productos",
       );
     }
     if (value.NODE_ENV !== "production") {

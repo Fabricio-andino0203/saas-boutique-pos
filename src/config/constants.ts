@@ -28,6 +28,13 @@ export const PLATFORM_AUTH_LIMITS = {
   maxPasswordLength: 128,
 } as const;
 
+export const PHOTO_LIMITS = {
+  /** Fotos por producto (el mensaje `PHOTO_LIMIT` de `messages.es.ts` dice este número). */
+  maxPerProduct: 6,
+  /** Fotos que el módulo masivo sube a la vez; el resto espera su turno. */
+  uploadConcurrency: 3,
+} as const;
+
 export const PRODUCT_LIMITS = {
   /** Máximo de variantes que el asistente genera de una vez (tallas × colores). */
   maxVariantsPerBatch: 200,

@@ -23,6 +23,9 @@
 # respaldos cifrados de producción (nunca al repositorio)
 /backups/
 
+# fotos subidas en desarrollo (UPLOADS_DIR por omisión)
+/.data/
+
 # misc
 .DS_Store
 *.pem

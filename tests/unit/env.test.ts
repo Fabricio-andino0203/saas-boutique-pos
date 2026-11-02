@@ -165,10 +165,22 @@ describe("parseEnv with DEPLOYMENT=production", () => {
     DATABASE_URL: "postgresql://boutique:Xk29sLq8vTn4@db:5432/boutique_pos?schema=public",
     AUTH_SECRET: "Zr7mQ2xVb9TnW4kP8sLd1HgF6jYc3EaU5oIt0NqRw",
     APP_URL: "https://tienda.mi-boutique.hn",
+    UPLOADS_DIR: "/data/uploads",
   };
 
   it("accepts a real configuration", () => {
     expect(parseEnv(production).DEPLOYMENT).toBe("production");
+  });
+
+  it("requires a folder for the product photos: without a persistent one they would vanish on every update", () => {
+    expect(() => parseEnv({ ...production, UPLOADS_DIR: undefined })).toThrow(
+      /hace falta UPLOADS_DIR/,
+    );
+    expect(() => parseEnv({ ...production, UPLOADS_DIR: "  " })).toThrow(/hace falta UPLOADS_DIR/);
+  });
+
+  it("does not ask for it in a local installation, where the photos go next to the project", () => {
+    expect(parseEnv({ ...validSource }).UPLOADS_DIR).toBeUndefined();
   });
 
   it.each([

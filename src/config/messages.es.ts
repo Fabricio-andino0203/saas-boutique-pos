@@ -2393,6 +2393,11 @@ export const messages = {
       "Esa función no está incluida en tu plan. Pídele a quien administra tu servicio que lo cambie.",
     PLAN_LIMIT:
       "Tu plan no permite agregar más de esto. Pídele a quien administra tu servicio que lo cambie.",
+    // Los números de estos tres mensajes son los de PHOTO_LIMITS (config/constants.ts) y PHOTO_MAX_BYTES (lib/images.ts).
+    INVALID_IMAGE:
+      "Ese archivo no se pudo usar como foto. Sube una imagen JPG, PNG o WebP que no esté dañada.",
+    IMAGE_TOO_LARGE: "La foto pesa más de 8 MB. Sube una más liviana o redúcela antes.",
+    PHOTO_LIMIT: "Este producto ya tiene 6 fotos, que es lo máximo. Quita una para agregar otra.",
     INSUFFICIENT_CASH:
       "No hay tanto efectivo en la caja. Revisa el monto: el efectivo esperado no puede quedar en negativo.",
     FISCAL_RANGE_EXHAUSTED: "El rango de facturas se agotó o ya venció. Solicita uno nuevo al SAR.",

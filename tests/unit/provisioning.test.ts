@@ -189,6 +189,7 @@ describe("the provisioning variables", () => {
       DATABASE_URL: "postgresql://boutique:Xk29sLq8vTn4@db:5432/boutique_pos?schema=public",
       AUTH_SECRET: "Zr7mQ2xVb9TnW4kP8sLd1HgF6jYc3EaU5oIt0NqRw",
       APP_URL: "https://admin.mi-plataforma.hn",
+      UPLOADS_DIR: "/data/uploads",
       TENANCY_MODE: "multi",
       PLATFORM_HOST: "admin.mi-plataforma.hn",
       TENANT_BASE_DOMAIN: "mi-plataforma.hn",

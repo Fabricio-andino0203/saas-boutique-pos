@@ -41,6 +41,9 @@ export const APP_ERROR_CODES = [
   "READ_ONLY",
   "FEATURE_NOT_INCLUDED",
   "PLAN_LIMIT",
+  "INVALID_IMAGE",
+  "IMAGE_TOO_LARGE",
+  "PHOTO_LIMIT",
 ] as const;
 
 export type ErrorCode = (typeof APP_ERROR_CODES)[number];
@@ -333,6 +336,29 @@ export class LayawayDepositError extends AppError {
 export class PhoneTakenError extends AppError {
   constructor(message = "A customer with that phone already exists", options?: AppErrorOptions) {
     super("PHONE_TAKEN", 409, message, options);
+  }
+}
+
+/** El archivo no es una foto que se pueda usar (no es JPG/PNG/WebP, está dañado o tiene demasiados píxeles). */
+export class InvalidImageError extends AppError {
+  constructor(message = "The file is not a usable image", options?: AppErrorOptions) {
+    super("INVALID_IMAGE", 422, message, options);
+  }
+}
+
+export class ImageTooLargeError extends AppError {
+  constructor(message = "The image file is too large", options?: AppErrorOptions) {
+    super("IMAGE_TOO_LARGE", 413, message, options);
+  }
+}
+
+/** El producto ya tiene todas las fotos que se permiten. */
+export class PhotoLimitError extends AppError {
+  constructor(
+    message = "The product already has the maximum number of photos",
+    options?: AppErrorOptions,
+  ) {
+    super("PHOTO_LIMIT", 409, message, options);
   }
 }
 
