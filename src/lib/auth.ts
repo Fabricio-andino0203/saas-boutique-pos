@@ -25,12 +25,33 @@ export const getSession = cache(async (): Promise<ActiveSession | null> => {
   return findSession(token);
 });
 
-export async function requireSession(): Promise<ActiveSession> {
+/** Adónde se manda a quien entró con una contraseña temporal: nada más funciona hasta que la cambie. */
+export const CHANGE_PASSWORD_PATH = "/cambiar-contrasena";
+
+/**
+ * Exige una sesión. Si la contraseña de esa cuenta es temporal (la puso otra persona), manda a cambiarla: **ninguna** pantalla ni
+ * acción del sistema se puede usar con ella. Solo la pantalla de cambiar la contraseña la acepta (`allowPasswordChange`).
+ */
+export async function requireSession(
+  options: { allowPasswordChange?: boolean } = {},
+): Promise<ActiveSession> {
   const session = await getSession();
   if (!session) {
     redirect("/login");
   }
+  if (session.mustChangePassword && !options.allowPasswordChange) {
+    redirect(CHANGE_PASSWORD_PATH);
+  }
   return session;
+}
+
+/**
+ * Para rutas que no pueden redirigir (descargas): la sesión, solo si ya puede usar el sistema. Con una contraseña temporal
+ * pendiente devuelve `null`, igual que sin sesión.
+ */
+export async function getUsableSession(): Promise<ActiveSession | null> {
+  const session = await getSession();
+  return session && !session.mustChangePassword ? session : null;
 }
 
 /**

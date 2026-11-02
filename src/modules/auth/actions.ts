@@ -6,7 +6,13 @@ import { redirect } from "next/navigation";
 import { messages } from "@/config/messages.es";
 import { toActionResult } from "@/lib/action-result";
 import { clientIpFrom } from "@/lib/client-ip";
-import { clearSession, requireSession, requireUserCapability, setSessionCookie } from "@/lib/auth";
+import {
+  CHANGE_PASSWORD_PATH,
+  clearSession,
+  requireSession,
+  requireUserCapability,
+  setSessionCookie,
+} from "@/lib/auth";
 import { safeNextPath } from "@/lib/session-cookie";
 import { changePasswordSchema, loginSchema, type FormState } from "@/modules/auth/schemas";
 import {
@@ -52,7 +58,10 @@ export async function loginAction(_previous: FormState, formData: FormData): Pro
   }
 
   await setSessionCookie(result.data.token, result.data.expires);
-  redirect(safeNextPath(formData.get("next")));
+  // Una contraseña temporal (la puso otra persona) se cambia antes de hacer cualquier otra cosa.
+  redirect(
+    result.data.mustChangePassword ? CHANGE_PASSWORD_PATH : safeNextPath(formData.get("next")),
+  );
 }
 
 export async function logoutAction(): Promise<void> {
@@ -73,7 +82,7 @@ export async function changePasswordAction(
     return { error: parsed.error.issues[0]?.message ?? messages.errors.VALIDATION };
   }
 
-  const session = await requireSession();
+  const session = await requireSession({ allowPasswordChange: true });
   const result = await toActionResult(
     () =>
       changePassword({
@@ -86,6 +95,9 @@ export async function changePasswordAction(
   );
   if (!result.ok) {
     return { error: result.error.message };
+  }
+  if (session.mustChangePassword) {
+    redirect("/");
   }
   return { success: messages.auth.account.success };
 }

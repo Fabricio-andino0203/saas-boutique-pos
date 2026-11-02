@@ -41,8 +41,19 @@ import type { AdminContext } from "@/modules/platform/service";
 
 const RELINKABLE: TenantStatus[] = ["ACTIVE", "SUSPENDED", "PENDING_DELETION", "MIGRATION_FAILED"];
 
-/** `t_<id>` con un rol del mismo nombre: lo creó el alta automática. El negocio #1 usa la cuenta principal y no se toca. */
-export function hasManagedRole(tenant: { dbName: string | null; dbRole: string | null }): boolean {
+/**
+ * El sistema administra el rol del negocio: o es `t_<id>` con una base del mismo nombre (lo creó el alta automática), o es el rol
+ * `t_<id>` que se le dio a la tienda adoptada (`pnpm tenants:limit-store`). La tienda #1 que sigue con la cuenta principal del
+ * servidor no entra aquí: su rol no se toca.
+ */
+export function hasManagedRole(tenant: {
+  id?: string;
+  dbName: string | null;
+  dbRole: string | null;
+}): boolean {
+  if (tenant.id && tenant.dbRole === `t_${tenant.id}`) {
+    return true;
+  }
   return Boolean(
     tenant.dbName && /^t_[a-z0-9]+$/.test(tenant.dbName) && tenant.dbRole === tenant.dbName,
   );
@@ -51,7 +62,7 @@ export function hasManagedRole(tenant: { dbName: string | null; dbRole: string |
 export type RelinkReport = {
   slug: string;
   database: string;
-  /** `false` en el negocio #1, que se conecta con la cuenta principal del servidor. */
+  /** `false` en la tienda #1 que sigue conectándose con la cuenta principal del servidor. */
   roleManaged: boolean;
   schemaFrom: string | null;
   schemaTo: string;

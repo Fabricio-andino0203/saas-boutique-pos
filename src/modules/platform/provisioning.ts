@@ -299,8 +299,9 @@ const STEPS: Record<ProvisionStepName, (context: StepContext) => Promise<void>> 
         run.secretEnc,
         vaultContext.tenantOwnerPassword(run.tenant.id),
       );
+      // La contraseña la puso el equipo de la plataforma: el propietario la cambia en su primer ingreso.
       await createFirstOwner(
-        { name: run.ownerName, username: run.ownerUsername, password },
+        { name: run.ownerName, username: run.ownerUsername, password, mustChangePassword: true },
         client,
       );
     });

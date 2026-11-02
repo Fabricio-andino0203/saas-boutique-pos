@@ -95,7 +95,7 @@ function ResetPasswordForm({ userId }: { userId: string }) {
   const copy = messages.users.resetPassword;
   return (
     <form action={formAction} className="space-y-4">
-      <FormField label={copy.label} htmlFor="newPassword">
+      <FormField label={copy.label} htmlFor="newPassword" hint={messages.users.form.resetHint}>
         <Input
           id="newPassword"
           name="newPassword"

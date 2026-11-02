@@ -30,6 +30,7 @@ export const ALERT_CODES = [
   "near_limit",
   "retired_databases",
   "support_open",
+  "store_unrestricted",
 ] as const;
 export type AlertCode = (typeof ALERT_CODES)[number];
 
@@ -46,6 +47,9 @@ export type PlatformAlert = {
 };
 
 const SEVERITY_ORDER: Record<AlertSeverity, number> = { critical: 0, warning: 1, info: 2 };
+
+/** Los roles que crea el sistema para un negocio se llaman `t_…`; cualquier otro nombre es una cuenta del servidor (la principal). */
+const MANAGED_ROLE = /^t_[a-z0-9_]+$/;
 
 /** Un respaldo pedido que lleva más de esto sin que el servicio de respaldos lo tome: ese servicio no está corriendo. */
 export const STALLED_AFTER_MS = 10 * 60 * 1000;
@@ -147,6 +151,24 @@ export async function collectAlerts(deps: AlertsDeps = {}): Promise<PlatformAler
       }
     } catch {
       // Sin acceso al servidor de bases no hay conciliación; las demás alertas siguen valiendo.
+    }
+  }
+
+  // Un negocio que atiende con la cuenta principal del servidor en vez de su propio rol limitado (la tienda adoptada).
+  const serving = await client.tenant.findMany({
+    where: { status: { in: ["ACTIVE", "SUSPENDED"] }, dbRole: { not: null } },
+    orderBy: { createdAt: "asc" },
+    select: { id: true, slug: true, name: true, dbRole: true },
+  });
+  for (const tenant of serving) {
+    if (!MANAGED_ROLE.test(tenant.dbRole ?? "")) {
+      alerts.push({
+        code: "store_unrestricted",
+        severity: "info",
+        slug: tenant.slug,
+        name: tenant.name,
+        detail: tenant.slug,
+      });
     }
   }
 

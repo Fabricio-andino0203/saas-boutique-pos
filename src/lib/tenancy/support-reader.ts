@@ -247,7 +247,8 @@ export async function supportResetPassword(
     await client.$transaction(async (tx) => {
       await tx.user.update({
         where: { id: user.id },
-        data: { passwordHash, failedLogins: 0, lockedUntil: null },
+        // Contraseña temporal: la persona elige una propia en cuanto entra.
+        data: { passwordHash, failedLogins: 0, lockedUntil: null, mustChangePassword: true },
       });
       await tx.session.deleteMany({ where: { userId: user.id } });
       await tx.auditLog.create({

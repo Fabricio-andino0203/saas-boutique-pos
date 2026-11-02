@@ -202,7 +202,8 @@ export async function resetPassword(
     }
     await tx.user.update({
       where: { id },
-      data: { passwordHash, failedLogins: 0, lockedUntil: null },
+      // La contraseña la puso quien restablece: la persona elige una propia al entrar.
+      data: { passwordHash, failedLogins: 0, lockedUntil: null, mustChangePassword: true },
     });
     await tx.session.deleteMany({ where: { userId: id } });
     await audit.log(tx, {

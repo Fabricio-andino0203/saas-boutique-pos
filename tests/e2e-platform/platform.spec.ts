@@ -106,7 +106,35 @@ test.describe.serial("recorrido completo del superadministrador", () => {
   const newSlug = `panel-${suffix}`;
   const newName = `Boutique del panel ${suffix}`;
   const newOwnerPassword = "Temporal-del-panel-2026";
+  // La que elige la propietaria en su primer ingreso (la temporal solo sirve para eso).
+  const ownerOwnPassword = "Clave-propia-de-Rosa-2026";
   const newTenantUrl = `http://${newSlug}.localhost:${PLATFORM_E2E_PORT}`;
+
+  /** Entra con una contraseña temporal: lo único que deja hacer es elegir una propia; después ya está en el inicio. */
+  async function signInAndChooseOwnPassword(
+    ownerPage: Page,
+    temporary: string,
+    own: string,
+  ): Promise<void> {
+    const forced = messages.auth.account.forced;
+    await ownerPage.goto(`${newTenantUrl}/login`);
+    await ownerPage.getByLabel(messages.auth.login.username).fill("rosa");
+    await ownerPage.getByLabel(messages.auth.login.password).fill(temporary);
+    await ownerPage.getByRole("button", { name: messages.auth.login.submit }).click();
+    await expect(ownerPage.getByRole("heading", { level: 1, name: forced.title })).toBeVisible();
+    // Con la contraseña temporal no se puede usar nada más: ni el inicio ni las demás pantallas.
+    await ownerPage.goto(`${newTenantUrl}/productos`);
+    await expect(ownerPage).toHaveURL(/\/cambiar-contrasena$/);
+    await ownerPage.goto(`${newTenantUrl}/`);
+    await expect(ownerPage).toHaveURL(/\/cambiar-contrasena$/);
+    await ownerPage.getByLabel(forced.currentPassword, { exact: true }).fill(temporary);
+    await ownerPage.getByLabel(messages.auth.account.newPassword, { exact: true }).fill(own);
+    await ownerPage.getByLabel(messages.auth.account.confirmPassword, { exact: true }).fill(own);
+    await ownerPage.getByRole("button", { name: forced.submit }).click();
+    await expect(
+      ownerPage.getByRole("heading", { level: 1, name: messages.home.title }),
+    ).toBeVisible();
+  }
   const detailHeading = (page: Page) => page.getByRole("heading", { level: 1, name: newName });
 
   test("alta de un negocio desde el panel: se crea con su base, queda activo y su propietario puede entrar", async ({
@@ -150,13 +178,7 @@ test.describe.serial("recorrido completo del superadministrador", () => {
     // El propietario entra a su dirección con la contraseña temporal (otra pestaña: no se pierde la sesión del panel).
     const ownerPage = await browser.newPage();
     try {
-      await ownerPage.goto(`${newTenantUrl}/login`);
-      await ownerPage.getByLabel(messages.auth.login.username).fill("rosa");
-      await ownerPage.getByLabel(messages.auth.login.password).fill(newOwnerPassword);
-      await ownerPage.getByRole("button", { name: messages.auth.login.submit }).click();
-      await expect(
-        ownerPage.getByRole("heading", { level: 1, name: messages.home.title }),
-      ).toBeVisible();
+      await signInAndChooseOwnPassword(ownerPage, newOwnerPassword, ownerOwnPassword);
     } finally {
       await ownerPage.close();
     }
@@ -288,7 +310,7 @@ test.describe.serial("recorrido completo del superadministrador", () => {
     try {
       await store.goto(`${newTenantUrl}/login`);
       await store.getByLabel(messages.auth.login.username).fill("rosa");
-      await store.getByLabel(messages.auth.login.password).fill(newOwnerPassword);
+      await store.getByLabel(messages.auth.login.password).fill(ownerOwnPassword);
       await store.getByRole("button", { name: messages.auth.login.submit }).click();
       await expect(
         store.getByRole("heading", { level: 1, name: messages.home.title }),
@@ -429,13 +451,8 @@ test.describe.serial("recorrido completo del superadministrador", () => {
 
     const ownerPage = await browser.newPage();
     try {
-      await ownerPage.goto(`${newTenantUrl}/login`);
-      await ownerPage.getByLabel(messages.auth.login.username).fill("rosa");
-      await ownerPage.getByLabel(messages.auth.login.password).fill(temporary);
-      await ownerPage.getByRole("button", { name: messages.auth.login.submit }).click();
-      await expect(
-        ownerPage.getByRole("heading", { level: 1, name: messages.home.title }),
-      ).toBeVisible();
+      // Con la temporal que dio el soporte entra, pero lo primero que debe hacer es elegir una propia.
+      await signInAndChooseOwnPassword(ownerPage, temporary, "Otra-clave-propia-2026");
     } finally {
       await ownerPage.close();
     }
@@ -484,6 +501,9 @@ test.describe.serial("recorrido completo del superadministrador", () => {
       copy.alerts.messages.backup_failed.replace("{who}", TENANTS.b.name),
     );
     await expect(attention).not.toContainText(TENANTS.a.name);
+    // Y cuántos negocios tiene abiertos esta instancia contra lo que le cabe (Etapa 6).
+    await expect(page.getByTestId("pool-card")).toContainText(copy.summary.pool.label);
+    await expect(page.getByTestId("pool-card")).toContainText(/\d+ de \d+/);
 
     // La lista de todos los negocios, con su estado.
     await page.getByRole("link", { name: copy.nav.backups }).click();

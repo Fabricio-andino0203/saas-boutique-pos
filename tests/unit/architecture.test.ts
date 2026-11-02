@@ -201,3 +201,107 @@ describe("stock writes go through inventory/service.ts only", () => {
     expect(offenders).toEqual([]);
   });
 });
+
+// Etapa 6: una cuenta con contraseña temporal no puede usar nada hasta cambiarla. `requireSession` y `getUsableSession` lo
+// aplican; `getSession` devuelve la sesión tal cual y solo la pueden usar las pantallas que justamente necesitan verla.
+const IMPORTS_RAW_SESSION = /import\s*\{[^}]*\bgetSession\b[^}]*\}\s*from\s*["']@\/lib\/auth["']/;
+const MAY_READ_RAW_SESSION = [
+  join("src", "lib", "auth.ts"),
+  join("src", "app", "(auth)", "login", "page.tsx"),
+  join("src", "app", "(auth)", "cambiar-contrasena", "page.tsx"),
+];
+
+describe("an account with a temporary password cannot use the system", () => {
+  it("the detector flags a raw getSession import, single-line or multi-line", () => {
+    expect(IMPORTS_RAW_SESSION.test('import { getSession } from "@/lib/auth";')).toBe(true);
+    expect(
+      IMPORTS_RAW_SESSION.test('import {\n  clearSession,\n  getSession,\n} from "@/lib/auth";'),
+    ).toBe(true);
+    expect(IMPORTS_RAW_SESSION.test('import { getUsableSession } from "@/lib/auth";')).toBe(false);
+    expect(IMPORTS_RAW_SESSION.test('import { requireSession } from "@/lib/auth";')).toBe(false);
+  });
+
+  it("only the sign-in and change-password screens read the raw session", () => {
+    const offenders = appFilesOutsideTenancy().filter(
+      (file) =>
+        !MAY_READ_RAW_SESSION.includes(file) &&
+        IMPORTS_RAW_SESSION.test(readFileSync(join(ROOT, file), "utf8")),
+    );
+    expect(offenders).toEqual([]);
+  });
+});
+
+// Regla 9 del proyecto (permisos y validación siempre en el servidor): cada acción del servidor revisa quién la pide. Una acción
+// que olvida su control es una puerta abierta aunque el botón esté oculto. Se acepta que la revisión esté en una función del mismo
+// archivo a la que la acción llama (p. ej. `runAsAdmin`); solo las acciones de entrada y salida son públicas a propósito.
+const AUTH_CALL =
+  /\b(require\w*|getPlatformSession|getUsableSession|runAsAdmin|asAdmin|runOperation)\s*\(/;
+const PUBLIC_ACTIONS = new Set([
+  "loginAction",
+  "logoutAction",
+  "platformLoginAction",
+  "platformVerifyCodeAction",
+  "platformEnrollAction",
+  "platformLogoutAction",
+]);
+
+type FunctionBody = { exported: boolean; body: string };
+
+function functionsOf(source: string): Map<string, FunctionBody> {
+  const hits = [...source.matchAll(/^(export )?(async )?function (\w+)/gm)];
+  return new Map(
+    hits.map((hit, index) => [
+      hit[3] as string,
+      {
+        exported: Boolean(hit[1]),
+        body: source.slice(hit.index, hits[index + 1]?.index ?? source.length),
+      },
+    ]),
+  );
+}
+
+/** Las acciones exportadas de un archivo «use server» que no revisan quién las pide (ni directo ni por una función del archivo). */
+function unguardedActions(source: string): string[] {
+  const functions = functionsOf(source);
+  const guarded = (name: string, seen = new Set<string>()): boolean => {
+    const entry = functions.get(name);
+    if (!entry || seen.has(name)) {
+      return false;
+    }
+    seen.add(name);
+    if (AUTH_CALL.test(entry.body)) {
+      return true;
+    }
+    return [...functions.keys()].some(
+      (other) =>
+        other !== name && new RegExp(`\\b${other}\\s*\\(`).test(entry.body) && guarded(other, seen),
+    );
+  };
+  return [...functions]
+    .filter(([name, entry]) => entry.exported && !PUBLIC_ACTIONS.has(name) && !guarded(name))
+    .map(([name]) => name);
+}
+
+describe("every server action checks who is asking", () => {
+  it("the detector understands direct checks, helpers and unprotected actions", () => {
+    const protectedDirect = 'export async function a() {\n  await requireUserCapability("x");\n}';
+    const viaHelper =
+      "async function run() {\n  await getPlatformSession();\n}\nexport async function b() {\n  return run();\n}";
+    const open = "export async function c() {\n  await db.user.deleteMany();\n}";
+    expect(unguardedActions(protectedDirect)).toEqual([]);
+    expect(unguardedActions(viaHelper)).toEqual([]);
+    expect(unguardedActions(open)).toEqual(["c"]);
+  });
+
+  it("no exported server action in the application is left unprotected", () => {
+    const files = walk(join(ROOT, "src"))
+      .filter((file) => /\.(ts|tsx)$/.test(file))
+      .map((file) => relative(ROOT, file))
+      .filter((file) => readFileSync(join(ROOT, file), "utf8").includes('"use server"'));
+    expect(files.length).toBeGreaterThan(15);
+    const offenders = files.flatMap((file) =>
+      unguardedActions(readFileSync(join(ROOT, file), "utf8")).map((name) => `${file}: ${name}`),
+    );
+    expect(offenders).toEqual([]);
+  });
+});

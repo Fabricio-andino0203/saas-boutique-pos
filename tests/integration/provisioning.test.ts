@@ -173,6 +173,8 @@ describe("registering a business end to end", () => {
       () => login({ username: "rosa", password: OWNER_PASSWORD, ip: "10.0.0.2" }),
     );
     expect(session.token).toBeTruthy();
+    // La contraseña la puso el equipo de la plataforma: la propietaria tiene que elegir una propia al entrar.
+    expect(session.mustChangePassword).toBe(true);
 
     // Su primer respaldo quedó pedido al activarlo, sin esperar a la noche.
     expect(

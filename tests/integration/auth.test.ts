@@ -227,6 +227,68 @@ describe("changePassword", () => {
   });
 });
 
+describe("a temporary password", () => {
+  beforeEach(async () => {
+    await resetDatabase();
+  });
+
+  async function createTemporaryUser() {
+    return testDb.user.create({
+      data: {
+        name: "Dueña nueva",
+        username: "duena",
+        passwordHash: await hashSecret(PASSWORD),
+        role: "OWNER",
+        mustChangePassword: true,
+      },
+    });
+  }
+
+  it("is reported by the login and by the session, so the system can send her to change it", async () => {
+    await createTemporaryUser();
+    const result = await login({ username: "duena", password: PASSWORD }, testDb);
+    expect(result.mustChangePassword).toBe(true);
+    const session = await findSession(result.token, testDb);
+    expect(session?.mustChangePassword).toBe(true);
+  });
+
+  it("is not reported for an ordinary account", async () => {
+    await createUser();
+    const result = await login({ username: "cajera", password: PASSWORD }, testDb);
+    expect(result.mustChangePassword).toBe(false);
+    expect((await findSession(result.token, testDb))?.mustChangePassword).toBe(false);
+  });
+
+  it("stops being temporary once she chooses her own", async () => {
+    const user = await createTemporaryUser();
+    const first = await login({ username: "duena", password: PASSWORD }, testDb);
+    const active = await findSession(first.token, testDb);
+
+    await changePassword(
+      {
+        userId: user.id,
+        currentPassword: PASSWORD,
+        newPassword: "Mi-Propia-Clave-2026",
+        keepSessionId: active?.sessionId,
+      },
+      testDb,
+    );
+
+    expect((await findSession(first.token, testDb))?.mustChangePassword).toBe(false);
+    const next = await login({ username: "duena", password: "Mi-Propia-Clave-2026" }, testDb);
+    expect(next.mustChangePassword).toBe(false);
+  });
+
+  it("cannot be 'changed' to the same password", async () => {
+    const user = await createTemporaryUser();
+    await expect(
+      changePassword({ userId: user.id, currentPassword: PASSWORD, newPassword: PASSWORD }, testDb),
+    ).rejects.toBeInstanceOf(ValidationError);
+    const still = await testDb.user.findUniqueOrThrow({ where: { id: user.id } });
+    expect(still.mustChangePassword).toBe(true);
+  });
+});
+
 describe("quick PIN", () => {
   beforeEach(async () => {
     await resetDatabase();

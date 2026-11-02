@@ -1,4 +1,4 @@
-import { getSession } from "@/lib/auth";
+import { getUsableSession } from "@/lib/auth";
 import { hasCapability } from "@/lib/permissions";
 import { buildTemplateCsv, buildTemplateXlsx } from "@/modules/products/import/template";
 
@@ -6,7 +6,7 @@ const FILE_NAME = "plantilla-productos";
 
 /** Descarga la plantilla de importación (Excel o CSV). Sin permiso responde como si no existiera. */
 export async function GET(request: Request): Promise<Response> {
-  const session = await getSession();
+  const session = await getUsableSession();
   if (!session || !hasCapability(session.user.role, "product.write")) {
     return new Response(null, { status: 404 });
   }

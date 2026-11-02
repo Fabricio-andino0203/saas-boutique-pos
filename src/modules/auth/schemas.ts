@@ -22,6 +22,10 @@ export const changePasswordSchema = z
   .refine((value) => value.newPassword === value.confirmPassword, {
     message: messages.auth.validation.passwordMismatch,
     path: ["confirmPassword"],
+  })
+  .refine((value) => value.newPassword !== value.currentPassword, {
+    message: messages.auth.validation.passwordSame,
+    path: ["newPassword"],
   });
 
 export const pinSchema = z.string().regex(/^\d{4,6}$/, messages.auth.validation.pinFormat);

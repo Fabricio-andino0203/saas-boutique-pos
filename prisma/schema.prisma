@@ -147,6 +147,8 @@ model User {
   failedLogins Int       @default(0)
   lockedUntil  DateTime?
   lastLoginAt  DateTime?
+  /// La contraseña la puso otra persona (alta del propietario, soporte, un gerente): hay que cambiarla al entrar.
+  mustChangePassword Boolean @default(false)
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 

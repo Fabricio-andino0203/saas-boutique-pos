@@ -355,6 +355,8 @@ describe("the two corrections support can make", () => {
       login({ username: "rosa", password: temporaryPassword, ip: "10.0.0.9" }),
     );
     expect(session.token).toBeTruthy();
+    // Es temporal: apenas entre, la persona tiene que elegir una propia.
+    expect(session.mustChangePassword).toBe(true);
     await expect(
       runWithTenant(ref, () =>
         login({ username: "rosa", password: OWNER_PASSWORD, ip: "10.0.0.9" }),

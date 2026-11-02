@@ -58,6 +58,18 @@ describe("first run of a fresh installation", () => {
     await expect(verifyPin(id, input.pin, testDb)).resolves.toMatchObject({ id });
   });
 
+  it("asks for a new password at the first sign-in only when the one given is temporary", async () => {
+    const { id } = await createFirstOwner({ ...input, mustChangePassword: true }, testDb);
+    expect((await testDb.user.findUniqueOrThrow({ where: { id } })).mustChangePassword).toBe(true);
+    const session = await login({ username: "rosa", password: input.password }, testDb);
+    expect(session.mustChangePassword).toBe(true);
+  });
+
+  it("does not ask for it when the owner chose the password herself (the usual installation)", async () => {
+    const { id } = await createFirstOwner(input, testDb);
+    expect((await testDb.user.findUniqueOrThrow({ where: { id } })).mustChangePassword).toBe(false);
+  });
+
   it("works without a PIN", async () => {
     const { id } = await createFirstOwner({ ...input, pin: undefined }, testDb);
     expect((await testDb.user.findUniqueOrThrow({ where: { id } })).pinHash).toBeNull();

@@ -162,6 +162,8 @@ describe("users service", () => {
     expect(await verifySecret(after.passwordHash, "Clave-Nueva-2026")).toBe(true);
     expect(await verifySecret(after.passwordHash, "Clave-Inicial-2026")).toBe(false);
     expect(after).toMatchObject({ failedLogins: 0, lockedUntil: null });
+    // La contraseña la puso quien restablece: la persona elige una propia al entrar.
+    expect(after.mustChangePassword).toBe(true);
     expect(await findSession(token, testDb)).toBeNull();
     const log = await testDb.auditLog.findFirstOrThrow({ where: { action: "CREDENTIALS_RESET" } });
     expect(log.after).toEqual({ kind: "password" });

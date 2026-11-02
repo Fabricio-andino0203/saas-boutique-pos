@@ -14,7 +14,14 @@ import {
 
 import { normalize } from "./columns";
 import { buildImportPlan, type ImportContext, type ImportPlan, type NamedRef } from "./plan";
-import { fileKind, IMPORT_MAX_BYTES, readTable, type UploadedFile } from "./table";
+import {
+  fileKind,
+  IMPORT_MAX_BYTES,
+  readTable,
+  SpreadsheetTooBigError,
+  type UploadedFile,
+} from "./table";
+import { workbookVerdict } from "./zip-guard";
 
 const problems = messages.products.import.problems;
 
@@ -98,11 +105,17 @@ export async function planImport(
   if (file.size > IMPORT_MAX_BYTES) {
     return fileProblem(problems.fileTooBig);
   }
+  // Un .xlsx es un zip: se mira lo que declara ANTES de descomprimirlo (un «archivo bomba» tumbaría a todos los negocios).
+  if (fileKind(file.name) === "xlsx" && workbookVerdict(file.bytes) === "too-big") {
+    return fileProblem(problems.fileTooComplex);
+  }
   let rows: string[][];
   try {
     rows = await readTable(file);
-  } catch {
-    return fileProblem(problems.fileUnreadable);
+  } catch (error) {
+    return fileProblem(
+      error instanceof SpreadsheetTooBigError ? problems.fileTooComplex : problems.fileUnreadable,
+    );
   }
   return buildImportPlan(rows, await loadImportContext(actor, client));
 }

@@ -10,6 +10,8 @@ export type FirstOwnerInput = {
   username: string;
   password: string;
   pin?: string;
+  /** La contraseña es temporal (la puso otra persona, p. ej. el alta automática de un negocio): hay que cambiarla al entrar. */
+  mustChangePassword?: boolean;
 };
 
 function isUniqueViolation(error: unknown): boolean {
@@ -39,7 +41,14 @@ export async function createFirstOwner(
         throw new ConflictError("An active owner already exists");
       }
       const user = await tx.user.create({
-        data: { name: data.name, username: data.username, role: "OWNER", passwordHash, pinHash },
+        data: {
+          name: data.name,
+          username: data.username,
+          role: "OWNER",
+          passwordHash,
+          pinHash,
+          mustChangePassword: input.mustChangePassword === true,
+        },
         select: { id: true },
       });
       await audit.log(tx, {

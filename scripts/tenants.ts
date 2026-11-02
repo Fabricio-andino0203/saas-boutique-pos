@@ -22,6 +22,7 @@ import {
 } from "../src/modules/platform/provisioning";
 import { reconcileTenants } from "../src/modules/platform/reconcile";
 import { relinkTenant } from "../src/modules/platform/restore";
+import { limitStoreRole } from "../src/modules/platform/store-role";
 import { setTenantCanary } from "../src/modules/platform/tenants";
 import { flagValue, hasFlag, UsageError } from "./lib/tenant-run";
 
@@ -39,6 +40,7 @@ import { flagValue, hasFlag, UsageError } from "./lib/tenant-run";
  *                                                   Lleva la base de cada negocio a la última versión (los canarios primero).
  *   pnpm tenants:canary <slug> on|off               Marca un negocio como canario: se migra primero y, si falla, detiene al resto.
  *   pnpm tenants:reconcile                          Compara lo registrado con lo que hay en el servidor.
+ *   pnpm tenants:limit-store <slug>                 Le da a la tienda adoptada (#1) su propio rol limitado en vez de la cuenta principal del servidor.
  *   pnpm tenants:delete <slug> --reason "<motivo>"  Pide la baja: deja de atender y empieza la retención.
  *   pnpm tenants:cancel-delete <slug>               Cancela una baja pendiente.
  *   pnpm tenants:archive <slug> --confirm <slug> [--early]
@@ -247,6 +249,21 @@ async function main(): Promise<void> {
       console.log(`Falta revisar los libros:  pnpm db:verify --tenant ${report.slug}`);
       return;
     }
+    case "limit-store": {
+      const report = await limitStoreRole(requireArgument(argument, "limit-store"), context);
+      console.log(
+        report.alreadyLimited
+          ? `"${report.slug}" ya atendía con su rol ${report.role}; se volvieron a aplicar sus permisos.`
+          : `Listo: "${report.slug}" ahora atiende con el rol ${report.role} (solo datos, solo su base).`,
+      );
+      console.log(
+        `Entró con el rol nuevo y vio ${report.usersVisible} usuario(s). La cuenta principal sigue existiendo para las migraciones, los respaldos y la verificación.`,
+      );
+      console.log(
+        "La aplicación toma el cambio en menos de 20 segundos; no hace falta reiniciarla.",
+      );
+      return;
+    }
     case "delete": {
       const { deleteAfter } = await requestTenantDeletion(
         { slug: requireArgument(argument, "delete"), reason: required("reason") },
@@ -278,7 +295,7 @@ async function main(): Promise<void> {
     }
     default:
       throw new UsageError(
-        "Uso: pnpm tenants:template | provision | resume <s> | undo <s> | migrate | canary <s> on|off | reconcile | relink <s> | delete <s> | cancel-delete <s> | archive <s>",
+        "Uso: pnpm tenants:template | provision | resume <s> | undo <s> | migrate | canary <s> on|off | reconcile | relink <s> | limit-store <s> | delete <s> | cancel-delete <s> | archive <s>",
       );
   }
 }

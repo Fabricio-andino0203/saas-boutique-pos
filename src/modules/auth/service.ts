@@ -15,7 +15,8 @@ import { generateSessionToken, hashSessionToken } from "@/modules/auth/token";
 export type AuthDb = Pick<PrismaClient, "user" | "session">;
 
 export type SessionUser = { id: string; name: string; username: string; role: Role };
-export type ActiveSession = { sessionId: string; user: SessionUser };
+/** `mustChangePassword`: la contraseña es temporal; hasta cambiarla no se puede usar nada más (ver `requireSession`). */
+export type ActiveSession = { sessionId: string; user: SessionUser; mustChangePassword: boolean };
 
 const MINUTE_MS = 60_000;
 const HOUR_MS = 60 * MINUTE_MS;
@@ -77,7 +78,12 @@ export type LoginInput = {
   now?: Date;
 };
 
-export type LoginResult = { token: string; expires: Date; user: SessionUser };
+export type LoginResult = {
+  token: string;
+  expires: Date;
+  user: SessionUser;
+  mustChangePassword: boolean;
+};
 
 export async function login(input: LoginInput, client: AuthDb = db): Promise<LoginResult> {
   const now = input.now ?? new Date();
@@ -109,6 +115,7 @@ export async function login(input: LoginInput, client: AuthDb = db): Promise<Log
     token,
     expires,
     user: { id: user.id, name: user.name, username: user.username, role: user.role },
+    mustChangePassword: user.mustChangePassword,
   };
 }
 
@@ -140,6 +147,7 @@ export async function findSession(
   return {
     sessionId: session.id,
     user: { id: user.id, name: user.name, username: user.username, role: user.role },
+    mustChangePassword: user.mustChangePassword,
   };
 }
 
@@ -177,10 +185,13 @@ export async function changePassword(
   }
 
   await checkSecret(user, user.passwordHash, input.currentPassword, now, client);
+  if (input.newPassword === input.currentPassword) {
+    throw new ValidationError("The new password must be different from the current one");
+  }
 
   await client.user.update({
     where: { id: user.id },
-    data: { passwordHash: await hashSecret(input.newPassword) },
+    data: { passwordHash: await hashSecret(input.newPassword), mustChangePassword: false },
   });
   await revokeUserSessions(user.id, input.keepSessionId, client);
 }
@@ -258,5 +269,6 @@ export async function switchUserWithPin(
     token,
     expires,
     user: { id: user.id, name: user.name, username: user.username, role: user.role },
+    mustChangePassword: user.mustChangePassword,
   };
 }

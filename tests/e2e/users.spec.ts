@@ -72,3 +72,67 @@ test("the audit filters narrow the list and an empty result is explained", async
   await page.goto("/auditoria?entityType=NoExisteEstaEntidad");
   await expect(page.getByText(messages.audit.empty.title)).toBeVisible();
 });
+
+test("a password set by someone else is temporary: the person must choose her own before using anything", async ({
+  page,
+}) => {
+  const stamp = Date.now();
+  const fullName = `Persona temporal ${stamp}`;
+  const username = `temporal-${stamp}`;
+  const temporary = "Temporal-E2E-2026";
+  const own = "Clave-Propia-E2E-2026";
+  const forced = messages.auth.account.forced;
+
+  // La dueña crea a la persona y le restablece la contraseña.
+  await loginAs(page, "owner");
+  await page.goto("/usuarios/nuevo");
+  await page.getByLabel(messages.users.form.name).fill(fullName);
+  await page.getByLabel(messages.users.form.username, { exact: true }).fill(username);
+  await page.getByLabel(messages.users.form.password).fill("Clave-Inicial-E2E-2026");
+  await page.getByRole("button", { name: messages.users.form.create }).click();
+  await expect(page).toHaveURL(/\/usuarios$/);
+  const row = page.getByRole("row").filter({ hasText: fullName });
+  await row.getByRole("link", { name: messages.users.edit }).click();
+  await page.getByLabel(messages.users.resetPassword.label).fill(temporary);
+  await page.getByRole("button", { name: messages.users.resetPassword.submit }).click();
+  await expect(page.getByText(messages.users.resetPassword.done)).toBeVisible();
+  await page.getByRole("button", { name: messages.auth.logout }).click();
+  await expect(page).toHaveURL(/\/login$/);
+  await expect(
+    page.getByRole("heading", { level: 1, name: messages.auth.login.title }),
+  ).toBeVisible();
+
+  // Entra con la temporal: solo puede elegir una propia. Ninguna otra pantalla se abre.
+  await page.getByLabel(messages.auth.login.username).fill(username);
+  await page.getByLabel(messages.auth.login.password, { exact: true }).fill(temporary);
+  await page.getByRole("button", { name: messages.auth.login.submit }).click();
+  await expect(page.getByRole("heading", { level: 1, name: forced.title })).toBeVisible();
+  for (const path of ["/", "/productos", "/ventas", "/cuenta"]) {
+    await page.goto(path);
+    await expect(page).toHaveURL(/\/cambiar-contrasena$/);
+  }
+
+  // La misma contraseña no vale; una propia, sí.
+  await page.getByLabel(forced.currentPassword, { exact: true }).fill(temporary);
+  await page.getByLabel(messages.auth.account.newPassword, { exact: true }).fill(temporary);
+  await page.getByLabel(messages.auth.account.confirmPassword, { exact: true }).fill(temporary);
+  await page.getByRole("button", { name: forced.submit }).click();
+  await expect(page.getByText(messages.auth.validation.passwordSame)).toBeVisible();
+
+  // El formulario se vacía después de cada envío: se llenan los tres campos otra vez.
+  await page.getByLabel(forced.currentPassword, { exact: true }).fill(temporary);
+  await page.getByLabel(messages.auth.account.newPassword, { exact: true }).fill(own);
+  await page.getByLabel(messages.auth.account.confirmPassword, { exact: true }).fill(own);
+  await page.getByRole("button", { name: forced.submit }).click();
+  await expect(page.getByRole("heading", { level: 1, name: messages.home.title })).toBeVisible();
+
+  // Ya no es temporal: sale, vuelve a entrar con la suya y no se le vuelve a pedir nada.
+  await page.getByRole("button", { name: messages.auth.logout }).click();
+  await expect(
+    page.getByRole("heading", { level: 1, name: messages.auth.login.title }),
+  ).toBeVisible();
+  await page.getByLabel(messages.auth.login.username).fill(username);
+  await page.getByLabel(messages.auth.login.password, { exact: true }).fill(own);
+  await page.getByRole("button", { name: messages.auth.login.submit }).click();
+  await expect(page.getByRole("heading", { level: 1, name: messages.home.title })).toBeVisible();
+});

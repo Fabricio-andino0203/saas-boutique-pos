@@ -1,4 +1,4 @@
-import { getSession } from "@/lib/auth";
+import { getUsableSession } from "@/lib/auth";
 import {
   buildExport,
   isExportKind,
@@ -27,7 +27,7 @@ export async function GET(
   request: Request,
   context: { params: Promise<{ tipo: string }> },
 ): Promise<Response> {
-  const session = await getSession();
+  const session = await getUsableSession();
   const { tipo } = await context.params;
   if (!session || !isExportKind(tipo)) {
     return new Response(null, { status: 404 });

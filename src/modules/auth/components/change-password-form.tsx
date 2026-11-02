@@ -9,7 +9,8 @@ import { changePasswordAction } from "@/modules/auth/actions";
 
 const copy = messages.auth.account;
 
-export function ChangePasswordForm() {
+/** `forced`: se llegó aquí con una contraseña temporal; al guardar, el sistema sigue al inicio. */
+export function ChangePasswordForm({ forced = false }: { forced?: boolean }) {
   const [state, formAction, pending] = useActionState(changePasswordAction, undefined);
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -23,7 +24,7 @@ export function ChangePasswordForm() {
     <form ref={formRef} action={formAction} className="space-y-4">
       <div className="space-y-1.5">
         <label htmlFor="currentPassword" className="text-sm font-medium">
-          {copy.currentPassword}
+          {forced ? copy.forced.currentPassword : copy.currentPassword}
         </label>
         <Input
           id="currentPassword"
@@ -68,7 +69,7 @@ export function ChangePasswordForm() {
         </p>
       ) : null}
       <Button type="submit" disabled={pending}>
-        {pending ? copy.submitting : copy.submit}
+        {pending ? copy.submitting : forced ? copy.forced.submit : copy.submit}
       </Button>
     </form>
   );

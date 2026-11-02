@@ -63,3 +63,21 @@ describe("label template", () => {
     }
   });
 });
+
+describe("barcodeSvg is safe to inject as HTML", () => {
+  // La etiqueta se dibuja con `dangerouslySetInnerHTML`: si el texto del código llegara al SVG como marcado, quien pueda
+  // escribir un código de barras (almacén) ejecutaría código en el navegador de quien imprime. La biblioteca dibuja el texto legible
+  // como trazos, no como texto: esta prueba avisa si eso cambia.
+  it("never carries the characters of a hostile code into the markup", () => {
+    for (const code of [
+      "<img src=x onerror=alert(1)>",
+      '"><script>alert(1)</script>',
+      "&lt;svg/onload=x&gt;",
+    ]) {
+      const svg = barcodeSvg(code);
+      expect(svg).not.toMatch(/<(img|script|iframe|object|embed)\b/i);
+      expect(svg).not.toMatch(/\bon\w+\s*=/i);
+      expect(svg).not.toContain(code);
+    }
+  });
+});

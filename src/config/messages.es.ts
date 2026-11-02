@@ -69,11 +69,20 @@ export const messages = {
       submitting: "Guardando…",
       success: "Tu contraseña se cambió.",
       wrongCurrent: "La contraseña actual no es correcta.",
+      /** Pantalla que se muestra al entrar con una contraseña temporal (la puso otra persona). */
+      forced: {
+        title: "Elige tu contraseña",
+        description:
+          "Entraste con una contraseña temporal. Para proteger tu cuenta, escribe una propia antes de continuar.",
+        currentPassword: "Contraseña temporal",
+        submit: "Guardar y continuar",
+      },
     },
     validation: {
       required: "Escribe tu usuario y tu contraseña.",
       passwordTooShort: "La contraseña nueva debe tener al menos 8 caracteres.",
       passwordMismatch: "Las contraseñas no coinciden.",
+      passwordSame: "La contraseña nueva debe ser distinta de la actual.",
       pinFormat: "El PIN debe tener de 4 a 6 números.",
     },
   },
@@ -115,6 +124,7 @@ export const messages = {
       role: "Rol",
       password: "Contraseña inicial",
       passwordHint: "La persona podrá cambiarla en Mi cuenta.",
+      resetHint: "Al entrar con ella, la persona tendrá que elegir una propia.",
       pin: "PIN rápido (opcional)",
       pinHint: "De 4 a 6 números, para cambiar de cajero en el punto de venta.",
       create: "Crear usuario",
@@ -446,6 +456,8 @@ export const messages = {
       problems: {
         fileType: "Sube un archivo .xlsx o .csv.",
         fileTooBig: "El archivo es muy grande (máximo 5 MB).",
+        fileTooComplex:
+          "La hoja es demasiado grande: usa la plantilla (hasta 1000 filas y las columnas de la plantilla).",
         fileUnreadable: "No pudimos leer el archivo. Revisa que no esté dañado.",
         fileEmpty: "El archivo no tiene filas de productos.",
         tooManyRows: "El archivo tiene más de 1000 filas. Divídelo en partes.",

@@ -1,10 +1,20 @@
 import ExcelJS from "exceljs";
 
 import { parseCsv } from "./csv";
+import { IMPORT_MAX_ROWS } from "./plan";
+import { IMPORT_MAX_COLUMNS } from "./zip-guard";
 
 export type UploadedFile = { name: string; size: number; bytes: Uint8Array };
 
 export const IMPORT_MAX_BYTES = 5 * 1024 * 1024;
+
+/** La hoja declara más filas o columnas de las que admite la importación: se rechaza antes de recorrerla. */
+export class SpreadsheetTooBigError extends Error {
+  constructor() {
+    super("La hoja declara más filas o columnas de las admitidas");
+    this.name = "SpreadsheetTooBigError";
+  }
+}
 
 /** Texto de una celda de Excel, sea número, fórmula, texto con formato o fecha. */
 function cellText(value: ExcelJS.CellValue): string {
@@ -56,6 +66,10 @@ export async function readTable(file: UploadedFile): Promise<string[][]> {
   const sheet = workbook.worksheets[0];
   if (!sheet) {
     return [];
+  }
+  // Una hoja puede decir que llega hasta la fila 1 000 000 con un archivo diminuto: recorrerla colgaría la aplicación entera.
+  if (sheet.rowCount > IMPORT_MAX_ROWS + 100 || sheet.columnCount > IMPORT_MAX_COLUMNS) {
+    throw new SpreadsheetTooBigError();
   }
   const rows: string[][] = [];
   for (let rowNumber = 1; rowNumber <= sheet.rowCount; rowNumber += 1) {
