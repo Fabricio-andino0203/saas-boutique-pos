@@ -106,7 +106,13 @@ describe("plans", () => {
       trialDays: 14,
       isActive: true,
     });
-    expect(plan.limits).toEqual({ users: 3, products: null, terminals: null, locations: null });
+    expect(plan.limits).toEqual({
+      users: 3,
+      products: null,
+      terminals: null,
+      locations: null,
+      photos: null, // un plan que no lo pide no limita las fotos
+    });
     const [entry] = await audits("PLAN_CREATED");
     expect(entry).toMatchObject({ actorUsername: "admin-prueba", targetId: id });
   });
