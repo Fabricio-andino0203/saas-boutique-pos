@@ -1,8 +1,9 @@
-import type { PrismaClient } from "@/generated/prisma/client";
+import type { Prisma, PrismaClient } from "@/generated/prisma/client";
 import { db } from "@/lib/db";
-import type { ProductPhoto } from "@/modules/photos/types";
+import type { PhotoProductRow, ProductPhoto } from "@/modules/photos/types";
+import { searchProductIds } from "@/modules/products/service";
 
-export type { ProductPhoto };
+export type { PhotoProductRow, ProductPhoto };
 
 type PhotoRecord = {
   id: string;
@@ -88,4 +89,64 @@ export async function photoUsage(
     _sum: { bytes: true },
   });
   return { count: total._count._all, bytes: total._sum.bytes ?? 0 };
+}
+
+export const PHOTO_GRID_PAGE_SIZE = 24;
+
+export type PhotoProductList = {
+  rows: PhotoProductRow[];
+  total: number;
+  page: number;
+  pageSize: number;
+  /** De todos los productos activos del negocio (sin importar el filtro): cuántos ya tienen foto y cuántos hay. */
+  withPhotos: number;
+  active: number;
+};
+
+/** Los productos activos para el módulo de fotos: por omisión los que aún no tienen foto, con búsqueda por nombre o código. */
+export async function listProductsForPhotos(
+  params: { q?: string; missingOnly?: boolean; page?: number },
+  client: PrismaClient = db,
+): Promise<PhotoProductList> {
+  const page = Math.max(1, Math.trunc(params.page ?? 1));
+  const where: Prisma.ProductWhereInput = {
+    archivedAt: null,
+    ...(params.missingOnly ? { images: { none: {} } } : {}),
+  };
+  if (params.q?.trim()) {
+    where.id = { in: await searchProductIds(client, params.q) };
+  }
+
+  const [total, withPhotos, active, products] = await Promise.all([
+    client.product.count({ where }),
+    client.product.count({ where: { archivedAt: null, images: { some: {} } } }),
+    client.product.count({ where: { archivedAt: null } }),
+    client.product.findMany({
+      where,
+      orderBy: [{ name: "asc" }, { code: "asc" }],
+      skip: (page - 1) * PHOTO_GRID_PAGE_SIZE,
+      take: PHOTO_GRID_PAGE_SIZE,
+      select: {
+        id: true,
+        code: true,
+        name: true,
+        images: { orderBy: { position: "asc" }, take: 1, select: { id: true } },
+        _count: { select: { images: true } },
+      },
+    }),
+  ]);
+  return {
+    rows: products.map((product) => ({
+      id: product.id,
+      code: product.code,
+      name: product.name,
+      coverImageId: product.images[0]?.id ?? null,
+      photoCount: product._count.images,
+    })),
+    total,
+    page,
+    pageSize: PHOTO_GRID_PAGE_SIZE,
+    withPhotos,
+    active,
+  };
 }

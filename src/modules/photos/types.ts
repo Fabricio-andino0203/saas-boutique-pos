@@ -11,3 +11,26 @@ export type ProductPhoto = {
   bytes: number;
   originalName: string | null;
 };
+
+/** A qué producto pertenece un archivo según su nombre (carga masiva). Ver `file-names.ts`. */
+export type FileMatch =
+  | {
+      matched: true;
+      name: string;
+      productId: string;
+      productName: string;
+      code: string;
+      /** El color de la foto si el nombre lo decía y el producto lo tiene. */
+      colorId: string | null;
+      colorName: string | null;
+    }
+  | { matched: false; name: string };
+
+/** Un producto en el módulo de fotos. */
+export type PhotoProductRow = {
+  id: string;
+  code: string;
+  name: string;
+  coverImageId: string | null;
+  photoCount: number;
+};

@@ -8,6 +8,7 @@ import {
   Contact,
   History,
   House,
+  Images,
   LogOut,
   PackageCheck,
   Palette,
@@ -103,6 +104,12 @@ const navGroups: readonly NavGroup[] = [
         href: "/productos",
         label: messages.nav.products,
         icon: Shirt,
+        capability: "product.write",
+      },
+      {
+        href: "/productos/fotos",
+        label: messages.nav.photos,
+        icon: Images,
         capability: "product.write",
       },
       {
