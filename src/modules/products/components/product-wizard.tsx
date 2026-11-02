@@ -6,6 +6,8 @@ import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { messages } from "@/config/messages.es";
 import { cn } from "@/lib/utils";
+import { uploadProductPhoto } from "@/modules/photos/client";
+import { PendingPhotos, type PendingPhoto } from "@/modules/photos/components/pending-photos";
 import { createProductAction, quickCreateOptionAction } from "@/modules/products/actions";
 import type { ProductFormOptions } from "@/modules/products/types";
 
@@ -44,6 +46,8 @@ export function ProductWizard({ options, canViewCost }: ProductWizardProps) {
   const [sizeIds, setSizeIds] = useState<string[]>([]);
   const [colorIds, setColorIds] = useState<string[]>([]);
   const [quantities, setQuantities] = useState<Record<string, number>>({});
+  const [photos, setPhotos] = useState<PendingPhoto[]>([]);
+  const [uploadingPhotos, setUploadingPhotos] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -94,7 +98,17 @@ export function ProductWizard({ options, canViewCost }: ProductWizardProps) {
         quantities,
       });
       if (result?.id) {
-        router.push(`/productos/${result.id}?creado=1`);
+        // El producto ya existe: ahora se suben sus fotos, una por una. Si alguna falla el producto no se pierde; la ficha lo avisa.
+        let failed = 0;
+        setUploadingPhotos(photos.length > 0);
+        for (const item of photos) {
+          const upload = await uploadProductPhoto(result.id, item.file);
+          if (!upload.ok) {
+            failed += 1;
+          }
+          URL.revokeObjectURL(item.preview);
+        }
+        router.push(`/productos/${result.id}?creado=1${failed > 0 ? "&fotos=error" : ""}`);
       } else {
         setError(result?.error ?? messages.errors.UNEXPECTED);
       }
@@ -123,13 +137,16 @@ export function ProductWizard({ options, canViewCost }: ProductWizardProps) {
       </ol>
 
       {step === 0 ? (
-        <ProductFields
-          draft={draft}
-          onChange={setDraft}
-          options={options}
-          canViewCost={canViewCost}
-          showCode
-        />
+        <div className="space-y-8">
+          <ProductFields
+            draft={draft}
+            onChange={setDraft}
+            options={options}
+            canViewCost={canViewCost}
+            showCode
+          />
+          <PendingPhotos items={photos} onChange={setPhotos} disabled={pending} />
+        </div>
       ) : null}
 
       {step === 1 ? (
@@ -206,7 +223,11 @@ export function ProductWizard({ options, canViewCost }: ProductWizardProps) {
           </Button>
         ) : (
           <Button type="button" disabled={pending} onClick={save}>
-            {pending ? copy.saving : copy.save}
+            {pending
+              ? uploadingPhotos
+                ? messages.photos.wizard.uploading
+                : copy.saving
+              : copy.save}
           </Button>
         )}
       </div>

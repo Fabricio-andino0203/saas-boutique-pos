@@ -1,5 +1,6 @@
 import sharp from "sharp";
 
+import { PHOTO_LIMITS } from "@/config/constants";
 import { ImageTooLargeError, InvalidImageError } from "@/lib/errors";
 
 /**
@@ -21,7 +22,7 @@ export function isPhotoSize(value: string): value is PhotoSize {
 }
 
 /** Lo más que se acepta de una foto. Un celular de gama alta da 5–8 MB; el límite de lo que recibe el servidor es 10 MB. */
-export const PHOTO_MAX_BYTES = 8 * 1024 * 1024;
+export const PHOTO_MAX_BYTES = PHOTO_LIMITS.maxBytes;
 /** Megapíxeles máximos (un celular de 48 MP cabe). Protege la memoria del servidor contra imágenes diminutas en bytes y enormes al abrirlas. */
 export const PHOTO_MAX_PIXELS = 50_000_000;
 const WEBP_QUALITY = 80;

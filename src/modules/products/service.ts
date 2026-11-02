@@ -859,6 +859,7 @@ export async function listProducts(
       category: { select: { name: true } },
       brand: { select: { name: true } },
       variants: { select: { id: true, archivedAt: true, reorderPoint: true } },
+      images: { where: { position: 0 }, select: { id: true }, take: 1 },
     },
   });
   const stock = await client.stockLevel.groupBy({
@@ -892,6 +893,7 @@ export async function listProducts(
             (onHandByVariant.get(variant.id) ?? 0) <= variant.reorderPoint,
         ),
         archived: product.archivedAt !== null,
+        coverImageId: product.images[0]?.id ?? null,
       },
     ];
   });

@@ -33,6 +33,12 @@ export const PHOTO_LIMITS = {
   maxPerProduct: 6,
   /** Fotos que el módulo masivo sube a la vez; el resto espera su turno. */
   uploadConcurrency: 3,
+  /** Lo más que pesa una foto que llega al servidor (el mensaje `IMAGE_TOO_LARGE` dice este número). */
+  maxBytes: 8 * 1024 * 1024,
+  /** Una foto más pesada que esto se reduce en el navegador antes de subirla (ahorra datos del celular). */
+  shrinkAboveBytes: 1.5 * 1024 * 1024,
+  /** Lado mayor, en píxeles, al que se reduce en el navegador. */
+  shrinkEdge: 2000,
 } as const;
 
 export const PRODUCT_LIMITS = {

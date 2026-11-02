@@ -17,6 +17,8 @@ import { requirePageCapability } from "@/lib/auth";
 import { formatLocalDateTime } from "@/lib/dates";
 import { formatMoney } from "@/lib/format";
 import { hasCapability } from "@/lib/permissions";
+import { PhotoGallery } from "@/modules/photos/components/photo-gallery";
+import { listProductPhotos } from "@/modules/photos/queries";
 import { ProductActions } from "@/modules/products/components/product-actions";
 import { ProductDetailForm } from "@/modules/products/components/product-detail-form";
 import { VariantsSection } from "@/modules/products/components/variants-section";
@@ -27,15 +29,26 @@ export default async function ProductPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ creado?: string }>;
+  searchParams: Promise<{ creado?: string; fotos?: string }>;
 }) {
   const { user } = await requirePageCapability("product.write");
   const { id } = await params;
-  const justCreated = (await searchParams).creado === "1";
+  const query = await searchParams;
+  const justCreated = query.creado === "1";
+  const photosFailed = query.fotos === "error";
   const product = await getProduct(id);
   if (!product) {
     notFound();
   }
+  const photos = await listProductPhotos(product.id);
+  // Los colores que el producto tiene: una foto puede ser de uno de ellos.
+  const productColors = [
+    ...new Map(
+      product.variants
+        .filter((variant) => variant.colorId && variant.colorName)
+        .map((variant) => [variant.colorId as string, variant.colorName as string]),
+    ),
+  ].map(([colorId, name]) => ({ id: colorId, name }));
   const options = await getFormOptions({
     categoryId: product.categoryId,
     brandId: product.brandId || undefined,
@@ -70,6 +83,11 @@ export default async function ProductPage({
             {messages.products.created}
           </p>
         ) : null}
+        {photosFailed ? (
+          <p role="alert" className="bg-muted rounded-lg p-3 text-sm">
+            {messages.photos.createdWithFailures}
+          </p>
+        ) : null}
         {product.archived ? (
           <p role="status" className="bg-muted rounded-lg p-3 text-sm">
             {copy.archivedBanner}
@@ -84,6 +102,8 @@ export default async function ProductPage({
         canViewCost={canViewCost}
         canChangePrice={canChangePrice && !product.archived}
       />
+
+      <PhotoGallery productId={product.id} photos={photos} colors={productColors} />
 
       <VariantsSection
         productId={product.id}

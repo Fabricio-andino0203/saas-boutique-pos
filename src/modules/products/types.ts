@@ -29,6 +29,8 @@ export type ProductRow = {
   onHand: number;
   lowStock: boolean;
   archived: boolean;
+  /** La foto principal del producto, o `null` si no tiene. */
+  coverImageId: string | null;
 };
 
 export type ProductList = {

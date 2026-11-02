@@ -1,18 +1,8 @@
 import type { PrismaClient } from "@/generated/prisma/client";
 import { db } from "@/lib/db";
+import type { ProductPhoto } from "@/modules/photos/types";
 
-export type ProductPhoto = {
-  id: string;
-  productId: string;
-  colorId: string | null;
-  colorName: string | null;
-  colorHex: string | null;
-  position: number;
-  width: number;
-  height: number;
-  bytes: number;
-  originalName: string | null;
-};
+export type { ProductPhoto };
 
 type PhotoRecord = {
   id: string;

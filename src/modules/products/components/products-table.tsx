@@ -13,6 +13,7 @@ import { buttonVariants, Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { messages } from "@/config/messages.es";
 import { formatMoney, parsePercentBps } from "@/lib/format";
+import { ProductThumb } from "@/modules/photos/components/product-thumb";
 import { bulkEditProductsAction } from "@/modules/products/actions";
 import type { Option, ProductRow } from "@/modules/products/types";
 
@@ -227,14 +228,17 @@ export function ProductsTable({
         id: "name",
         header: copy.columns.name,
         cell: ({ row }) => (
-          <div className="space-y-0.5">
-            <Link
-              href={`/productos/${row.original.id}`}
-              className="text-primary font-medium underline underline-offset-4"
-            >
-              {row.original.name}
-            </Link>
-            <div className="text-muted-foreground font-mono text-xs">{row.original.code}</div>
+          <div className="flex items-center gap-3">
+            <ProductThumb imageId={row.original.coverImageId} className="h-12 w-10" />
+            <div className="space-y-0.5">
+              <Link
+                href={`/productos/${row.original.id}`}
+                className="text-primary font-medium underline underline-offset-4"
+              >
+                {row.original.name}
+              </Link>
+              <div className="text-muted-foreground font-mono text-xs">{row.original.code}</div>
+            </div>
           </div>
         ),
       },
