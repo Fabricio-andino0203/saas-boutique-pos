@@ -3,6 +3,7 @@ import path from "node:path";
 import { createFileStore, type BlobStore } from "@/lib/blob-store";
 import { env } from "@/lib/env";
 import type { PhotoSize } from "@/lib/images";
+import { createS3Store } from "@/lib/s3-blob-store";
 import { resolveCurrentTenant } from "@/lib/tenancy/resolver";
 
 /**
@@ -13,9 +14,30 @@ import { resolveCurrentTenant } from "@/lib/tenancy/resolver";
 
 let shared: BlobStore | undefined;
 
-/** El almacén de esta instalación: la carpeta `UPLOADS_DIR` (o `.data/uploads` junto al proyecto en desarrollo). */
+/** Cuál es el almacén de esta instalación, para el registro de arranque: `s3` o la carpeta en uso. */
+export function photoStoreDescription(): string {
+  return env.S3_BUCKET ? "s3" : `file:${photoFolderRoot()}`;
+}
+
+function photoFolderRoot(): string {
+  return env.UPLOADS_DIR ?? path.join(process.cwd(), ".data", "uploads");
+}
+
+/**
+ * El almacén de esta instalación: el bucket `S3_BUCKET` si está definido; si no, la carpeta `UPLOADS_DIR` (o `.data/uploads`
+ * junto al proyecto en desarrollo).
+ */
 export function photoStore(): BlobStore {
-  shared ??= createFileStore(env.UPLOADS_DIR ?? path.join(process.cwd(), ".data", "uploads"));
+  shared ??= env.S3_BUCKET
+    ? createS3Store({
+        endpoint: env.S3_ENDPOINT,
+        region: env.S3_REGION ?? "auto",
+        bucket: env.S3_BUCKET,
+        accessKeyId: env.S3_ACCESS_KEY_ID as string,
+        secretAccessKey: env.S3_SECRET_ACCESS_KEY as string,
+        forcePathStyle: env.S3_FORCE_PATH_STYLE === "true",
+      })
+    : createFileStore(photoFolderRoot());
   return shared;
 }
 

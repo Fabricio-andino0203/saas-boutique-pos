@@ -722,6 +722,10 @@ dc run --rm --no-deps -v boutique-pos-prod_uploads:/photos backup /scripts/resto
 
 El script prueba la llave del negocio (por el nombre del archivo) y luego la general, no borra nada (solo agrega o reemplaza archivos de la carpeta de ese negocio) y deja los archivos al usuario de la app (`PHOTOS_OWNER`, 1000:1000 por omisión). Una foto cuyo archivo falta **no rompe nada**: se ve un recuadro vacío y el resto funciona; basta con quitarla desde la ficha y subirla de nuevo.
 
+### Fotos en un bucket (S3) en vez del volumen
+
+Con `S3_BUCKET` definido (más `S3_ACCESS_KEY_ID` y `S3_SECRET_ACCESS_KEY`; `S3_ENDPOINT` vacío = AWS, `S3_REGION` vacío = `auto`) las fotos van a un servicio de objetos compatible con S3 y **no** a la carpeta `UPLOADS_DIR`: las mismas claves (`<negocio>/<producto>/<foto>/<tamaño>.webp`), las mismas garantías. Sirve donde un volumen no conviene (Railway: un volumen se adjunta a un solo servicio y ata la app a una réplica) y se prueba con un servicio S3 de mentira en `tests/unit/s3-blob-store.test.ts`. El arranque lo dice en el registro (`server.start` → `"photos":"s3"` o `"photos":"file:/data/uploads"`): **mira ese campo después de cada despliegue**, porque una app sin las variables de S3 guardaría las fotos en el disco de la imagen y las perdería al actualizar. Los buckets de Railway no tienen respaldo automático: si se necesita, hay que copiarlos aparte.
+
 ### Espacio y límites
 
 - Una foto ocupa unos 100–250 KB entre sus tres tamaños. Cuenta ~300 fotos por tienda: 30–75 MB por negocio.

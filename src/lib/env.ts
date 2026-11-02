@@ -57,6 +57,24 @@ const envSchema = z
      * volumen que sobreviva a las actualizaciones (docs/RUNBOOK.md §18). Vacío = `.data/uploads` junto al proyecto (desarrollo).
      */
     UPLOADS_DIR: optionalText(),
+    /**
+     * Alternativa a la carpeta: las fotos en un servicio de objetos compatible con S3 (el Bucket de Railway, R2, S3…). Con
+     * `S3_BUCKET` puesto se usa este y no la carpeta. `S3_ENDPOINT` vacío = el de AWS; `S3_REGION` vacío = `auto`.
+     */
+    S3_BUCKET: optionalText(),
+    S3_ENDPOINT: optionalText(),
+    S3_REGION: optionalText(),
+    S3_ACCESS_KEY_ID: optionalText(),
+    S3_SECRET_ACCESS_KEY: optionalText(),
+    /** `true` si el servicio pide el nombre del bucket en la ruta y no en el nombre del servidor (los antiguos). */
+    S3_FORCE_PATH_STYLE: optionalText(),
+    /**
+     * De qué cabecera sale la IP del cliente: `x-forwarded-for` (Caddy, el de siempre) o `x-real-ip` (Railway, cuyo borde la
+     * escribe con la IP real). Solo se usa para registrar y limitar intentos.
+     */
+    CLIENT_IP_HEADER: z.enum(["x-forwarded-for", "x-real-ip"]).default("x-forwarded-for"),
+    /** `off` apaga la pregunta de certificados de Caddy (`/api/internal/tls-allowed`): donde no hay Caddy, ni existe. */
+    TLS_ASK: z.enum(["on", "off"]).default("on"),
 
     // ── Plataforma SaaS (docs/SAAS_PROPUESTA.md) ──
     /** `single` = una sola tienda con `DATABASE_URL` (hoy). `multi` = una base por negocio, cada uno en su subdominio. */
@@ -142,6 +160,22 @@ const envSchema = z
         "TENANT_POOL_MAX_CONNECTIONS no puede ser menor que las conexiones de un negocio (TENANT_POOL_SIZE)",
       );
     }
+    const s3Fields = [
+      "S3_ENDPOINT",
+      "S3_REGION",
+      "S3_ACCESS_KEY_ID",
+      "S3_SECRET_ACCESS_KEY",
+      "S3_FORCE_PATH_STYLE",
+    ] as const;
+    if (value.S3_BUCKET) {
+      for (const name of ["S3_ACCESS_KEY_ID", "S3_SECRET_ACCESS_KEY"] as const) {
+        if (!value[name]) {
+          problem(name, `${name} es obligatoria cuando se usa S3_BUCKET`);
+        }
+      }
+    } else if (s3Fields.some((name) => value[name])) {
+      problem("S3_BUCKET", "Hay variables S3_* sin S3_BUCKET: define el bucket o quítalas");
+    }
     if (value.TENANT_BASE_DOMAIN && !HOSTNAME_PATTERN.test(value.TENANT_BASE_DOMAIN)) {
       problem(
         "TENANT_BASE_DOMAIN",
@@ -217,10 +251,10 @@ const envSchema = z
         "CONTROL_DATABASE_URL tiene la contraseña de ejemplo: usa una propia",
       );
     }
-    if (!value.UPLOADS_DIR) {
+    if (!value.UPLOADS_DIR && !value.S3_BUCKET) {
       problem(
         "UPLOADS_DIR",
-        "En producción hace falta UPLOADS_DIR: la carpeta (un volumen persistente) donde se guardan las fotos de los productos",
+        "En producción hace falta UPLOADS_DIR (la carpeta, un volumen persistente) o S3_BUCKET (un servicio de objetos) para guardar las fotos de los productos",
       );
     }
     if (value.NODE_ENV !== "production") {

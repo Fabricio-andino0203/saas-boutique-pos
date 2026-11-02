@@ -41,6 +41,22 @@ describe("parseEnv", () => {
     const env = parseEnv({ ...validSource, NODE_ENV: "production" });
     expect(env.DEPLOYMENT).toBe("local");
   });
+
+  it("keeps Caddy's behaviour unless told otherwise: X-Forwarded-For and the certificate question on", () => {
+    const env = parseEnv(validSource);
+    expect(env.CLIENT_IP_HEADER).toBe("x-forwarded-for");
+    expect(env.TLS_ASK).toBe("on");
+  });
+
+  it("accepts the Railway settings and refuses anything else", () => {
+    const railway = parseEnv({ ...validSource, CLIENT_IP_HEADER: "x-real-ip", TLS_ASK: "off" });
+    expect(railway.CLIENT_IP_HEADER).toBe("x-real-ip");
+    expect(railway.TLS_ASK).toBe("off");
+    expect(() => parseEnv({ ...validSource, CLIENT_IP_HEADER: "cf-connecting-ip" })).toThrow(
+      /CLIENT_IP_HEADER/,
+    );
+    expect(() => parseEnv({ ...validSource, TLS_ASK: "maybe" })).toThrow(/TLS_ASK/);
+  });
 });
 
 describe("parseEnv — platform (SaaS)", () => {
@@ -177,6 +193,29 @@ describe("parseEnv with DEPLOYMENT=production", () => {
       /hace falta UPLOADS_DIR/,
     );
     expect(() => parseEnv({ ...production, UPLOADS_DIR: "  " })).toThrow(/hace falta UPLOADS_DIR/);
+  });
+
+  it("accepts an S3 bucket in place of the folder", () => {
+    const withBucket = {
+      ...production,
+      UPLOADS_DIR: undefined,
+      S3_BUCKET: "fotos-abc123",
+      S3_ENDPOINT: "https://t3.storageapi.dev",
+      S3_ACCESS_KEY_ID: "tid_llave",
+      S3_SECRET_ACCESS_KEY: "tsec_secreto",
+    };
+    const env = parseEnv(withBucket);
+    expect(env.S3_BUCKET).toBe("fotos-abc123");
+    expect(env.UPLOADS_DIR).toBeUndefined();
+  });
+
+  it("asks for the bucket keys, and refuses S3 settings without a bucket", () => {
+    expect(() => parseEnv({ ...production, S3_BUCKET: "fotos" })).toThrow(
+      /S3_ACCESS_KEY_ID es obligatoria/,
+    );
+    expect(() => parseEnv({ ...production, S3_ENDPOINT: "https://t3.storageapi.dev" })).toThrow(
+      /sin S3_BUCKET/,
+    );
   });
 
   it("does not ask for it in a local installation, where the photos go next to the project", () => {

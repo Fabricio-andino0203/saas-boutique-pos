@@ -15,7 +15,7 @@ const nextConfig: NextConfig = {
   partialPrefetching: true,
   // exceljs es CommonJS pesado: se carga desde node_modules en el servidor, sin empaquetarlo.
   // sharp (las fotos de los productos) trae código nativo: tampoco se empaqueta.
-  serverExternalPackages: ["exceljs", "sharp"],
+  serverExternalPackages: ["exceljs", "sharp", "@aws-sdk/client-s3"],
   experimental: {
     // La importación de productos sube archivos de hasta 5 MB.
     serverActions: { bodySizeLimit: "6mb" },

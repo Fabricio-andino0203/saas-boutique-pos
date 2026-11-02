@@ -52,6 +52,15 @@ services:
       LOGIN_RATE_LIMIT_MAX: ${LOGIN_RATE_LIMIT_MAX:-20}
       # Carpeta de las fotos de los productos: el volumen `uploads` (más abajo). Es de lo que no se puede reconstruir (RUNBOOK §18).
       UPLOADS_DIR: /data/uploads
+      # Opcional: las fotos en un servicio de objetos S3 en vez del volumen (si se define S3_BUCKET, manda sobre la carpeta).
+      S3_BUCKET: ${S3_BUCKET:-}
+      S3_ENDPOINT: ${S3_ENDPOINT:-}
+      S3_REGION: ${S3_REGION:-}
+      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:-}
+      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:-}
+      S3_FORCE_PATH_STYLE: ${S3_FORCE_PATH_STYLE:-}
+      # Qué cabecera trae la IP real del cliente: con Caddy (esta pila) la de siempre.
+      CLIENT_IP_HEADER: ${CLIENT_IP_HEADER:-x-forwarded-for}
       # Plataforma multi-negocio (docs/SAAS_ETAPA_2.md). Con TENANCY_MODE=single (por omisión) nada de esto se usa.
       TENANCY_MODE: ${TENANCY_MODE:-single}
       PLATFORM_HOST: ${PLATFORM_HOST:-}

@@ -4,6 +4,7 @@ import { env } from "@/lib/env";
 import { logger } from "@/lib/logger";
 import { getTenantDirectory } from "@/lib/tenancy/control-directory";
 import { checkConnectionBudget } from "@/lib/tenancy/pool-check";
+import { photoStoreDescription } from "@/modules/photos/storage";
 
 /**
  * Parte de la instrumentación que solo corre en Node. Vive aparte de `instrumentation.ts` porque Next analiza ese archivo
@@ -19,6 +20,8 @@ export function registerNode(): void {
     deployment: env.DEPLOYMENT,
     tenancy: env.TENANCY_MODE,
     timezone: env.TZ,
+    // Dónde van las fotos de los productos: sin esto, un despliegue mal configurado las perdería en silencio al actualizar.
+    photos: photoStoreDescription(),
   });
   // Avisa en el registro si el presupuesto de conexiones no cabe en Postgres (no detiene el arranque).
   void checkConnectionBudget();

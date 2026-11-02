@@ -114,6 +114,31 @@ schema_version_of() {
   printf '%s' "${version:--}"
 }
 
+# ───────────────────────────── Destino de afuera ─────────────────────────────
+
+# OFFSITE_REMOTE = un destino de rclone, «nombre:carpeta» (p. ej. `offsite:mi-bucket`), con su configuración en variables
+# RCLONE_CONFIG_<NOMBRE>_*. Con él, cada respaldo se sube apenas queda listo y lo viejo se retira ALLÁ con los mismos días que en
+# la carpeta local; sirve para un servicio sin disco propio (un cron en Railway). Sin él, todo queda en BACKUP_DIR como siempre.
+OFFSITE_REMOTE="${OFFSITE_REMOTE:-}"
+
+# offsite_store <archivo> <patrón de nombres de su familia> <días de retención>
+offsite_store() {
+  [ -n "$OFFSITE_REMOTE" ] || return 0
+  rclone copyto "$1" "$OFFSITE_REMOTE/$(basename "$1")" || return 1
+  # Retención de la familia (solo sus archivos, solo los más viejos que N días); el recién subido nunca entra.
+  rclone delete "$OFFSITE_REMOTE" --include "$2" --min-age "$3d" > /dev/null 2>&1 || log warn backup.offsite_prune_failed ",\"pattern\":\"$2\""
+  return 0
+}
+
+# Los nombres de los archivos que hoy existen (en el destino de afuera, si lo hay; si no, en la carpeta local).
+backup_file_names() {
+  if [ -n "$OFFSITE_REMOTE" ]; then
+    rclone lsf "$OFFSITE_REMOTE" --files-only 2> /dev/null || true
+  else
+    ls -1 "$BACKUP_DIR" 2> /dev/null || true
+  fi
+}
+
 # ───────────────────────────── Un respaldo ─────────────────────────────
 
 # backup_one <ámbito> <negocio|-> <base> <origen> <id del pedido|-> <días de retención>
@@ -171,6 +196,12 @@ backup_one() {
     return 1
   fi
   mv "$b_partial" "$b_final"
+  # Con un destino de afuera, el respaldo se sube ANTES de anotarlo como bueno: un respaldo que no salió del servidor no cuenta.
+  if ! offsite_store "$b_final" "$b_prefix-*.dump.enc" "$b_days"; then
+    log error backup.offsite_failed ",\"file\":\"$(basename "$b_final")\""
+    [ -z "$b_use" ] || registry_fail "$b_id" "No se pudo subir el respaldo al destino de afuera"
+    return 1
+  fi
 
   b_bytes="$(wc -c < "$b_final" | tr -d ' ')"
   b_sum="$(sha256_of "$b_final")"
@@ -231,6 +262,10 @@ backup_photos() {
     return 1
   fi
   mv "$p_partial" "$p_final"
+  if ! offsite_store "$p_final" "photos-$p_prefix-*.tar.enc" "$p_days"; then
+    log error backup.offsite_failed ",\"file\":\"$(basename "$p_final")\""
+    return 1
+  fi
   log info backup.photos_done ",\"file\":\"$(basename "$p_final")\",\"bytes\":$(wc -c < "$p_final" | tr -d ' ')"
 
   p_deleted="$(find "$BACKUP_DIR" -maxdepth 1 -name "photos-$p_prefix-*.tar.enc" -mtime "+$p_days" ! -name "$(basename "$p_final")" -print -delete | wc -l | tr -d ' ')"
@@ -242,7 +277,7 @@ backup_photos() {
 
 # Anota como retirados los respaldos buenos cuyo archivo ya no está en la carpeta (la retención los borró). La fila queda como historial.
 registry_mark_pruned() {
-  [ -z "$b_registry" ] || cpsql -v files="$(ls -1 "$BACKUP_DIR" 2> /dev/null || true)" <<'SQL' > /dev/null 2>&1 || true
+  [ -z "$b_registry" ] || cpsql -v files="$(backup_file_names)" <<'SQL' > /dev/null 2>&1 || true
 UPDATE "TenantBackup" SET "prunedAt" = now()
 WHERE "status" = 'OK' AND "prunedAt" IS NULL AND "fileName" IS NOT NULL
   AND "fileName" <> ALL (string_to_array(:'files', chr(10)));

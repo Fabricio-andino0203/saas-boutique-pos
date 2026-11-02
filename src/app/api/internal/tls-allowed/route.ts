@@ -1,5 +1,6 @@
 import { connection } from "next/server";
 
+import { env } from "@/lib/env";
 import { logger } from "@/lib/logger";
 import { getTenantDirectory } from "@/lib/tenancy/control-directory";
 import { normalizeHost } from "@/lib/tenancy/directory";
@@ -18,6 +19,10 @@ const NOT_ALLOWED = () => new Response(null, { status: 404 });
  */
 export async function GET(request: Request): Promise<Response> {
   await connection();
+  // Donde no hay Caddy (Railway) esta ruta quedaría abierta a internet: se apaga y responde como si no existiera.
+  if (env.TLS_ASK === "off") {
+    return NOT_ALLOWED();
+  }
   const domain = normalizeHost(new URL(request.url).searchParams.get("domain"));
   if (!domain) {
     return NOT_ALLOWED();

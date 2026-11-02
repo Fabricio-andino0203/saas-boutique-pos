@@ -13,6 +13,18 @@ describe("clientIpFrom", () => {
     expect(clientIpFrom(headers({ "x-real-ip": "2800:a4:1::7" }))).toBe("2800:a4:1::7");
   });
 
+  describe("behind Railway, which writes X-Real-IP", () => {
+    it("believes only X-Real-IP, never a X-Forwarded-For the client could have invented", () => {
+      const forged = headers({ "x-forwarded-for": "6.6.6.6", "x-real-ip": "200.30.1.9" });
+      expect(clientIpFrom(forged, "x-real-ip")).toBe("200.30.1.9");
+      expect(clientIpFrom(headers({ "x-forwarded-for": "6.6.6.6" }), "x-real-ip")).toBeUndefined();
+    });
+
+    it("still ignores anything that does not look like an address", () => {
+      expect(clientIpFrom(headers({ "x-real-ip": "<b>x</b>" }), "x-real-ip")).toBeUndefined();
+    });
+  });
+
   it("returns undefined when there is no header or it does not look like an address", () => {
     expect(clientIpFrom(headers({}))).toBeUndefined();
     expect(

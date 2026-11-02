@@ -354,21 +354,25 @@ describe("the shared variant picker does not hide a purchasing dependency", () =
 // actual. Cualquier otro que crease su propio almacén podría leer o escribir fuera de esa carpeta.
 describe("product photos stay inside the business folder", () => {
   const STORAGE = join("src", "modules", "photos", "storage.ts");
-  const BLOB_STORE = join("src", "lib", "blob-store.ts");
+  const BLOB_STORES = [join("src", "lib", "blob-store.ts"), join("src", "lib", "s3-blob-store.ts")];
   const PHOTO_ROUTES = [
     join("src", "app", "api", "fotos", "[id]", "[tamano]", "route.ts"),
     join("src", "app", "api", "productos", "[id]", "fotos", "route.ts"),
   ];
 
-  it("only photos/storage.ts creates the file store or reads UPLOADS_DIR", () => {
+  it("only photos/storage.ts creates a file store (folder or S3) or reads UPLOADS_DIR", () => {
     const offenders = appFilesOutsideTenancy().filter((file) => {
-      if (file === STORAGE || file === BLOB_STORE) {
+      if (file === STORAGE || BLOB_STORES.includes(file)) {
         return false;
       }
       const source = readFileSync(join(ROOT, file), "utf8");
-      return /\bcreateFileStore\s*\(/.test(source) || source.includes("UPLOADS_DIR");
+      return (
+        /\bcreate(File|S3)Store\s*\(/.test(source) ||
+        source.includes("UPLOADS_DIR") ||
+        source.includes("S3_BUCKET")
+      );
     });
-    // env.ts declara la variable; no crea ningún almacén.
+    // env.ts declara las variables; no crea ningún almacén.
     expect(offenders.filter((file) => file !== join("src", "lib", "env.ts"))).toEqual([]);
   });
 
