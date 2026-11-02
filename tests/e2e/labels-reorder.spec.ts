@@ -117,3 +117,34 @@ test("an invalid template is explained and nothing is printed without labels", a
   await expect(page.getByText(labels.print.empty)).toBeVisible();
   await expect(page.getByRole("button", { name: labels.print.print })).toHaveCount(0);
 });
+
+test("the labels screen lists every garment to choose by looking, and typing narrows it down", async ({
+  page,
+}) => {
+  test.slow();
+  const picker = messages.purchasing.picker;
+  // «AAA» para que quede en la primera página de la lista, que va por orden alfabético.
+  const name = `AAA Lista ${Date.now()}`;
+  await loginAs(page, "owner");
+  await createSimpleProduct(page, name, "45", "L 45.00");
+
+  // Sin escribir nada ya se ve toda la lista y la prenda está en ella
+  await page.goto("/inventario/etiquetas");
+  await expect(page.getByText(picker.all, { exact: true })).toBeVisible();
+  const pick = new RegExp(`^${picker.pick}: ${name}`);
+  await expect(page.getByTestId("picker-all").getByRole("button", { name: pick })).toBeVisible();
+
+  // Al escribir, la lista completa deja su lugar a los resultados de la búsqueda
+  const box = page.getByLabel(picker.label, { exact: true });
+  await box.fill(name);
+  await box.press("Enter");
+  await expect(page.getByTestId("picker-results")).toBeVisible();
+  await expect(page.getByTestId("picker-all")).toHaveCount(0);
+
+  // Se agrega a la lista de etiquetas, y al borrar el texto vuelve la lista completa
+  await page.getByTestId("picker-results").getByRole("button", { name: pick }).click();
+  await expect(
+    page.getByLabel(`${labels.builder.quantity}: ${name}`).filter({ visible: true }),
+  ).toBeVisible();
+  await expect(page.getByTestId("picker-all")).toBeVisible();
+});

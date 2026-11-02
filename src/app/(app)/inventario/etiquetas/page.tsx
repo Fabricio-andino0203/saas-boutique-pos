@@ -6,6 +6,7 @@ import { messages } from "@/config/messages.es";
 import { requirePageCapability } from "@/lib/auth";
 import { LabelBuilder } from "@/modules/labels/components/label-builder";
 import { getLabelSelection } from "@/modules/labels/service";
+import { listVariantsPage } from "@/modules/purchasing/queries";
 
 const first = (value: string | string[] | undefined): string =>
   (Array.isArray(value) ? value[0] : value) ?? "";
@@ -25,6 +26,7 @@ export default async function LabelsPage({
     productIds: productIds.length > 0 ? productIds : undefined,
     receiptId: receiptId || undefined,
   });
+  const firstPage = await listVariantsPage(0, { includeCost: false });
   const copy = messages.labels;
 
   return (
@@ -41,7 +43,11 @@ export default async function LabelsPage({
           </Link>
         }
       />
-      <LabelBuilder key={`${productIds.join(",")}-${receiptId}`} initial={initial} />
+      <LabelBuilder
+        key={`${productIds.join(",")}-${receiptId}`}
+        initial={initial}
+        firstPage={firstPage}
+      />
     </div>
   );
 }

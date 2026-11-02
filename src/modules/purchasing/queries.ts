@@ -18,8 +18,52 @@ export type VariantOption = {
   exact: boolean;
 };
 
+/** Una página de prendas: `hasMore` dice si hay más después de ella. */
+export type VariantPage = { items: VariantOption[]; hasMore: boolean };
+
+export const VARIANT_PAGE_SIZE = 40;
+
 const label = (size?: { name: string } | null, color?: { name: string } | null): string =>
   [size?.name, color?.name].filter(Boolean).join(" · ");
+
+/**
+ * TODAS las prendas activas, por nombre y luego por código, de a páginas: para elegir mirando la lista en vez de tener que
+ * adivinar qué escribir. `offset` es cuántas se saltan (0 = la primera página).
+ */
+export async function listVariantsPage(
+  offset: number,
+  options: { includeCost: boolean },
+  client: PrismaClient = db,
+): Promise<VariantPage> {
+  const skip = Number.isInteger(offset) && offset > 0 ? Math.min(offset, 1_000_000) : 0;
+  const variants = await client.variant.findMany({
+    where: { archivedAt: null, product: { archivedAt: null } },
+    include: {
+      product: { select: { name: true, baseCostCents: true } },
+      size: { select: { name: true } },
+      color: { select: { name: true } },
+    },
+    orderBy: [{ product: { name: "asc" } }, { sku: "asc" }],
+    skip,
+    take: VARIANT_PAGE_SIZE + 1,
+  });
+  return {
+    hasMore: variants.length > VARIANT_PAGE_SIZE,
+    items: variants.slice(0, VARIANT_PAGE_SIZE).map((variant) => ({
+      variantId: variant.id,
+      productName: variant.product.name,
+      label: label(variant.size, variant.color),
+      sku: variant.sku,
+      barcode: variant.barcode,
+      costCents: options.includeCost
+        ? variant.avgCostCents > 0
+          ? variant.avgCostCents
+          : variant.product.baseCostCents
+        : null,
+      exact: false,
+    })),
+  };
+}
 
 /** Prendas para el escáner y el buscador de compras: código de barras o código exacto primero, luego por nombre. */
 export async function searchPurchasableVariants(

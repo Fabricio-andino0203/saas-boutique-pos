@@ -20,7 +20,7 @@ import {
 import { messages } from "@/config/messages.es";
 import { formatMoney } from "@/lib/format";
 import { mulCents, sumCents } from "@/lib/money";
-import { savePurchaseOrderAction } from "@/modules/purchasing/actions";
+import { savePurchaseOrderAction, searchVariantsAction } from "@/modules/purchasing/actions";
 import type { VariantOption } from "@/modules/purchasing/queries";
 
 import { VariantPicker } from "./variant-picker";
@@ -149,7 +149,7 @@ export function PurchaseOrderForm({ suppliers, order }: PurchaseOrderFormProps) 
           </h2>
           <p className="text-muted-foreground text-sm">{copy.order.linesHint}</p>
         </div>
-        <VariantPicker onPick={pick} />
+        <VariantPicker onPick={pick} search={searchVariantsAction} />
         {lines.length > 0 ? (
           <div className="overflow-x-auto">
             <Table>

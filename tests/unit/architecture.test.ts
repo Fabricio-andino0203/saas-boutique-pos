@@ -305,3 +305,47 @@ describe("every server action checks who is asking", () => {
     expect(offenders).toEqual([]);
   });
 });
+
+// Una pantalla de otro módulo no usa las acciones de Compras: esas exigen el módulo «Compras» del plan, y en un plan sin él la
+// pantalla fallaría con «Algo salió mal» (pasó con el buscador de etiquetas de un negocio con el plan Estándar). Cada módulo trae
+// su propia búsqueda, con su propio permiso.
+const PURCHASING_ACTIONS = "@/modules/purchasing/actions";
+const MAY_USE_PURCHASING_ACTIONS = [
+  join("src", "modules", "purchasing") + sep,
+  join("src", "app", "(app)", "compras") + sep,
+];
+
+describe("a screen of another module does not depend on the purchasing module's plan", () => {
+  it("only purchasing's own code calls purchasing's server actions", () => {
+    const offenders = appFilesOutsideTenancy().filter(
+      (file) =>
+        !MAY_USE_PURCHASING_ACTIONS.some((allowed) => file.startsWith(allowed)) &&
+        readFileSync(join(ROOT, file), "utf8").includes(PURCHASING_ACTIONS),
+    );
+    expect(offenders).toEqual([]);
+  });
+});
+
+describe("the shared variant picker does not hide a purchasing dependency", () => {
+  const PICKER = join("src", "modules", "purchasing", "components", "variant-picker.tsx");
+  const IMPORTS_PURCHASING_COMPONENT = /@\/modules\/purchasing\/components\/([\w-]+)/g;
+
+  it("the picker takes its search as a prop and never imports purchasing actions itself", () => {
+    expect(readFileSync(join(ROOT, PICKER), "utf8")).not.toContain(PURCHASING_ACTIONS);
+  });
+
+  it("other modules reuse only that picker from purchasing's components (the rest call purchasing actions)", () => {
+    const offenders = appFilesOutsideTenancy().flatMap((file) => {
+      if (MAY_USE_PURCHASING_ACTIONS.some((allowed) => file.startsWith(allowed))) {
+        return [];
+      }
+      const names = [
+        ...readFileSync(join(ROOT, file), "utf8").matchAll(IMPORTS_PURCHASING_COMPONENT),
+      ];
+      return names
+        .filter((match) => match[1] !== "variant-picker")
+        .map((match) => `${file}: ${match[1]}`);
+    });
+    expect(offenders).toEqual([]);
+  });
+});

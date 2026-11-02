@@ -16,7 +16,9 @@ import {
   getReceipt,
   listPurchaseOrders,
   listReceipts,
+  listVariantsPage,
   searchPurchasableVariants,
+  VARIANT_PAGE_SIZE,
 } from "@/modules/purchasing/queries";
 import {
   cancelPurchaseOrder,
@@ -573,5 +575,88 @@ describe("receipt and variant queries", () => {
     expect(byName.every((v) => !v.exact && v.costCents === null)).toBe(true);
     expect(await searchPurchasableVariants("   ", { includeCost: true }, testDb)).toEqual([]);
     expect(await searchPurchasableVariants("zapatos", { includeCost: true }, testDb)).toEqual([]);
+  });
+
+  describe("the full list of garments (to choose by looking)", () => {
+    it("shows every active garment by name and then code, hiding archived ones and costs unless allowed", async () => {
+      const w = await world();
+      const category = await testDb.category.findFirstOrThrow();
+      const blouse = await testDb.product.create({
+        data: {
+          code: "BLU1",
+          name: "Blusa de lino",
+          categoryId: category.id,
+          basePriceCents: 50000,
+          baseCostCents: 2000,
+        },
+      });
+      await testDb.variant.create({
+        data: { productId: blouse.id, sku: "BLU1-U", barcode: "2000000000039" },
+      });
+      const old = await testDb.product.create({
+        data: {
+          code: "OLD1",
+          name: "Abrigo viejo",
+          categoryId: category.id,
+          basePriceCents: 90000,
+          archivedAt: new Date(),
+        },
+      });
+      await testDb.variant.create({
+        data: { productId: old.id, sku: "OLD1-U", barcode: "2000000000046" },
+      });
+      await testDb.variant.update({ where: { id: w.small.id }, data: { archivedAt: new Date() } });
+
+      const page = await listVariantsPage(0, { includeCost: false }, testDb);
+      expect(page.hasMore).toBe(false);
+      // «Blusa de lino» antes que «Vestido floral»; la talla S archivada y el abrigo archivado no salen.
+      expect(page.items.map((item) => item.sku)).toEqual(["BLU1-U", "COM1-M"]);
+      expect(page.items.every((item) => item.costCents === null && !item.exact)).toBe(true);
+
+      const withCost = await listVariantsPage(0, { includeCost: true }, testDb);
+      expect(withCost.items.map((item) => item.costCents)).toEqual([2000, 3000]);
+    });
+
+    it("pages through a big catalogue without repeating or skipping anyone", async () => {
+      await world();
+      const category = await testDb.category.findFirstOrThrow();
+      const extra = VARIANT_PAGE_SIZE + 15;
+      for (let index = 0; index < extra; index += 1) {
+        const product = await testDb.product.create({
+          data: {
+            code: `PAG${String(index).padStart(3, "0")}`,
+            name: `Prenda ${String(index).padStart(3, "0")}`,
+            categoryId: category.id,
+            basePriceCents: 10000,
+          },
+        });
+        await testDb.variant.create({
+          data: {
+            productId: product.id,
+            sku: `PAG${String(index).padStart(3, "0")}-U`,
+            barcode: `29${String(index).padStart(11, "0")}`,
+          },
+        });
+      }
+      const total = extra + 2; // las dos tallas del vestido de siempre
+
+      const first = await listVariantsPage(0, { includeCost: false }, testDb);
+      expect(first.items).toHaveLength(VARIANT_PAGE_SIZE);
+      expect(first.hasMore).toBe(true);
+      const second = await listVariantsPage(first.items.length, { includeCost: false }, testDb);
+      expect(second.items).toHaveLength(total - VARIANT_PAGE_SIZE);
+      expect(second.hasMore).toBe(false);
+
+      const ids = [...first.items, ...second.items].map((item) => item.variantId);
+      expect(new Set(ids).size).toBe(total);
+      // Un desplazamiento absurdo se trata como cero (no lanza ni se sale de la tabla).
+      expect((await listVariantsPage(-5, { includeCost: false }, testDb)).items).toHaveLength(
+        VARIANT_PAGE_SIZE,
+      );
+      expect(
+        (await listVariantsPage(Number.NaN, { includeCost: false }, testDb)).items,
+      ).toHaveLength(VARIANT_PAGE_SIZE);
+      expect((await listVariantsPage(10_000, { includeCost: false }, testDb)).items).toEqual([]);
+    });
   });
 });

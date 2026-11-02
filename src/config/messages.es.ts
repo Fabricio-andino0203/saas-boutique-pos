@@ -778,6 +778,12 @@ export const messages = {
       search: "Buscar",
       none: "No encontramos esa prenda.",
       pick: "Agregar",
+      all: "Todas las prendas",
+      allHint: "Elige de la lista o escribe arriba para filtrar.",
+      emptyAll: "Todavía no hay prendas: crea productos primero.",
+      loadMore: "Ver más",
+      loading: "Cargando…",
+      failed: "No se pudo buscar. Intenta de nuevo.",
     },
     validation: {
       supplier: "Elige un proveedor.",

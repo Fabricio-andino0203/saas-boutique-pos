@@ -15,7 +15,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { messages } from "@/config/messages.es";
-import type { VariantOption } from "@/modules/purchasing/queries";
+import { browseLabelVariantsAction, searchLabelVariantsAction } from "@/modules/labels/actions";
+import type { VariantOption, VariantPage } from "@/modules/purchasing/queries";
 import { VariantPicker } from "@/modules/purchasing/components/variant-picker";
 
 const copy = messages.labels.builder;
@@ -30,7 +31,14 @@ export type BuilderRow = {
 
 const MAX_LABELS = 1000;
 
-export function LabelBuilder({ initial }: { initial: BuilderRow[] }) {
+export function LabelBuilder({
+  initial,
+  firstPage,
+}: {
+  initial: BuilderRow[];
+  /** La primera página de todas las prendas, para elegir mirando la lista. */
+  firstPage: VariantPage;
+}) {
   const router = useRouter();
   const [rows, setRows] = useState<BuilderRow[]>(initial);
   const total = rows.reduce((sum, row) => sum + row.quantity, 0);
@@ -70,7 +78,11 @@ export function LabelBuilder({ initial }: { initial: BuilderRow[] }) {
         <h2 className="text-lg font-medium">{copy.title}</h2>
         <p className="text-muted-foreground text-sm">{copy.hint}</p>
       </div>
-      <VariantPicker onPick={pick} />
+      <VariantPicker
+        onPick={pick}
+        search={searchLabelVariantsAction}
+        browse={{ initial: firstPage, load: browseLabelVariantsAction }}
+      />
 
       {rows.length === 0 ? (
         <p className="text-muted-foreground text-sm">{copy.empty}</p>

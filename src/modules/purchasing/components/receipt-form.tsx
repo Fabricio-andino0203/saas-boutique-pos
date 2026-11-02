@@ -20,7 +20,7 @@ import {
 import { messages } from "@/config/messages.es";
 import { formatMoney } from "@/lib/format";
 import { mulCents, sumCents } from "@/lib/money";
-import { receiveGoodsAction } from "@/modules/purchasing/actions";
+import { receiveGoodsAction, searchVariantsAction } from "@/modules/purchasing/actions";
 import type { VariantOption } from "@/modules/purchasing/queries";
 
 import { VariantPicker } from "./variant-picker";
@@ -161,7 +161,7 @@ export function ReceiptForm({ suppliers, canCaptureCost, order }: ReceiptFormPro
           </h2>
           <p className="text-muted-foreground text-sm">{copy.receipt.linesHint}</p>
         </div>
-        <VariantPicker onPick={pick} helper={notice} />
+        <VariantPicker onPick={pick} helper={notice} search={searchVariantsAction} />
 
         {lines.length === 0 ? (
           <p className="text-muted-foreground text-sm">{copy.receipt.empty}</p>
