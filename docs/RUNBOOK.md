@@ -359,7 +359,7 @@ Cada negocio tiene su propia base, así que cada actualización del sistema debe
 
 ### Respaldos de los negocios dados de alta
 
-El respaldo diario (§5) respalda **cada negocio por separado** (`tenant-t_<id>-AAAAMMDDTHHMMSSZ.dump.enc`), además de la tienda #1 y la base central, cifrado y comprobado. Desde la Etapa 5 cada negocio tiene su propia llave, la retención de su plan, un registro visible en el panel y un procedimiento de restauración individual: ver §16. Con muchos negocios el tiempo del respaldo crece en proporción.
+El respaldo diario (§5) respalda **cada negocio por separado** (`tenant-t_<id>-AAAAMMDDTHHMMSSZ.dump.enc`), además de la tienda #1 y la base central, cifrado y comprobado. Desde la Etapa 5 cada negocio tiene su propia llave, la retención de su plan, un registro visible en el panel y un procedimiento de restauración individual: ver §16. Con muchos negocios el tiempo del respaldo crece en proporción: con `BACKUP_PARALLEL=4` se hacen cuatro a la vez (§17).
 
 ### Revisión del servidor (conciliación)
 
@@ -375,8 +375,8 @@ El respaldo diario (§5) respalda **cada negocio por separado** (`tenant-t_<id>-
 
 ### Límites a tener presentes
 
-- Cada rol de negocio tiene `CONNECTION LIMIT 10` y `statement_timeout 60 s`: un negocio no puede acaparar el servidor. Cada proceso de la app abre un pool pequeño por negocio y cierra los que llevan 5 minutos sin uso (tope de 50 abiertos a la vez).
-- La prueba de capacidad dio de alta 20 negocios (5 a la vez) sin problema; para cientos de negocios hay que vigilar `max_connections` de Postgres (Etapa 6).
+- Cada rol de negocio tiene `CONNECTION LIMIT 10` y `statement_timeout 60 s`: un negocio no puede acaparar el servidor. Cada instancia de la app abre un pool pequeño por negocio y cierra los que llevan 5 minutos sin uso; cuántos puede tener abiertos a la vez lo marca un presupuesto de conexiones (§17).
+- Con decenas o cientos de negocios hay que ajustar las conexiones de Postgres y de la app: ver §17 (capacidad medida con 200 negocios).
 - Todo lo que se hace queda en **Auditoría** (altas, fallos, retomadas, deshechas, migraciones fallidas, bajas, archivados), sin contraseñas ni secretos.
 
 ## 15. Plataforma SaaS: planes, suscripciones y cobros (Etapa 4)
@@ -598,3 +598,106 @@ Panel → **Resumen → Alertas** (y `pnpm alerts:check`), de lo más grave a lo
 - El registro de respaldos lo escribe el servicio de respaldos con la cuenta principal de Postgres; una aplicación comprometida puede pedir respaldos y leer el registro, pero no abrir ningún archivo.
 - El panel guarda solo los números de uso; las **sesiones de soporte sí leen datos reales** (ventas y personas) durante el tiempo que dure la sesión, con su motivo y su rastro.
 - Los avisos de alertas son el panel y `alerts:check`: **el sistema no envía correos** por su cuenta.
+
+## 17. Plataforma SaaS: capacidad, conexiones y endurecimiento (Etapa 6)
+
+El informe con todas las mediciones es [`SAAS_ETAPA_6.md`](SAAS_ETAPA_6.md). Aquí, lo que hace falta para **operar** con decenas o cientos de negocios.
+
+### Cuántos negocios caben: las conexiones a Postgres
+
+Cada negocio al que se atendió en los últimos segundos mantiene **1 o 2 conexiones abiertas** a Postgres. Postgres admite 100 de fábrica, así que lo que limita cuántos negocios pueden trabajar a la vez **no es la CPU sino las conexiones**. La aplicación lo cuida con un **presupuesto**: nunca abre más de `TENANT_POOL_MAX_CONNECTIONS` hacia los negocios (60 de fábrica). Si un negocio nuevo necesita lugar y todos los abiertos están ocupados, **espera** unos milisegundos (lo que dura una venta); si la espera pasa de 10 s falla con un error que se puede reintentar y lo anota en el registro (`tenant.pool_busy`). Antes de esto, 200 negocios a la vez agotaban Postgres y le fallaban a todos.
+
+**Con 20 a 50 negocios** (la escala prevista) la instalación de fábrica ya atiende bien y, para 50, basta subir las dos variables de la fila «Hasta ~50» (medido: escaneo en 14 ms y venta en 72 ms con unas 100 cajas). Elige la fila que corresponda a cuántos negocios **trabajan a la vez** (no cuántos están registrados) y pon las dos variables en `.env.production`:
+
+| Negocios trabajando a la vez | `POSTGRES_MAX_CONNECTIONS` | `TENANT_POOL_MAX_CONNECTIONS` | Negocios que quedan abiertos | Memoria aproximada |
+| --- | --- | --- | --- | --- |
+| Hasta ~30 (de fábrica, sin tocar nada; **20 negocios caben así**) | 100 | 60 | 30 | App 1 GB · Postgres 0,5 GB |
+| **Hasta ~50** | 200 | 160 | 80 | App 1 GB · Postgres 0,6 GB |
+| Hasta ~120 | 300 | 240 | 120 | App 2 GB · Postgres 1 GB |
+| Hasta ~200 | 500 | 420 | 200 | App 3 GB · Postgres 1,5 GB (con dos instancias, el presupuesto de cada una suma al otro: p. ej. 2 × 200) |
+
+Reglas: `TENANT_POOL_MAX_CONNECTIONS` siempre **al menos 40 menos** que `POSTGRES_MAX_CONNECTIONS` (quedan para la base central, los respaldos y el mantenimiento); cada negocio abierto cuesta ~7 MB en la app y cada conexión ~4 MB en Postgres. Si hay más negocios registrados que lugares, no pasa nada grave: el que no está abierto se abre al primer uso (~20 ms), pero con **mucha** rotación el servidor trabaja más y las respuestas se alargan.
+
+Después de reiniciar la aplicación, **los primeros minutos son más lentos**: cada negocio arma sus consultas la primera vez que las usa (la primera petición a un negocio tarda ~1 s). Para saber si te hace falta más: **Panel → Resumen → «Negocios abiertos ahora»**. Muestra cuántos tiene abiertos *esta* instancia, de cuántos le caben, y cuántas veces un negocio tuvo que esperar lugar y cuántas no lo consiguió. Si «sin conseguirlo» sube, sube las dos variables (o reparte los negocios en otro servidor, abajo). Después de cambiar `POSTGRES_MAX_CONNECTIONS` hay que reiniciar la base: `dc up -d db` (se reconecta sola).
+
+### Una instancia o varias
+
+- **Una instancia** es lo normal. En el equipo de prueba (4 núcleos), con los 200 negocios abiertos, sostuvo **114 operaciones de caja por segundo** (escaneo en 28 ms, mediana) —el doble de lo que hacen 400 cajas— pero solo **~25 páginas completas por segundo**: la aplicación es de **un solo hilo** (~1 núcleo). Para 200 negocios con mucho movimiento, **dos instancias** dan holgura.
+- **Para tener dos:** `dc up -d --scale app=2` (el `Caddyfile.multi` reparte entre las que respondan). Al **actualizar la versión** con migraciones, levanta primero una (`dc up -d --scale app=1`), espera a que quede sana y luego escala: la migración de la flota al arrancar no tiene un candado entre instancias.
+- **Varias instancias** de la app (para no depender de una sola) comparten las mismas bases. Sus presupuestos **se suman**: la suma de todos los `TENANT_POOL_MAX_CONNECTIONS` tiene que caber en `POSTGRES_MAX_CONNECTIONS − 40`.
+- Una suspensión, un cambio de plan o una baja hechos desde el panel se notan al instante en la instancia que los hizo y **en las demás hasta en `TENANT_DIRECTORY_TTL_MS`** (20 s de fábrica). Si necesitas que sea más rápido, baja ese valor (5000 es razonable): cuesta una consulta a la base central por negocio cada TTL, nada más.
+- El **límite de intentos fallidos de entrada por IP** vive en la memoria de cada instancia: con N instancias un atacante tiene N veces el cupo. El **bloqueo por usuario** (5 fallos) vive en la base de cada negocio y vale para todas.
+
+### PgBouncer: se evaluó y no se recomienda por omisión
+
+Se probó PgBouncer en modo transacción delante de Postgres (`docker/pgbouncer`, perfil opcional de Compose). Con una base y un rol **por negocio**, PgBouncer arma un grupo de conexiones por negocio y **no tiene un tope global**: 200 negocios tocados casi a la vez siguen abriendo 200 conexiones reales. En la prueba redujo las conexiones a Postgres a la mitad pero también el ritmo (65 contra 132 operaciones por segundo con todos los negocios abiertos). **No lo enciendas** salvo que el tope de conexiones lo imponga un Postgres administrado que no puedas subir; si lo haces:
+
+```bash
+PGBOUNCER_AUTH_PASSWORD=$(openssl rand -hex 24)   # guárdala en .env.production
+dc run --rm -e PGBOUNCER_AUTH_PASSWORD app pnpm pgbouncer:setup
+# en .env.production: TENANT_DB_HOST=pgbouncer  TENANT_DB_PORT=6432  PGB_AUTH_PASSWORD=<la misma>
+dc --profile pgbouncer up -d
+```
+
+La cuenta de PgBouncer solo puede ejecutar una función que devuelve el verificador de contraseña de un rol de negocio (nunca el de una cuenta de superusuario); las altas, las migraciones y los respaldos siguen yendo directo a Postgres. La tienda #1 debe tener su rol limitado primero (abajo).
+
+### Medir tu propio servidor
+
+Los guiones de `scripts/capacity/` repiten las mediciones del informe en el servidor que tú quieras. **Crean y cargan cientos de negocios: solo en un servidor desechable.** Para que nadie los apunte a producción por descuido, exigen escribir el nombre de la base central en `CAPACITY_CONFIRM`.
+
+```bash
+export CAPACITY_CONFIRM=<nombre de la base central>
+pnpm capacity:provision --count 50 --concurrency 3           # da de alta 50 negocios con datos de tienda (1 minuto)
+pnpm capacity:run --tenants 50 --uniform --workers 30 --warmup 45 --seconds 60 --rate 12   # carga «dentro del proceso» y verificación de libros
+pnpm capacity:http --tenants 50 --port 3000 --seconds 60     # carga por HTTP a la app compilada
+```
+
+`capacity:run` termina verificando, negocio por negocio, que no se mezcló nada y que los libros cuadran; sale con error si no. Con `NODE_OPTIONS=--expose-gc` además mide la memoria viva (busca fugas).
+
+### Tareas de la flota con cientos de negocios
+
+Tiempos medidos con 200 negocios (portátil de 4 núcleos; un servidor real será parecido o mejor):
+
+| Tarea | Tiempo | Nota |
+| --- | --- | --- |
+| `pnpm tenants:migrate --concurrency 4` | 4 min | ~1,2 s por negocio; lanza un `prisma migrate deploy` por negocio. Con 1000 negocios, ~20 min. |
+| Respaldo diario (`BACKUP_PARALLEL=1`) | 8,5 min | Un negocio tras otro. |
+| Respaldo diario (`BACKUP_PARALLEL=4`) | 3,4 min | **Recomendado desde ~50 negocios.** Cada respaldo usa un núcleo para cifrar y una conexión. |
+| `pnpm usage:collect` | 10 s | |
+| `pnpm billing:sweep`, `tenants:reconcile`, `alerts:check` | ~1,5 s cada uno | |
+| Alta de un negocio | ~3 s | 4 altas a la vez: 200 negocios en 4,5 min. |
+
+### Contraseñas temporales
+
+La contraseña que otra persona le pone a una cuenta es **temporal**: el alta de un negocio (la del propietario), el soporte y quien restablece la de un compañero. Al entrar con ella, el sistema **solo deja elegir una propia**; ninguna otra pantalla ni acción funciona hasta entonces (lo aplica el servidor, no un botón). Una cuenta con contraseña temporal pendiente tampoco puede descargar nada. La contraseña de un usuario creado desde «Usuarios → Nuevo» no es temporal (la elige quien lo crea y la persona la cambia en Mi cuenta cuando quiera).
+
+### Dar a la tienda #1 su propio rol de base de datos
+
+Los negocios que da de alta el sistema atienden con un rol que solo lee y escribe datos de **su** base. La tienda que ya existía antes de la plataforma (el negocio #1) se adoptó con la **cuenta principal del servidor**: si un error de la aplicación ejecutara SQL ajeno en esa tienda, tendría el servidor entero. Por eso el panel muestra una alerta («atiende con la cuenta principal del servidor») mientras no se cambie:
+
+```bash
+dc exec app pnpm tenants:limit-store <subdominio-de-la-tienda>
+```
+
+Crea el rol `t_<id>`, le da permisos de datos, comprueba que puede entrar y cambia la credencial guardada; la aplicación lo toma en menos de 20 s, sin reiniciar. Se puede repetir sin riesgo. La cuenta principal sigue existiendo para las migraciones, los respaldos y la verificación de libros. En un servidor nuevo, `tenants:relink` vuelve a crear ese rol como el de cualquier otro negocio.
+
+### Importar productos: archivos «bomba»
+
+Un `.xlsx` es un zip. La importación mira lo que el archivo **declara** antes de abrirlo y rechaza los que superan 30 MB descomprimidos, 300 archivos internos, 1000 filas o 60 columnas. Con varios negocios en la misma aplicación, un archivo así podía colgar la memoria o la CPU de todos.
+
+### Si algo no cuadra
+
+| Síntoma | Qué mirar |
+| --- | --- |
+| «Hay demasiados negocios atendiéndose a la vez…» / `tenant.pool_busy` en los registros | Faltan conexiones: sube `TENANT_POOL_MAX_CONNECTIONS` y `POSTGRES_MAX_CONNECTIONS` (tabla de arriba). |
+| Postgres dice «remaining connection slots are reserved» | La suma de los presupuestos de las instancias (más respaldos y mantenimiento) pasa de `POSTGRES_MAX_CONNECTIONS`. |
+| Todo se pone lento cuando trabajan muchos negocios | Resumen → «Negocios abiertos ahora»: si «esperaron lugar» sube sin parar, hay más negocios activos que lugares. |
+| Una persona entra y solo ve «Elige tu contraseña» | Es lo esperado con una contraseña temporal. Si no sabe cuál es, restablécele la contraseña (Usuarios o soporte). |
+| La alerta «atiende con la cuenta principal del servidor» | `pnpm tenants:limit-store <subdominio>` (arriba). |
+
+### Límites a tener presentes
+
+- Las cifras salen de **un portátil de 4 núcleos con Docker Desktop**, con el generador de carga en la misma máquina: son un piso, no una promesa. Mide en tu servidor con `scripts/capacity/`.
+- Una instancia de la app y un Postgres atendieron 200 negocios con tráfico parejo. Más de ~200 negocios **trabajando a la vez** pide un segundo servidor de bases de datos. **Hoy el sistema solo conoce un servidor** (`primary`): repartir negocios en varios exige un mapa de servidores y que el alta, el respaldo y la conciliación lo usen (ver el informe, §7).
+- Un certificado comodín, `DEPLOYMENT=production` con un dominio real y una base de datos administrada por un proveedor **no se ensayaron** aquí.
+- La recuperación a un instante exacto y los avisos por correo siguen sin existir (Etapa 5).
