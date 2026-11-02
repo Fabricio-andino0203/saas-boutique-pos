@@ -15,8 +15,9 @@ describe("securityHeaders", () => {
     expect(headers["Cross-Origin-Opener-Policy"]).toBe("same-origin");
   });
 
-  it("does not set HSTS itself (Caddy does, over HTTPS)", () => {
-    expect(byKey(false)["Strict-Transport-Security"]).toBeUndefined();
+  it("sends HSTS outside development (Railway has no Caddy to add it) and never in development", () => {
+    expect(byKey(false)["Strict-Transport-Security"]).toBe("max-age=31536000; includeSubDomains");
+    expect(byKey(true)["Strict-Transport-Security"]).toBeUndefined();
   });
 
   it("keeps the CSP closed to other origins, frames and plugins", () => {

@@ -744,3 +744,54 @@ Con `S3_BUCKET` definido (más `S3_ACCESS_KEY_ID` y `S3_SECRET_ACCESS_KEY`; `S3_
 
 - **Con un volumen la app queda en una sola réplica** (no se puede escalar a dos `app` compartiendo la carpeta, ni en Railway, donde un volumen se adjunta a un servicio). Para más de una réplica hay que pasar el almacén a un servicio de objetos (R2/S3): la interfaz (`BlobStore`) ya está pensada para eso, el controlador no se ha escrito.
 - El respaldo y la restauración de fotos se ensayaron en el contenedor de respaldos con carpetas de prueba (llave propia y general, clave equivocada, archivo dañado, retención). La subida y entrega se prueban con la base y el almacén de las pruebas, no con un volumen de Docker en producción.
+
+## 19. Despliegue en Railway
+
+Proyecto `boutique-pos` (un solo entorno, `production`). Todo sale del repositorio de GitHub (rama `main`): cada `push` reconstruye y despliega los servicios conectados a él. **Antes de empujar un cambio que no sea de código** (documentos), piensa que también reconstruye; si molesta, se pueden poner «watch patterns» a cada servicio.
+
+### Qué hay
+
+| Servicio | Qué es | Notas |
+| --- | --- | --- |
+| `postgres` | Imagen `ghcr.io/railwayapp-templates/postgres-ssl:16` con el volumen `postgres-data` (1 GB, crece) | Se usa la 16 (la probada); la plantilla de Railway trae la 18 y su `pg_dump` no sirve para el cliente 16 del respaldo |
+| `app` | El sistema (`Dockerfile` de la raíz). Aplica las migraciones al arrancar y atiende por el puerto `3000` | Healthcheck `/api/health`; reinicia si falla (5 intentos) |
+| `tareas-diarias` | Cron `0 9 * * *` (UTC = 03:00 en Honduras) que corre `sh docker/daily.sh` | Cobros, foto de uso y alertas (§15–16). Sale con 1 si algo falló o hay alertas |
+| `cron-respaldos` | Cron `0 8 * * *` (UTC = 02:00 en Honduras); imagen de `docker/backup`, orden `/scripts/once.sh` | Respalda cada negocio y la base central, **cifra** y sube cada archivo al bucket `respaldos` (`OFFSITE_REMOTE`) |
+| bucket `fotos` | Las fotos de los productos (`S3_*` de la app) | Sin respaldo automático de Railway |
+| bucket `respaldos` | Los respaldos cifrados | Cada familia se retira allá por los días del plan |
+
+Todos en la misma región (`us-east4`, Virginia: la más cercana a Honduras con servicios completos) para que la red privada y los buckets queden a pocos milisegundos.
+
+### Variables (las pone Railway; nada de esto se escribe a mano)
+
+La `app` lleva: `NODE_ENV=production`, `DEPLOYMENT=production`, `TENANCY_MODE=multi`, `PORT=3000`, las tres URLs de Postgres (`DATABASE_URL`, `CONTROL_DATABASE_URL`, `TENANT_PROVISIONING_URL`, por la red privada y con `${{postgres.…}}`), `S3_*` (`${{fotos.…}}`), `CLIENT_IP_HEADER=x-real-ip` (el borde de Railway escribe la IP real; no se cree `X-Forwarded-For`), `TLS_ASK=off` (no hay Caddy: la ruta interna de certificados no existe) y tres secretos **generados por Railway** con `${{ secret(…) }}`: `AUTH_SECRET`, `PLATFORM_MASTER_KEY` y, en `cron-respaldos`, `BACKUP_PASSPHRASE`. Las tareas leen lo mismo de la app por referencia (`${{app.…}}`).
+
+**Guarda fuera de Railway `PLATFORM_MASTER_KEY` y `BACKUP_PASSPHRASE`** (Railway → servicio → Variables → ver el valor → gestor de contraseñas). Sin la primera no se descifran las credenciales de las bases de los negocios; sin la segunda no se abre ningún respaldo. Si se pierde el proyecto de Railway, se pierden con él.
+
+### Después de cada despliegue
+
+1. En los registros de `app`, la línea `server.start` debe traer `"photos":"s3"`. Si trae `"file:/data/uploads"`, faltan las variables de S3 y las fotos se perderían al actualizar.
+2. `https://<dirección>/api/health` responde `{"status":"ok"}`.
+3. En `tareas-diarias` y `cron-respaldos`, la última ejecución en verde.
+
+### Dominio
+
+Mientras se use la dirección gratuita de Railway (`*.up.railway.app`) **solo existe el panel de la plataforma**: Railway no da subdominios comodín sobre sus direcciones, y cada negocio necesita el suyo (`tienda.tudominio.com`). Para atender negocios hace falta un dominio propio:
+
+1. Railway → `app` → Settings → Networking → Custom Domain: agrega `admin.tudominio.com` y `*.tudominio.com` (un comodín cuenta como un dominio). Railway da dos registros CNAME y un TXT para el DNS.
+2. Variables de `app`: `PLATFORM_HOST=admin.tudominio.com`, `TENANT_BASE_DOMAIN=tudominio.com`, `APP_URL=https://admin.tudominio.com`.
+3. Las tareas heredan esos valores por referencia; basta reiniciarlas.
+
+### Restaurar desde el bucket de respaldos
+
+Los archivos están cifrados con `BACKUP_PASSPHRASE` (`tenant-<base>-…` con una llave propia derivada de ella). Para devolver un negocio:
+
+1. Descargar el archivo del bucket `respaldos` (explorador de archivos de Railway, o `rclone` con las credenciales del bucket).
+2. Correr `docker/backup/restore-tenant.sh <archivo> <base>` en una máquina con Docker contra la base (se necesita acceso a Postgres: el proxy TCP de Railway, mientras dure la restauración) y, después, `pnpm tenants:relink <subdominio>` y `pnpm db:verify --tenant <subdominio>` desde un servicio temporal de la app (§16).
+
+### Costos y límites
+
+- Tope pedido: **$10 al mes**. En Railway → Workspace → Usage → *Set Usage Limits* conviene un límite duro de $10 y un aviso en $8: al llegar al límite Railway apaga los servicios y suspende los buckets.
+- Cuenta los GB de RAM y los vCPU **realmente usados**; los tres servicios de fondo (Postgres, app) son lo que más pesa; los crones solo cuestan los minutos que corren.
+- Los respaldos pedidos desde el panel se atienden en la próxima corrida del cron, no al instante.
+- Los buckets de Railway no tienen versiones ni respaldo propio; el bucket de respaldos está en el mismo proyecto que lo que respalda. Para una copia fuera de Railway, apunta `OFFSITE_REMOTE` (y sus variables `RCLONE_CONFIG_OFFSITE_*`) a otro proveedor (Backblaze B2, S3…).
