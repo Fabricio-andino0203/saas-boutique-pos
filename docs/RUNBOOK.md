@@ -774,6 +774,14 @@ La `app` lleva: `NODE_ENV=production`, `DEPLOYMENT=production`, `TENANCY_MODE=mu
 2. `https://<dirección>/api/health` responde `{"status":"ok"}`.
 3. En `tareas-diarias` y `cron-respaldos`, la última ejecución en verde.
 
+4. `pnpm photos:check` (guarda, lee y borra un archivo de prueba en el almacén de fotos): confirma que las credenciales del bucket sirven sin subir una foto desde una pantalla. Railway no da una consola; ver «Correr un comando una sola vez» abajo.
+
+### Correr un comando una sola vez (Railway no da consola)
+
+Se hace con un **servicio temporal**: un servicio nuevo con el mismo repositorio y las mismas variables de la app (por referencia, `${{app.NOMBRE}}`), `startCommand` = el comando (`node_modules/.bin/tsx scripts/platform.ts create-admin`, `node_modules/.bin/tsx scripts/photos-check.ts`…) y reinicio `NEVER`. Se crea **en espera** y se despliega con `accept-deploy`: su primer despliegue toma esa configuración y el contenedor corre el comando y termina; sus registros dicen cómo salió; luego se borra el servicio. Así se creó el administrador inicial (`ADMIN_NAME`, `ADMIN_USERNAME` y `ADMIN_PASSWORD` con `${{ secret(24, "…") }}`: la contraseña la genera Railway y se lee en el panel de Railway, nunca en un chat).
+
+Trampas que ya se pisaron: **`redeploy` no aplica la configuración nueva** (vuelve a correr la anterior); para que un servicio ya creado tome un cambio de `startCommand` o de programación hay que **volver a conectar su fuente** (`connect-service-source`), que dispara un despliegue nuevo. Un cron con programación cambia solo en el siguiente despliegue, y Railway lo corre en el siguiente múltiplo de la programación (mínimo cada 5 minutos): para forzar una corrida de prueba se pone `*/5 * * * *`, se espera, y se **vuelve** a la programación de verdad.
+
 ### Dominio
 
 Mientras se use la dirección gratuita de Railway (`*.up.railway.app`) **solo existe el panel de la plataforma**: Railway no da subdominios comodín sobre sus direcciones, y cada negocio necesita el suyo (`tienda.tudominio.com`). Para atender negocios hace falta un dominio propio:

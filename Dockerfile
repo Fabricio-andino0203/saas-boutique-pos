@@ -10,6 +10,10 @@
 ARG NODE_VERSION=24
 FROM node:${NODE_VERSION}-bookworm-slim AS base
 ENV CI=true
+# openssl: Prisma lo busca para elegir su motor y, sin él, avisa «failed to detect libssl» (en rojo) en cada comando de arranque.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends openssl \
+    && rm -rf /var/lib/apt/lists/*
 RUN npm install --global pnpm@12.15.0
 WORKDIR /app
 

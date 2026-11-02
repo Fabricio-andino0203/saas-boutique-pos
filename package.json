@@ -44,6 +44,7 @@
     "backups:final": "tsx scripts/backups.ts final",
     "backups:drop": "tsx scripts/backups.ts drop",
     "usage:collect": "tsx scripts/usage.ts collect",
+    "photos:check": "tsx scripts/photos-check.ts",
     "usage:show": "tsx scripts/usage.ts show",
     "alerts:check": "tsx scripts/alerts.ts check",
     "pgbouncer:setup": "tsx scripts/pgbouncer.ts setup",
