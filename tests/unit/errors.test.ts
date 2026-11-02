@@ -22,6 +22,7 @@ import {
   PhoneTakenError,
   ActiveRangeExistsError,
   FeatureNotIncludedError,
+  PhotoLimitError,
   PlanLimitError,
   ReadOnlyAccountError,
   CountInProgressError,
@@ -31,7 +32,9 @@ import {
   CodeTakenError,
   ConflictError,
   AccountLockedError,
+  ImageTooLargeError,
   InvalidCodeError,
+  InvalidImageError,
   TooManyAttemptsError,
   HasStockError,
   FiscalRangeExhaustedError,
@@ -96,6 +99,9 @@ const table = [
     status: 403,
   },
   { create: () => new PlanLimitError("users", 5), code: "PLAN_LIMIT", status: 409 },
+  { create: () => new InvalidImageError(), code: "INVALID_IMAGE", status: 422 },
+  { create: () => new ImageTooLargeError(), code: "IMAGE_TOO_LARGE", status: 413 },
+  { create: () => new PhotoLimitError(), code: "PHOTO_LIMIT", status: 409 },
 ] as const;
 
 describe("AppError subclasses", () => {

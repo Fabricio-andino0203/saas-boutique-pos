@@ -76,6 +76,7 @@ export async function savePlanAction(
     limitProducts: text(formData, "limitProducts"),
     limitTerminals: text(formData, "limitTerminals"),
     limitLocations: text(formData, "limitLocations"),
+    limitPhotos: text(formData, "limitPhotos"),
     // Las casillas también se conservan: React reinicia el formulario al terminar la acción y un error no debe desmarcarlas.
     features: formData.getAll("features").map(String).join(","),
     isActive: formData.get("isActive") === "on" ? "on" : "",
@@ -97,6 +98,7 @@ export async function savePlanAction(
           products: nullableInt(formData, "limitProducts"),
           terminals: nullableInt(formData, "limitTerminals"),
           locations: nullableInt(formData, "limitLocations"),
+          photos: nullableInt(formData, "limitPhotos"),
         },
         features: formData.getAll("features").map(String),
         trialDays: requiredInt(formData, "trialDays"),

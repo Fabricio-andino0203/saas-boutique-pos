@@ -211,6 +211,8 @@ export const messages = {
       PRODUCT_UPDATED: "Producto modificado",
       PRODUCT_ARCHIVED: "Producto archivado",
       PRODUCT_RESTORED: "Producto restaurado",
+      PRODUCT_PHOTO_ADDED: "Foto de producto agregada",
+      PRODUCT_PHOTO_REMOVED: "Foto de producto quitada",
       SETTINGS_CHANGED: "Configuración modificada",
       FISCAL_RANGE_CHANGED: "Rango de facturación modificado",
       GOODS_RECEIVED: "Mercadería recibida",

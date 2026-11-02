@@ -437,6 +437,7 @@ export const platformMessages = {
       products: "Productos",
       terminals: "Cajas",
       locations: "Sucursales",
+      photos: "Fotos de productos",
     },
     unlimited: "Sin límite",
     noPlan: "Sin plan",

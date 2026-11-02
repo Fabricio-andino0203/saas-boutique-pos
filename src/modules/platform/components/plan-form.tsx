@@ -51,6 +51,7 @@ const LIMIT_FIELDS = {
   products: "limitProducts",
   terminals: "limitTerminals",
   locations: "limitLocations",
+  photos: "limitPhotos",
 } as const;
 
 export function PlanForm({ defaults = EMPTY_PLAN }: { defaults?: PlanFormDefaults }) {

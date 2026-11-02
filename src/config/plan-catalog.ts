@@ -19,8 +19,11 @@ export const PLAN_FEATURES = [
 
 export type PlanFeature = (typeof PLAN_FEATURES)[number];
 
-/** Lo que se cuenta para los límites. `terminals` y `locations` ya tienen su lugar en el plan; se aplicarán cuando existan pantallas para crear cajas y sucursales. */
-export const PLAN_LIMIT_KINDS = ["users", "products", "terminals", "locations"] as const;
+/**
+ * Lo que se cuenta para los límites. `terminals` y `locations` ya tienen su lugar en el plan; se aplicarán cuando existan
+ * pantallas para crear cajas y sucursales. `photos` son todas las fotos de productos del negocio (sin tope hasta que el plan lo fije).
+ */
+export const PLAN_LIMIT_KINDS = ["users", "products", "terminals", "locations", "photos"] as const;
 
 export type PlanLimitKind = (typeof PLAN_LIMIT_KINDS)[number];
 

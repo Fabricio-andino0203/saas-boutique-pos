@@ -82,6 +82,8 @@ async function main(): Promise<void> {
     await client.priceHistory.deleteMany({
       where: { OR: [ofProducts, { variant: ofProducts }] },
     });
+    // Las fotos de prueba: se borra el registro (sus archivos quedan en la carpeta de desarrollo, que no se versiona).
+    await client.productImage.deleteMany({ where: ofProducts });
     await client.variant.deleteMany({ where: ofProducts });
     await client.product.deleteMany({ where: { id: { in: deletable } } });
 

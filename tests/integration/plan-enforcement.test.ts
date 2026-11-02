@@ -1,7 +1,12 @@
 import { AsyncLocalStorage } from "node:async_hooks";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
 
+import sharp from "sharp";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { createFileStore } from "@/lib/blob-store";
 import { db } from "@/lib/db";
 import { currentEntitlements, requireFeature } from "@/lib/entitlements";
 import { FeatureNotIncludedError, PlanLimitError, ReadOnlyAccountError } from "@/lib/errors";
@@ -35,6 +40,7 @@ import {
   listProducts,
   setProductArchived,
 } from "@/modules/products/service";
+import { addProductPhoto, removeProductPhoto } from "@/modules/photos/service";
 import { createFirstOwner } from "@/modules/users/bootstrap";
 import { createUser, listUsers, setUserActive } from "@/modules/users/service";
 import {
@@ -259,6 +265,41 @@ describe("limits", () => {
       expect((await listProducts({ status: "all", page: 1 })).total).toBe(2);
       expect(second.id).not.toBe(first.id);
     });
+  });
+
+  it("limits the product photos of the whole business, and removing one frees a place", async () => {
+    await subscribe(
+      await planOf({
+        limits: { users: null, products: null, terminals: null, locations: null, photos: 2 },
+      }),
+      20,
+    );
+    const folder = await mkdtemp(path.join(tmpdir(), "plan-photos-"));
+    const deps = { store: createFileStore(folder), folder: "pe_a" };
+    const data = await sharp({
+      create: { width: 40, height: 40, channels: 3, background: "#aa5500" },
+    })
+      .jpeg()
+      .toBuffer();
+    try {
+      await asRequest(async () => {
+        const dress = await createProduct(owner, newProduct());
+        const blouse = await createProduct(owner, newProduct());
+        const first = await addProductPhoto(owner, dress.id, { data }, deps);
+        await addProductPhoto(owner, blouse.id, { data }, deps); // 2 en total, en productos distintos
+
+        const error = await addProductPhoto(owner, dress.id, { data }, deps).catch(
+          (caught: unknown) => caught,
+        );
+        expect(error).toBeInstanceOf(PlanLimitError);
+        expect(error).toMatchObject({ kind: "photos", limit: 2 });
+
+        await removeProductPhoto(owner, first.id, deps);
+        await addProductPhoto(owner, dress.id, { data }, deps);
+      });
+    } finally {
+      await rm(folder, { recursive: true, force: true });
+    }
   });
 
   it("moving to a smaller plan deletes nothing: it only stops the business from adding more", async () => {

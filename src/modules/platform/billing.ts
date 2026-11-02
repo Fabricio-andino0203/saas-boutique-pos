@@ -88,6 +88,8 @@ export const planSchema = z.object({
     products: limitSchema,
     terminals: limitSchema,
     locations: limitSchema,
+    // Los planes y llamadas anteriores a las fotos no traen este tope: ausente = sin límite.
+    photos: limitSchema.optional().transform((value) => value ?? null),
   }),
   features: z.array(z.enum(PLAN_FEATURES, copy.features)).transform((list) => [...new Set(list)]),
   trialDays: z

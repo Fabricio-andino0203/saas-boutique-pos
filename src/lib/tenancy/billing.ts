@@ -1,4 +1,4 @@
-import type { PlanFeature, PlanLimits } from "@/config/plan-catalog";
+import { PLAN_LIMIT_KINDS, type PlanFeature, type PlanLimits } from "@/config/plan-catalog";
 
 /**
  * Cuándo puede usar el sistema un negocio según su suscripción (propuesta SaaS §5). Lógica **pura**: nada de base de datos,
@@ -116,7 +116,7 @@ export type SubscriptionForAccess = SubscriptionTiming & {
   limits: unknown;
 };
 
-const KNOWN_LIMITS = ["users", "products", "terminals", "locations"] as const;
+const KNOWN_LIMITS = PLAN_LIMIT_KINDS;
 
 /** Los límites guardados (JSON libre) con solo lo que se entiende: enteros no negativos o `null`. */
 export function parseLimits(raw: unknown): PlanLimits {

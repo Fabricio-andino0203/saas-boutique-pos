@@ -362,7 +362,8 @@ model Color {
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
 
-  variants Variant[]
+  variants      Variant[]
+  productImages ProductImage[]
 }
 
 model Supplier {
@@ -396,6 +397,7 @@ model Product {
   basePriceCents    Int
   baseCostCents     Int         @default(0)
   taxCategory       TaxCategory @default(STANDARD)
+  /// En desuso: las fotos viven en `ProductImage` (varias por producto, con orden y color). Nada la lee ni la escribe.
   imageUrl          String?
   archivedAt        DateTime?
   createdAt         DateTime    @default(now())
@@ -407,10 +409,36 @@ model Product {
   defaultSupplier Supplier?      @relation(fields: [defaultSupplierId], references: [id])
   variants        Variant[]
   priceHistory    PriceHistory[]
+  images          ProductImage[]
 
   @@index([categoryId])
   @@index([brandId])
   @@index([seasonId])
+}
+
+/// Foto de un producto, opcionalmente de uno de sus colores. Los archivos NO están en la base: viven en el almacén
+/// (`UPLOADS_DIR`, carpeta `<negocio>/<producto>/<foto>/<tamaño>.webp`, que sale de los ids) y aquí solo queda lo necesario para
+/// encontrarlos, ordenarlos y medirlos. Las posiciones de un producto son 0, 1, 2… sin huecos; la 0 es la foto principal.
+/// Pensada también para reutilizarse en una tienda en línea (galería por producto y por color).
+model ProductImage {
+  id           String   @id
+  productId    String
+  /// Si la foto es de un color en particular (debe ser un color que el producto tenga en sus variantes).
+  colorId      String?
+  position     Int
+  width        Int
+  height       Int
+  /// Suma de las tres versiones: sirve para saber cuánto espacio usa el negocio.
+  bytes        Int
+  /// Cómo se llamaba el archivo al subirlo. Solo para mostrarlo en listas; nunca ubica nada.
+  originalName String?
+  createdAt    DateTime @default(now())
+
+  product Product @relation(fields: [productId], references: [id])
+  color   Color?  @relation(fields: [colorId], references: [id])
+
+  @@index([productId, position])
+  @@index([colorId])
 }
 
 /// La unidad que se vende y se cuenta.
