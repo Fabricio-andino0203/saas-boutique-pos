@@ -29,7 +29,20 @@
 	@internal path /api/internal/*
 	respond @internal 404
 
-	reverse_proxy app:3000 {
+	reverse_proxy {
+		# Una o varias instancias de la app (`dc up -d --scale app=2`): se consulta el DNS de Docker cada pocos segundos y se reparte
+		# entre todas las que respondan. Con una sola funciona igual. docs/RUNBOOK.md §17.
+		dynamic a {
+			name app
+			port 3000
+			refresh 5s
+		}
+		lb_policy least_conn
+		# Una instancia que no contesta su estado de salud deja de recibir tráfico hasta que vuelva.
+		health_uri /api/health
+		health_interval 10s
+		health_timeout 5s
+
 		# La app usa estas cabeceras para registrar y limitar intentos por IP: se pisa lo que mande el navegador.
 		header_up X-Forwarded-For {remote_host}
 		header_up X-Real-IP {remote_host}

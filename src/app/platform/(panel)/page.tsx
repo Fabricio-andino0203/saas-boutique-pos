@@ -6,6 +6,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { platformMessages } from "@/config/messages.platform.es";
 import { formatLocalDate, formatLocalDateTime } from "@/lib/dates";
 import { requirePlatformSession } from "@/lib/platform-auth";
+import { tenantPoolStats } from "@/lib/tenancy/tenant-clients";
 import { describeAlert } from "@/modules/platform/alert-text";
 import { collectAlerts } from "@/modules/platform/alerts";
 import { billingOverview } from "@/modules/platform/billing";
@@ -22,6 +23,7 @@ export default async function PlatformSummaryPage() {
     billingOverview(),
     collectAlerts(),
   ]);
+  const pool = tenantPoolStats();
 
   return (
     <div className="space-y-8">
@@ -48,6 +50,22 @@ export default async function PlatformSummaryPage() {
           label={`${copy.platform.vault} (${copy.platform.vaultVersion})`}
           value={String(summary.vaultKeyVersion)}
           hint={`${copy.platform.twoFactor}: ${user.twoFactorEnabled ? copy.platform.ok : "—"}`}
+        />
+      </section>
+
+      <section aria-label={copy.pool.label} data-testid="pool-card">
+        <StatCard
+          label={copy.pool.label}
+          value={copy.pool.of
+            .replace("{active}", String(pool.active))
+            .replace("{capacity}", String(pool.capacity))}
+          hint={`${copy.pool.hint
+            .replace("{max}", String(pool.maxConnections))
+            .replace("{waited}", String(pool.waited))
+            .replace(
+              "{timedOut}",
+              String(pool.timedOut),
+            )}${pool.timedOut > 0 ? ` ${copy.pool.saturated}` : ""}`}
         />
       </section>
 

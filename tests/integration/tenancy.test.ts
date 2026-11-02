@@ -16,7 +16,9 @@ import { resolveCurrentTenant } from "@/lib/tenancy/resolver";
 import {
   closeAllTenantClients,
   configureTenantPool,
+  resetTenantPoolOptions,
   tenantPoolStats,
+  TenantPoolBusyError,
 } from "@/lib/tenancy/tenant-clients";
 import {
   runWithTenant,
@@ -277,7 +279,109 @@ describe("the connection pool manager", () => {
     );
     expect(other?.name).toBe(businesses.b.db.database);
     await expect(slow).resolves.toBe(businesses.a.db.database);
-    configureTenantPool({ maxActive: 50, poolSize: 3, idleMs: 300_000 });
+    resetTenantPoolOptions();
+  });
+
+  it("derives how many businesses fit open from the connection budget", () => {
+    configureTenantPool({ maxActive: 100, maxConnections: 60, poolSize: 2 });
+    expect(tenantPoolStats().capacity).toBe(30);
+    configureTenantPool({ maxConnections: 7, poolSize: 2 });
+    expect(tenantPoolStats().capacity).toBe(3);
+    // El tope de memoria también manda: con presupuesto de sobra, no se abren más negocios que `maxActive`.
+    configureTenantPool({ maxActive: 5, maxConnections: 600, poolSize: 2 });
+    expect(tenantPoolStats().capacity).toBe(5);
+    // Nunca cero: un presupuesto menor que un negocio igual deja trabajar a uno.
+    configureTenantPool({ maxActive: 100, maxConnections: 1, poolSize: 2 });
+    expect(tenantPoolStats().capacity).toBe(1);
+    resetTenantPoolOptions();
+  });
+
+  it("makes a new business wait for a place instead of opening one more, and lets it in when one frees up", async () => {
+    await closeAllTenantClients();
+    configureTenantPool({ maxActive: 100, maxConnections: 2, poolSize: 2, waitMs: 10_000 });
+    expect(tenantPoolStats().capacity).toBe(1);
+    const before = tenantPoolStats();
+    const slow = runWithTenant(businesses.a.ref, () =>
+      db.$transaction(async (tx) => {
+        await tx.$executeRaw`select pg_sleep(1)`;
+        return "a-done";
+      }),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    const startedAt = Date.now();
+    const waiting = runWithTenant(
+      businesses.b.ref,
+      () => db.$queryRaw<{ name: string }[]>`select current_database() as name`,
+    );
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    // Mientras A sigue ocupado, B espera y NO se abre un segundo cliente.
+    expect(tenantPoolStats().waiting).toBe(1);
+    expect(tenantPoolStats().active).toBe(1);
+    const [row] = await waiting;
+    expect(row?.name).toBe(businesses.b.db.database);
+    expect(Date.now() - startedAt).toBeGreaterThanOrEqual(500);
+    await expect(slow).resolves.toBe("a-done");
+    const after = tenantPoolStats();
+    expect(after.waited - before.waited).toBe(1);
+    expect(after.timedOut - before.timedOut).toBe(0);
+    expect(after.waiting).toBe(0);
+    expect(after.active).toBe(1);
+    resetTenantPoolOptions();
+  });
+
+  it("fails with a clear error when no place frees up in time, without disturbing the busy business", async () => {
+    await closeAllTenantClients();
+    configureTenantPool({ maxActive: 100, maxConnections: 2, poolSize: 2, waitMs: 150 });
+    const before = tenantPoolStats();
+    const slow = runWithTenant(businesses.a.ref, () =>
+      db.$transaction(async (tx) => {
+        await tx.$executeRaw`select pg_sleep(0.7)`;
+        return "a-done";
+      }),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    await expect(
+      runWithTenant(businesses.b.ref, () => db.$queryRaw`select 1`),
+    ).rejects.toBeInstanceOf(TenantPoolBusyError);
+    await expect(slow).resolves.toBe("a-done");
+    expect(tenantPoolStats().timedOut - before.timedOut).toBe(1);
+    expect(tenantPoolStats().waiting).toBe(0);
+    resetTenantPoolOptions();
+  });
+
+  it("wakes every waiting business when places free up, each one getting its own database", async () => {
+    await closeAllTenantClients();
+    configureTenantPool({ maxActive: 100, maxConnections: 4, poolSize: 2, waitMs: 10_000 });
+    expect(tenantPoolStats().capacity).toBe(2);
+    const slowA = runWithTenant(businesses.a.ref, () =>
+      db.$transaction(async (tx) => {
+        await tx.$executeRaw`select pg_sleep(0.6)`;
+        return "a";
+      }),
+    );
+    const slowB = runWithTenant(businesses.b.ref, () =>
+      db.$transaction(async (tx) => {
+        await tx.$executeRaw`select pg_sleep(0.6)`;
+        return "b";
+      }),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 150));
+    // C y otra petición de C llegan con todo ocupado: las dos esperan y se atienden con el mismo cliente.
+    const [first, second] = await Promise.all([
+      runWithTenant(
+        businesses.c.ref,
+        () => db.$queryRaw<{ name: string }[]>`select current_database() as name`,
+      ),
+      runWithTenant(
+        businesses.c.ref,
+        () => db.$queryRaw<{ name: string }[]>`select current_database() as name`,
+      ),
+    ]);
+    expect(first[0]?.name).toBe(businesses.c.db.database);
+    expect(second[0]?.name).toBe(businesses.c.db.database);
+    await Promise.all([slowA, slowB]);
+    expect(tenantPoolStats().active).toBeLessThanOrEqual(2);
+    resetTenantPoolOptions();
   });
 });
 

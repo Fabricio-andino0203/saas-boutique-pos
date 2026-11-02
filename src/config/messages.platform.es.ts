@@ -82,6 +82,14 @@ export const platformMessages = {
     recent: "Actividad reciente",
     recentEmpty: "Todavía no hay actividad registrada.",
     viewAll: "Ver toda la auditoría",
+    /** Las conexiones de la instancia que está respondiendo (Etapa 6): para notar a tiempo que le falta lugar. */
+    pool: {
+      label: "Negocios abiertos ahora",
+      of: "{active} de {capacity}",
+      hint: "Conexiones: hasta {max}. Desde que arrancó: {waited} esperaron lugar, {timedOut} sin conseguirlo.",
+      saturated:
+        "Esperaron lugar muchas veces: si pasa seguido, sube las conexiones (docs/RUNBOOK.md §17).",
+    },
     platform: {
       title: "Estado del servicio",
       controlDb: "Base central",
@@ -369,6 +377,8 @@ export const platformMessages = {
       SUBSCRIPTION_CANCELLED: "Una suscripción se canceló por falta de pago",
       BACKUP_REQUESTED: "Pidió un respaldo",
       TENANT_RELINKED: "Terminó la restauración de un negocio (rol, permisos y versión)",
+      TENANT_STORE_ROLE_LIMITED:
+        "Le dio a la tienda adoptada su propio rol limitado de base de datos",
       ARCHIVED_DATABASE_DROPPED: "Borró de verdad una base archivada o reemplazada",
       USAGE_REFRESHED: "Actualizó el uso de un negocio",
       SUPPORT_SESSION_OPENED: "Abrió una sesión de soporte en un negocio",
@@ -719,6 +729,8 @@ export const platformMessages = {
       near_limit: "{who} usa casi todo el tope de {detail} de su plan.",
       support_open:
         "Hay {detail} sesión(es) de soporte abierta(s) ahora: alguien está mirando datos de un negocio.",
+      store_unrestricted:
+        "{who} atiende con la cuenta principal del servidor: dale su propio rol limitado con «pnpm tenants:limit-store {detail}».",
       retired_databases:
         "Hay {detail} base(s) apartada(s) (archivadas o reemplazadas) que se pueden borrar cuando ya no se necesiten.",
     },

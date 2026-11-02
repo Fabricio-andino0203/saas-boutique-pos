@@ -3,6 +3,7 @@ import type { Instrumentation } from "next";
 import { env } from "@/lib/env";
 import { logger } from "@/lib/logger";
 import { getTenantDirectory } from "@/lib/tenancy/control-directory";
+import { checkConnectionBudget } from "@/lib/tenancy/pool-check";
 
 /**
  * Parte de la instrumentación que solo corre en Node. Vive aparte de `instrumentation.ts` porque Next analiza ese archivo
@@ -19,6 +20,8 @@ export function registerNode(): void {
     tenancy: env.TENANCY_MODE,
     timezone: env.TZ,
   });
+  // Avisa en el registro si el presupuesto de conexiones no cabe en Postgres (no detiene el arranque).
+  void checkConnectionBudget();
 }
 
 /** Multi-negocio: de qué negocio es la petición, por su host (solo se busca en el directorio; nunca lanza). */

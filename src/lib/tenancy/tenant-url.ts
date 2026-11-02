@@ -20,11 +20,13 @@ export function serverEndpoint(
     throw new Error(`Servidor de base de datos desconocido: ${serverId}`);
   }
   const control = source.CONTROL_DATABASE_URL ? new URL(source.CONTROL_DATABASE_URL) : undefined;
-  const host = source.TENANT_DB_HOST ?? control?.hostname;
+  // Un compose sin valor pasa la variable VACÍA: vacío es lo mismo que no definido (si no, toda la plataforma daría 503).
+  const host = source.TENANT_DB_HOST?.trim() || control?.hostname;
+  const port = source.TENANT_DB_PORT?.trim() || control?.port || "5432";
   if (!host) {
     throw new Error("No se sabe en qué servidor están las bases de los negocios (TENANT_DB_HOST)");
   }
-  return { host, port: source.TENANT_DB_PORT ?? (control?.port || "5432") };
+  return { host, port };
 }
 
 export type TenantDatabaseParts = {

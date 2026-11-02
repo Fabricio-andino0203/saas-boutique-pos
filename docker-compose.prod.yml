@@ -18,6 +18,9 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?define POSTGRES_PASSWORD en .env.production}
       POSTGRES_DB: ${POSTGRES_DB:-boutique_pos}
       TZ: UTC
+    # Conexiones simultáneas que admite Postgres (100 de fábrica). Con muchos negocios (TENANCY_MODE=multi) se sube junto con
+    # TENANT_POOL_MAX_CONNECTIONS de la app: docs/RUNBOOK.md §17.
+    command: ["postgres", "-c", "max_connections=${POSTGRES_MAX_CONNECTIONS:-100}"]
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -52,11 +55,19 @@ services:
       PLATFORM_HOST: ${PLATFORM_HOST:-}
       TENANT_BASE_DOMAIN: ${TENANT_BASE_DOMAIN:-}
       TENANT_DIRECTORY_TTL_MS: ${TENANT_DIRECTORY_TTL_MS:-}
+      # Cuántas conexiones a Postgres puede tener ESTA instancia hacia los negocios, todas sumadas (60 de fábrica: deja lugar en
+      # un Postgres de 100). Siempre menos que POSTGRES_MAX_CONNECTIONS; docs/RUNBOOK.md §17 trae la tabla de valores.
+      TENANT_POOL_MAX_CONNECTIONS: ${TENANT_POOL_MAX_CONNECTIONS:-}
+      TENANT_POOL_SIZE: ${TENANT_POOL_SIZE:-}
+      TENANT_POOL_MAX_ACTIVE: ${TENANT_POOL_MAX_ACTIVE:-}
       PLATFORM_LOGIN_RATE_LIMIT_MAX: ${PLATFORM_LOGIN_RATE_LIMIT_MAX:-10}
       CONTROL_DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_CONTROL_DB:-boutique_pos_control}?schema=public
       # Cuenta que crea las bases y roles de los negocios nuevos y las migra (alta automática, Etapa 3).
       TENANT_PROVISIONING_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/postgres
       TENANT_TEMPLATE_DB: ${TENANT_TEMPLATE_DB:-}
+      # Solo con PgBouncer (perfil `pgbouncer`, docs/RUNBOOK.md §17): a dónde se conecta la app para atender a los negocios.
+      TENANT_DB_HOST: ${TENANT_DB_HOST:-}
+      TENANT_DB_PORT: ${TENANT_DB_PORT:-}
       PLATFORM_MASTER_KEY: ${PLATFORM_MASTER_KEY:-}
       PLATFORM_MASTER_KEY_VERSION: ${PLATFORM_MASTER_KEY_VERSION:-1}
       PLATFORM_MASTER_KEY_PREVIOUS: ${PLATFORM_MASTER_KEY_PREVIOUS:-}
@@ -81,6 +92,8 @@ services:
       BACKUP_TIME: ${BACKUP_TIME:-02:00}
       # Un negocio sin plan conserva sus respaldos este tiempo; con plan, los días del plan (Planes → Días que se conservan los respaldos).
       BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-30}
+      # Cuántos respaldos se hacen a la vez. Uno por uno basta para pocos negocios; con cientos, 4 acortan mucho la ventana.
+      BACKUP_PARALLEL: ${BACKUP_PARALLEL:-1}
       # Cuánto se guarda el volcado final de una base archivada (el que se exige antes de borrarla).
       FINAL_BACKUP_RETENTION_DAYS: ${FINAL_BACKUP_RETENTION_DAYS:-365}
       # Cada cuántos segundos revisa si se pidió un respaldo desde el panel.
@@ -105,6 +118,28 @@ services:
       timeout: 10s
       retries: 1
       start_period: 10m
+    logging: *logging
+
+  # OPCIONAL, apagado por omisión (`dc --profile pgbouncer up -d`). Se evaluó y no se recomienda salvo que un Postgres
+  # administrado limite las conexiones: con un rol por negocio no pone un tope global y cuesta rendimiento (docs/RUNBOOK.md §17).
+  pgbouncer:
+    profiles: ["pgbouncer"]
+    build: ./docker/pgbouncer
+    image: boutique-pos-pgbouncer:latest
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGB_HOST: db
+      PGB_PORT: 5432
+      # La de la cuenta `pgbouncer` (pnpm pgbouncer:setup). Vacía, el servicio se niega a arrancar.
+      PGB_AUTH_PASSWORD: ${PGB_AUTH_PASSWORD:-}
+      PGB_POOL_SIZE: ${PGB_POOL_SIZE:-4}
+      PGB_SERVER_IDLE_TIMEOUT: ${PGB_SERVER_IDLE_TIMEOUT:-1}
+      PGB_MAX_CLIENT_CONN: ${PGB_MAX_CLIENT_CONN:-4000}
+    expose:
+      - "6432"
     logging: *logging
 
   caddy:

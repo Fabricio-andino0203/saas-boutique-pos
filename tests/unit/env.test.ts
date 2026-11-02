@@ -62,7 +62,13 @@ describe("parseEnv — platform (SaaS)", () => {
       TENANT_DB_PORT: "",
       TENANT_DIRECTORY_TTL_MS: "",
       PLATFORM_MASTER_KEY_PREVIOUS_VERSION: "",
+      TENANT_POOL_MAX_CONNECTIONS: "",
+      TENANT_POOL_SIZE: "",
+      TENANT_POOL_MAX_ACTIVE: "",
     });
+    expect(env.TENANT_POOL_MAX_CONNECTIONS).toBeUndefined();
+    expect(env.TENANT_POOL_SIZE).toBeUndefined();
+    expect(env.TENANT_POOL_MAX_ACTIVE).toBeUndefined();
     expect(env.TENANCY_MODE).toBe("single");
     expect(env.PLATFORM_HOST).toBeUndefined();
     expect(env.PLATFORM_MASTER_KEY).toBeUndefined();
@@ -98,6 +104,19 @@ describe("parseEnv — platform (SaaS)", () => {
     expect(env.TENANT_DIRECTORY_TTL_MS).toBe(300);
   });
 
+  it("reads the connection budget of the business pools", () => {
+    const env = parseEnv({
+      ...validSource,
+      ...platform,
+      TENANT_POOL_MAX_CONNECTIONS: "240",
+      TENANT_POOL_SIZE: "3",
+      TENANT_POOL_MAX_ACTIVE: "120",
+    });
+    expect(env.TENANT_POOL_MAX_CONNECTIONS).toBe(240);
+    expect(env.TENANT_POOL_SIZE).toBe(3);
+    expect(env.TENANT_POOL_MAX_ACTIVE).toBe(120);
+  });
+
   it.each([
     [
       "the panel in single-business mode",
@@ -121,6 +140,17 @@ describe("parseEnv — platform (SaaS)", () => {
     ],
     ["a database host with a path", { TENANT_DB_HOST: "pg/x" }, /TENANT_DB_HOST/],
     ["a database port out of range", { TENANT_DB_PORT: "70000" }, /TENANT_DB_PORT/],
+    ["a pool size of zero", { TENANT_POOL_SIZE: "0" }, /TENANT_POOL_SIZE/],
+    [
+      "a connection budget smaller than one business",
+      { TENANT_POOL_MAX_CONNECTIONS: "1", TENANT_POOL_SIZE: "2" },
+      /TENANT_POOL_MAX_CONNECTIONS no puede ser menor/,
+    ],
+    [
+      "a budget that is not a number",
+      { TENANT_POOL_MAX_CONNECTIONS: "muchas" },
+      /TENANT_POOL_MAX_CONNECTIONS/,
+    ],
     ["a master key of the wrong size", { PLATFORM_MASTER_KEY: "corta" }, /32 bytes/],
     ["a previous key of the wrong size", { PLATFORM_MASTER_KEY_PREVIOUS: "corta" }, /32 bytes/],
   ])("rejects %s", (_name, override, message) => {
@@ -230,5 +260,17 @@ describe("parseEnv with DEPLOYMENT=production", () => {
     ])("also rejects %s", (_name, override, message) => {
       expect(() => parseEnv({ ...withPlatform, ...override })).toThrow(message);
     });
+  });
+});
+
+describe("judgeBudget (connection budget against the server)", () => {
+  it("fits when budget + margin + reserved stays within the server maximum", async () => {
+    const { BUDGET_MARGIN, judgeBudget } = await import("@/lib/tenancy/pool-check");
+    expect(judgeBudget(60, 100, 3)).toBe("ok");
+    expect(judgeBudget(100 - 3 - BUDGET_MARGIN, 100, 3)).toBe("ok");
+    expect(judgeBudget(100 - 3 - BUDGET_MARGIN + 1, 100, 3)).toBe("over");
+    expect(judgeBudget(240, 300, 3)).toBe("ok");
+    // El error de configuración que tumba a todos: dos instancias de 200 contra un servidor de 300.
+    expect(judgeBudget(200 + 200, 300, 3)).toBe("over");
   });
 });

@@ -72,6 +72,14 @@ const envSchema = z
     TENANT_DB_PORT: optionalInt(1, 65535),
     /** Cuánto se recuerda qué negocio es cada host (milisegundos). Es lo que tarda en notarse una suspensión; 0 = sin caché. */
     TENANT_DIRECTORY_TTL_MS: optionalInt(0, 600_000),
+    /**
+     * Conexiones de esta instancia hacia las bases de los negocios (Etapa 6, docs/RUNBOOK.md §17). `MAX_CONNECTIONS` es el
+     * presupuesto total (60 deja lugar en un Postgres de fábrica con 100); `SIZE`, las conexiones de cada negocio abierto;
+     * `MAX_ACTIVE`, el tope de negocios abiertos por memoria. Vacío = valores de fábrica.
+     */
+    TENANT_POOL_MAX_CONNECTIONS: optionalInt(2, 20_000),
+    TENANT_POOL_SIZE: optionalInt(1, 20),
+    TENANT_POOL_MAX_ACTIVE: optionalInt(1, 5_000),
     /** Base central de la plataforma (negocios, superadministradores, auditoría). Obligatoria en `multi`. */
     CONTROL_DATABASE_URL: optionalText(),
     /** Llave que cifra los secretos de la plataforma (32 bytes en base64). Se genera con `pnpm platform:gen-key`. */
@@ -119,6 +127,15 @@ const envSchema = z
           "TENANT_BASE_DOMAIN es obligatorio con TENANCY_MODE=multi (p. ej. tuplataforma.com)",
         );
       }
+    }
+    if (
+      value.TENANT_POOL_MAX_CONNECTIONS !== undefined &&
+      value.TENANT_POOL_MAX_CONNECTIONS < (value.TENANT_POOL_SIZE ?? 2)
+    ) {
+      problem(
+        "TENANT_POOL_MAX_CONNECTIONS",
+        "TENANT_POOL_MAX_CONNECTIONS no puede ser menor que las conexiones de un negocio (TENANT_POOL_SIZE)",
+      );
     }
     if (value.TENANT_BASE_DOMAIN && !HOSTNAME_PATTERN.test(value.TENANT_BASE_DOMAIN)) {
       problem(

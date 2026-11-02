@@ -117,6 +117,31 @@ describe("tenant database url", () => {
     ).toEqual({ host: "otro", port: "5999" });
   });
 
+  it("an empty variable counts as not defined (a compose file with no value passes it empty)", () => {
+    const control = "postgresql://u:p@pg.servidor:6543/central";
+    expect(
+      serverEndpoint("primary", {
+        CONTROL_DATABASE_URL: control,
+        TENANT_DB_HOST: "",
+        TENANT_DB_PORT: "",
+      }),
+    ).toEqual({ host: "pg.servidor", port: "6543" });
+    expect(
+      serverEndpoint("primary", {
+        CONTROL_DATABASE_URL: control,
+        TENANT_DB_HOST: "  ",
+        TENANT_DB_PORT: " ",
+      }),
+    ).toEqual({ host: "pg.servidor", port: "6543" });
+    expect(
+      serverEndpoint("primary", {
+        CONTROL_DATABASE_URL: "postgresql://u:p@pg.servidor/central",
+        TENANT_DB_HOST: "",
+        TENANT_DB_PORT: "",
+      }),
+    ).toEqual({ host: "pg.servidor", port: "5432" });
+  });
+
   it("an unknown server fails instead of falling back to another one", () => {
     expect(() => serverEndpoint("segundo", { TENANT_DB_HOST: "x" })).toThrow(/desconocido/);
     expect(() => serverEndpoint("primary", {})).toThrow(/TENANT_DB_HOST/);
