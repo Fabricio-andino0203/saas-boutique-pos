@@ -16,6 +16,8 @@ export type VariantOption = {
   costCents: number | null;
   /** Coincidió exactamente con el código de barras o el código que se escribió. */
   exact: boolean;
+  /** La foto principal del producto, para elegir mirando; `null` si no tiene. */
+  imageId: string | null;
 };
 
 /** Una página de prendas: `hasMore` dice si hay más después de ella. */
@@ -25,6 +27,15 @@ export const VARIANT_PAGE_SIZE = 40;
 
 const label = (size?: { name: string } | null, color?: { name: string } | null): string =>
   [size?.name, color?.name].filter(Boolean).join(" · ");
+
+/** El producto de una prenda con lo que hace falta para mostrarla: nombre, costo y su foto principal. */
+const productForOption = {
+  select: {
+    name: true,
+    baseCostCents: true,
+    images: { where: { position: 0 }, select: { id: true }, take: 1 },
+  },
+} satisfies { select: Prisma.ProductSelect };
 
 /**
  * TODAS las prendas activas, por nombre y luego por código, de a páginas: para elegir mirando la lista en vez de tener que
@@ -39,7 +50,7 @@ export async function listVariantsPage(
   const variants = await client.variant.findMany({
     where: { archivedAt: null, product: { archivedAt: null } },
     include: {
-      product: { select: { name: true, baseCostCents: true } },
+      product: productForOption,
       size: { select: { name: true } },
       color: { select: { name: true } },
     },
@@ -61,6 +72,7 @@ export async function listVariantsPage(
           : variant.product.baseCostCents
         : null,
       exact: false,
+      imageId: variant.product.images[0]?.id ?? null,
     })),
   };
 }
@@ -76,7 +88,7 @@ export async function searchPurchasableVariants(
     return [];
   }
   const include = {
-    product: { select: { name: true, baseCostCents: true } },
+    product: productForOption,
     size: { select: { name: true } },
     color: { select: { name: true } },
   } satisfies Prisma.VariantInclude;
@@ -103,6 +115,7 @@ export async function searchPurchasableVariants(
         : variant.product.baseCostCents
       : null,
     exact: isExact,
+    imageId: variant.product.images[0]?.id ?? null,
   });
   if (exact.length > 0) {
     return exact.map((variant) => toOption(variant, true));

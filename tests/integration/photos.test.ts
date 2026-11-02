@@ -31,6 +31,10 @@ import {
   type PhotoDeps,
 } from "@/modules/photos/service";
 import { photoKey } from "@/modules/photos/storage";
+import { listStock } from "@/modules/inventory/queries";
+import { listProducts } from "@/modules/products/service";
+import { listVariantsPage, searchPurchasableVariants } from "@/modules/purchasing/queries";
+import { searchSellable } from "@/modules/sales/pos-queries";
 
 import { closeDatabase, resetDatabase, testDb } from "./helpers/db";
 
@@ -468,5 +472,36 @@ describe("a business folder", () => {
 
     expect(await store.get(photoKey(FOLDER, w.dress.id, added.id, "thumb"))).not.toBeNull();
     expect(await store.get(photoKey("tenantB", w.dress.id, added.id, "thumb"))).toBeNull();
+  });
+});
+
+describe("the cover photo in the screens that list products", () => {
+  it("reaches the product list, the stock list, the POS and the garment pickers, and is null without a photo", async () => {
+    const w = await world();
+    const first = await addProductPhoto(w.owner, w.dress.id, { data: await photo() }, deps);
+    const second = await addProductPhoto(w.owner, w.dress.id, { data: await photo() }, deps);
+    await reorderProductPhotos(w.owner, w.dress.id, { orderedIds: [second.id, first.id] }, deps);
+
+    const rows = (await listProducts({}, testDb)).rows;
+    expect(rows.find((row) => row.id === w.dress.id)?.coverImageId).toBe(second.id);
+    expect(rows.find((row) => row.id === w.blouse.id)?.coverImageId).toBeNull();
+
+    const stock = (await listStock({}, testDb)).rows;
+    expect(stock.find((row) => row.productId === w.dress.id)?.coverImageId).toBe(second.id);
+    expect(stock.find((row) => row.productId === w.blouse.id)?.coverImageId).toBeNull();
+
+    const sellable = await searchSellable({}, testDb);
+    expect(sellable.find((product) => product.productId === w.dress.id)?.coverImageId).toBe(
+      second.id,
+    );
+    expect(sellable.find((product) => product.productId === w.blouse.id)?.coverImageId).toBeNull();
+
+    const page = await listVariantsPage(0, { includeCost: false }, testDb);
+    expect(page.items.filter((item) => item.productName === "Vestido floral")).not.toHaveLength(0);
+    for (const item of page.items) {
+      expect(item.imageId).toBe(item.productName === "Vestido floral" ? second.id : null);
+    }
+    const found = await searchPurchasableVariants("VES1-R", { includeCost: false }, testDb);
+    expect(found[0]?.imageId).toBe(second.id);
   });
 });

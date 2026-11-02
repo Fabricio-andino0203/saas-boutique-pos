@@ -13,6 +13,7 @@ const MAX_TERMS = 4;
 
 const productInclude = {
   category: { select: { name: true } },
+  images: { where: { position: 0 }, select: { id: true }, take: 1 },
   variants: {
     where: { archivedAt: null },
     orderBy: [{ size: { sortOrder: "asc" } }, { sku: "asc" }],
@@ -32,6 +33,7 @@ function toSellable(product: ProductRow): SellableProduct {
     code: product.code,
     name: product.name,
     categoryName: product.category.name,
+    coverImageId: product.images[0]?.id ?? null,
     variants: product.variants.map((variant): SellableVariant => ({
       variantId: variant.id,
       sku: variant.sku,

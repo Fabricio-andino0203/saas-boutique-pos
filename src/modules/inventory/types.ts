@@ -31,6 +31,8 @@ export type StockRow = {
   code: string;
   name: string;
   categoryName: string;
+  /** La foto principal del producto, o `null` si no tiene. */
+  coverImageId: string | null;
   variantCount: number;
   onHand: number;
   status: StockStatus;

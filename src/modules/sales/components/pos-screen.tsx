@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { messages } from "@/config/messages.es";
 import { formatMoney } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { ProductThumb } from "@/modules/photos/components/product-thumb";
 import { labelOfVariant, summarizeCart } from "@/modules/sales/cart-logic";
 import { hydratePosStore, usePosStore } from "@/modules/sales/cart-store";
 import { FiscalAlerts } from "@/modules/fiscal/components/fiscal-alerts";
@@ -540,12 +541,19 @@ export function PosScreen({
                           stock <= 0 && "opacity-60",
                         )}
                       >
-                        <span
-                          aria-hidden="true"
-                          className="bg-muted text-muted-foreground grid h-20 place-items-center rounded-md text-2xl font-semibold"
-                        >
-                          {initialsOf(product.name)}
-                        </span>
+                        {product.coverImageId ? (
+                          <ProductThumb
+                            imageId={product.coverImageId}
+                            className="aspect-[4/5] w-full"
+                          />
+                        ) : (
+                          <span
+                            aria-hidden="true"
+                            className="bg-muted text-muted-foreground grid h-20 place-items-center rounded-md text-2xl font-semibold"
+                          >
+                            {initialsOf(product.name)}
+                          </span>
+                        )}
                         <span className="line-clamp-2 text-sm leading-tight font-medium">
                           {product.name}
                         </span>

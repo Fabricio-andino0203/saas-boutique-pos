@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { messages } from "@/config/messages.es";
+import { ProductThumb } from "@/modules/photos/components/product-thumb";
 import type { VariantOption, VariantPage } from "@/modules/purchasing/queries";
 
 const copy = messages.purchasing.picker;
@@ -138,10 +139,15 @@ export function VariantPicker({ onPick, helper, search, browse }: VariantPickerP
           >
             {shown.map((option) => (
               <li key={option.variantId} className="flex items-center justify-between gap-3 p-2">
-                <span className="text-sm">
-                  <span className="font-medium">{option.productName}</span>
-                  {option.label ? ` · ${option.label}` : ""}
-                  <span className="text-muted-foreground ml-2 font-mono text-xs">{option.sku}</span>
+                <span className="flex items-center gap-3">
+                  <ProductThumb imageId={option.imageId} className="h-12 w-10" />
+                  <span className="text-sm">
+                    <span className="font-medium">{option.productName}</span>
+                    {option.label ? ` · ${option.label}` : ""}
+                    <span className="text-muted-foreground ml-2 font-mono text-xs">
+                      {option.sku}
+                    </span>
+                  </span>
                 </span>
                 <Button
                   type="button"

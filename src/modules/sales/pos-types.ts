@@ -21,6 +21,8 @@ export type SellableProduct = {
   code: string;
   name: string;
   categoryName: string;
+  /** La foto principal del producto, o `null` si no tiene (el mosaico muestra sus iniciales). */
+  coverImageId: string | null;
   variants: SellableVariant[];
 };
 

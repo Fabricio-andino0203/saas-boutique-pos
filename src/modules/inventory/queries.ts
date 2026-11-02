@@ -59,6 +59,7 @@ export async function listStock(
       name: true,
       basePriceCents: true,
       category: { select: { name: true } },
+      images: { where: { position: 0 }, select: { id: true }, take: 1 },
       variants: {
         where: { archivedAt: null },
         select: {
@@ -103,6 +104,7 @@ export async function listStock(
       code: product.code,
       name: product.name,
       categoryName: product.category.name,
+      coverImageId: product.images[0]?.id ?? null,
       variantCount: cells.length,
       onHand,
       status: onHand <= 0 ? "out" : hasLowVariant ? "low" : "ok",

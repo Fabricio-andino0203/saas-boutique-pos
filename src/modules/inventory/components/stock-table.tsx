@@ -17,6 +17,7 @@ import { messages } from "@/config/messages.es";
 import { formatMoney } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { StockCell, StockRow, StockStatus } from "@/modules/inventory/types";
+import { ProductThumb } from "@/modules/photos/components/product-thumb";
 
 const copy = messages.inventory;
 
@@ -135,14 +136,17 @@ export function StockTable({ rows, showCost, filtered }: StockTableProps) {
               <Fragment key={row.productId}>
                 <TableRow>
                   <TableCell>
-                    <div className="space-y-0.5">
-                      <Link
-                        href={`/productos/${row.productId}`}
-                        className="text-primary font-medium underline underline-offset-4"
-                      >
-                        {row.name}
-                      </Link>
-                      <div className="text-muted-foreground font-mono text-xs">{row.code}</div>
+                    <div className="flex items-center gap-3">
+                      <ProductThumb imageId={row.coverImageId} className="h-12 w-10" />
+                      <div className="space-y-0.5">
+                        <Link
+                          href={`/productos/${row.productId}`}
+                          className="text-primary font-medium underline underline-offset-4"
+                        >
+                          {row.name}
+                        </Link>
+                        <div className="text-muted-foreground font-mono text-xs">{row.code}</div>
+                      </div>
                     </div>
                   </TableCell>
                   <TableCell>{row.categoryName}</TableCell>
