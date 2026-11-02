@@ -349,3 +349,34 @@ describe("the shared variant picker does not hide a purchasing dependency", () =
     expect(offenders).toEqual([]);
   });
 });
+
+// Las fotos de los productos: los archivos son de un negocio y solo se tocan por un lugar, que arma la carpeta del negocio
+// actual. Cualquier otro que crease su propio almacén podría leer o escribir fuera de esa carpeta.
+describe("product photos stay inside the business folder", () => {
+  const STORAGE = join("src", "modules", "photos", "storage.ts");
+  const BLOB_STORE = join("src", "lib", "blob-store.ts");
+  const PHOTO_ROUTES = [
+    join("src", "app", "api", "fotos", "[id]", "[tamano]", "route.ts"),
+    join("src", "app", "api", "productos", "[id]", "fotos", "route.ts"),
+  ];
+
+  it("only photos/storage.ts creates the file store or reads UPLOADS_DIR", () => {
+    const offenders = appFilesOutsideTenancy().filter((file) => {
+      if (file === STORAGE || file === BLOB_STORE) {
+        return false;
+      }
+      const source = readFileSync(join(ROOT, file), "utf8");
+      return /\bcreateFileStore\s*\(/.test(source) || source.includes("UPLOADS_DIR");
+    });
+    // env.ts declara la variable; no crea ningún almacén.
+    expect(offenders.filter((file) => file !== join("src", "lib", "env.ts"))).toEqual([]);
+  });
+
+  it("the photo routes only read the session that can actually use the system", () => {
+    for (const route of PHOTO_ROUTES) {
+      const source = readFileSync(join(ROOT, route), "utf8");
+      expect(source).toContain("getUsableSession");
+      expect(source).not.toMatch(/\bgetSession\b/);
+    }
+  });
+});
