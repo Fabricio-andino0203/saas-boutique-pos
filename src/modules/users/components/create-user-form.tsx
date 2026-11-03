@@ -6,6 +6,7 @@ import { FormField } from "@/components/shared/form-field";
 import { NativeSelect } from "@/components/shared/native-select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Notice } from "@/components/shared/notice";
 import { messages } from "@/config/messages.es";
 import { ROLES } from "@/lib/permissions";
 import { createUserAction } from "@/modules/users/actions";
@@ -38,12 +39,8 @@ export function CreateUserForm() {
       <FormField label={copy.pin} htmlFor="pin" hint={copy.pinHint}>
         <Input id="pin" name="pin" inputMode="numeric" autoComplete="off" />
       </FormField>
-      {state?.error ? (
-        <p role="alert" className="text-destructive text-sm">
-          {state.error}
-        </p>
-      ) : null}
-      <Button type="submit" disabled={pending}>
+      {state?.error ? <Notice tone="error">{state.error}</Notice> : null}
+      <Button type="submit" loading={pending}>
         {pending ? copy.creating : copy.create}
       </Button>
     </form>

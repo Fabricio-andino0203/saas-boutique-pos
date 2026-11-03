@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } fro
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Notice } from "@/components/shared/notice";
 import { messages } from "@/config/messages.es";
 import { formatMoney } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -512,9 +513,7 @@ export function PosScreen({
 
           <div aria-label={copy.search.results} className="min-h-0 flex-1 overflow-y-auto pr-1">
             {searchError ? (
-              <p role="alert" className="text-destructive text-sm">
-                {copy.search.error}
-              </p>
+              <Notice tone="error">{copy.search.error}</Notice>
             ) : products === null ? (
               <p className="text-muted-foreground text-sm">{copy.search.loading}</p>
             ) : showEmpty ? (

@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Notice } from "@/components/shared/notice";
 import { messages } from "@/config/messages.es";
 import { cn } from "@/lib/utils";
 
@@ -101,11 +102,7 @@ export function OptionPicker({
           {copy.add}
         </Button>
       </div>
-      {error ? (
-        <p role="alert" className="text-destructive text-sm">
-          {error}
-        </p>
-      ) : null}
+      {error ? <Notice tone="error">{error}</Notice> : null}
     </fieldset>
   );
 }

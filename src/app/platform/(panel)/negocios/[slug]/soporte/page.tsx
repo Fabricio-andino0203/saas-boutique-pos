@@ -11,6 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Notice } from "@/components/shared/notice";
 import { platformMessages } from "@/config/messages.platform.es";
 import { formatLocalDateTime } from "@/lib/dates";
 import { formatMoney } from "@/lib/format";
@@ -84,9 +85,9 @@ export default async function PlatformSupportPage({ params }: Props) {
       </p>
 
       {failure || !data ? (
-        <p role="alert" className="text-destructive text-sm">
+        <Notice tone="error">
           {view.readError} {failure}
-        </p>
+        </Notice>
       ) : (
         <>
           <Section title={view.sections.users}>

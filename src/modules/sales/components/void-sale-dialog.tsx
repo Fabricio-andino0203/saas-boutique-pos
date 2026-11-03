@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { toast } from "sonner";
 
 import { FormField } from "@/components/shared/form-field";
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Notice } from "@/components/shared/notice";
 import { messages } from "@/config/messages.es";
 import { voidSaleAction } from "@/modules/sales/history-actions";
 
@@ -71,6 +73,7 @@ function VoidForm({
       });
       if (result.ok) {
         onClose();
+        toast.success(messages.toasts.saleVoided);
         router.refresh();
       } else {
         setError(result.message);
@@ -123,16 +126,12 @@ function VoidForm({
           </div>
         </fieldset>
       ) : null}
-      {error ? (
-        <p role="alert" className="text-destructive text-sm">
-          {error}
-        </p>
-      ) : null}
+      {error ? <Notice tone="error">{error}</Notice> : null}
       <div className="flex flex-wrap justify-end gap-2">
-        <Button type="button" variant="ghost" disabled={pending} onClick={onClose}>
+        <Button type="button" variant="ghost" loading={pending} onClick={onClose}>
           {messages.common.close}
         </Button>
-        <Button type="button" variant="destructive" disabled={pending} onClick={submit}>
+        <Button type="button" variant="destructive" loading={pending} onClick={submit}>
           {pending ? copy.submitting : copy.submit}
         </Button>
       </div>

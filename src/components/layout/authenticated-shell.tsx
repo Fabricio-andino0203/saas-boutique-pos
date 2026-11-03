@@ -32,6 +32,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { BrandLogo } from "@/components/layout/brand-mark";
+import { NavPending } from "@/components/layout/nav-pending";
 import { SubscriptionBanner } from "@/components/layout/subscription-banner";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { Button } from "@/components/ui/button";
@@ -256,6 +257,7 @@ export async function AuthenticatedShell({ children }: { children: ReactNode }) 
                 <SidebarMenuButton render={<Link href={homeItem.href} />}>
                   <homeItem.icon />
                   <span>{homeItem.label}</span>
+                  <NavPending />
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
@@ -269,6 +271,7 @@ export async function AuthenticatedShell({ children }: { children: ReactNode }) 
                     <SidebarMenuButton render={<Link href={item.href} />}>
                       <item.icon />
                       <span>{item.label}</span>
+                      <NavPending />
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 ))}

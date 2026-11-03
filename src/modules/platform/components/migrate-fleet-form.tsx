@@ -4,6 +4,7 @@ import { useActionState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Notice } from "@/components/shared/notice";
 import { platformMessages } from "@/config/messages.platform.es";
 import { useRefreshOnSuccess } from "@/modules/platform/components/use-redirect-on-state";
 import { migrateFleetAction } from "@/modules/platform/tenant-actions";
@@ -29,18 +30,18 @@ export function MigrateFleetForm() {
           required
         />
       </div>
-      <Button type="submit" disabled={pending}>
+      <Button type="submit" loading={pending}>
         {copy.submit}
       </Button>
       {state?.error ? (
-        <p role="alert" className="text-destructive w-full text-sm">
+        <Notice tone="error" className="w-full">
           {state.error}
-        </p>
+        </Notice>
       ) : null}
       {state?.success ? (
-        <p role="status" className="w-full text-sm text-green-700 dark:text-green-400">
+        <Notice tone="success" className="w-full">
           {state.success}
-        </p>
+        </Notice>
       ) : null}
     </form>
   );

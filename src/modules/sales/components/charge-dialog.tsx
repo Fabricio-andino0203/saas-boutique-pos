@@ -14,6 +14,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Notice } from "@/components/shared/notice";
+import { SuccessCheck } from "@/components/shared/success-check";
 import { messages } from "@/config/messages.es";
 import { formatMoney } from "@/lib/format";
 import { sumCents } from "@/lib/money";
@@ -543,20 +545,16 @@ function ChargeForm({
         </fieldset>
       ) : null}
 
-      {error ? (
-        <p role="alert" className="text-destructive text-sm">
-          {error}
-        </p>
-      ) : null}
+      {error ? <Notice tone="error">{error}</Notice> : null}
 
       <div className="flex flex-wrap justify-end gap-2">
-        <Button type="button" variant="ghost" disabled={pending} onClick={onClose}>
+        <Button type="button" variant="ghost" loading={pending} onClick={onClose}>
           {copy.back}
         </Button>
         <Button
           type="button"
           className="h-12 min-w-40 text-lg font-semibold"
-          disabled={pending}
+          loading={pending}
           autoFocus={payable === 0}
           onClick={submit}
         >
@@ -596,6 +594,7 @@ function SoldView({
         </DialogDescription>
       </DialogHeader>
       <div role="status" className="bg-muted space-y-1 rounded-lg px-4 py-4 text-center">
+        <SuccessCheck className="mx-auto mb-2" />
         <p className="text-muted-foreground text-sm">
           {sold.changeCents > 0 ? done.change : done.noChange}
         </p>
@@ -623,9 +622,9 @@ function SoldView({
               </p>
             ) : null}
             {exchange.doc.creditNoteMissing ? (
-              <p role="alert" className="text-warning text-sm">
+              <Notice tone="warning" role="alert">
                 {messages.returns.creditNote.missing}
-              </p>
+              </Notice>
             ) : null}
           </>
         ) : (

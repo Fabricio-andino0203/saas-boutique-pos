@@ -2,6 +2,18 @@ export const messages = {
   app: { name: "Boutique Ventas", maker: "by Andino Software" },
   /** Interruptor de tema claro/oscuro (el texto dice a qué tema cambia, no el que está activo). */
   theme: { toDark: "Cambiar a modo oscuro", toLight: "Cambiar a modo claro" },
+  /** Confirmaciones breves (toast) de acciones que terminan sin otro mensaje en pantalla. */
+  toasts: {
+    cashOpened: "Caja abierta",
+    cashierSwitched: "Cajero cambiado",
+    saleVoided: "Venta anulada",
+    customerSaved: "Cliente guardado",
+    customerArchived: "Cliente archivado",
+    customerRestored: "Cliente restaurado",
+    countStarted: "Conteo iniciado",
+    purchaseOrderCreated: "Orden de compra creada",
+    onboardingDone: "Todo listo para empezar a vender",
+  },
   /** Avisos de la suscripción del negocio (los ve cada usuario del negocio, arriba de la pantalla). */
   subscription: {
     trialEnding:
@@ -2566,6 +2578,27 @@ export const messages = {
         errorMessage: "No pudimos cargar los productos.",
         sampleDress: "Vestido floral",
         sampleBlouse: "Blusa de lino",
+      },
+      feedback: {
+        buttons: "Botones",
+        primary: "Guardar",
+        outline: "Cancelar",
+        secondary: "Ver detalle",
+        ghost: "Más opciones",
+        destructive: "Archivar",
+        loading: "Guardando…",
+        disabled: "No disponible",
+        notices: "Avisos",
+        noticeError: "No pudimos guardar el producto. Revisa el precio e inténtalo de nuevo.",
+        noticeSuccess: "Producto guardado.",
+        noticeWarning: "Quedan pocas unidades de esta talla.",
+        noticeInfo: "Los cambios se aplican en la próxima venta.",
+        noticeSmall: "Aviso compacto para filas y tablas.",
+        toasts: "Confirmaciones breves",
+        toastSuccess: "Mostrar confirmación",
+        toastMessage: "Producto guardado",
+        loadingBlocks: "Carga",
+        success: "Éxito",
       },
     },
   },

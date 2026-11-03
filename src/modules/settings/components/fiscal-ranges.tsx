@@ -17,6 +17,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Notice } from "@/components/shared/notice";
 import { messages } from "@/config/messages.es";
 import { saveFiscalRangeAction, setFiscalRangeActiveAction } from "@/modules/settings/actions";
 import type { FiscalRangeRow } from "@/modules/settings/service";
@@ -65,9 +66,9 @@ function Row({ range }: { range: FiscalRangeRow }) {
             {range.isActive ? copy.deactivate : copy.activate}
           </button>
           {error ? (
-            <p role="alert" className="text-destructive max-w-56 text-xs">
+            <Notice tone="error" size="sm" className="max-w-56">
               {error}
-            </p>
+            </Notice>
           ) : null}
         </div>
       </TableCell>
@@ -157,17 +158,9 @@ export function FiscalRangeForm({ terminals }: { terminals: { value: string; lab
           <Input id="expiresAt" name="expiresAt" type="date" />
         </FormField>
       </div>
-      {state?.error ? (
-        <p role="alert" className="text-destructive text-sm">
-          {state.error}
-        </p>
-      ) : null}
-      {state?.success ? (
-        <p role="status" className="text-success text-sm">
-          {state.success}
-        </p>
-      ) : null}
-      <Button type="submit" disabled={pending}>
+      {state?.error ? <Notice tone="error">{state.error}</Notice> : null}
+      {state?.success ? <Notice tone="success">{state.success}</Notice> : null}
+      <Button type="submit" loading={pending}>
         {pending ? copy.creating : copy.create}
       </Button>
     </form>

@@ -30,6 +30,7 @@ test("the cashier creates and edits a customer and a manager archives it", async
     .getByLabel(clients.form.fields.notes, { exact: true })
     .fill("E2E le gustan los vestidos");
   await page.getByRole("button", { name: clients.form.create }).click();
+  await expect(page.getByText(messages.toasts.customerSaved)).toBeVisible();
   await expect(page.getByRole("heading", { name, level: 1 })).toBeVisible();
   await expect(page.getByText("clienta@correo.com")).toBeVisible();
   const fichaUrl = page.url();
@@ -60,6 +61,7 @@ test("the cashier creates and edits a customer and a manager archives it", async
   await loginAs(manager, "manager");
   await manager.goto(fichaUrl);
   await manager.getByRole("button", { name: clients.actions.archive }).click();
+  await expect(manager.getByText(messages.toasts.customerArchived)).toBeVisible();
   await expect(manager.getByText(clients.actions.archivedNote)).toBeVisible();
   await manager.goto(`/clientes?q=${phone}`);
   await expect(manager.getByText(clients.list.empty)).toBeVisible();

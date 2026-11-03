@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 import { Button, buttonVariants } from "@/components/ui/button";
+import { Notice } from "@/components/shared/notice";
 import { messages } from "@/config/messages.es";
 import { cancelPurchaseOrderAction, placePurchaseOrderAction } from "@/modules/purchasing/actions";
 import type { PurchasingActionState } from "@/modules/purchasing/schemas";
@@ -43,7 +44,7 @@ export function OrderActions({ orderId, status, canOrder }: OrderActionsProps) {
         ) : null}
         {status === "DRAFT" && canOrder ? (
           <>
-            <Button type="button" disabled={pending} onClick={() => run(placePurchaseOrderAction)}>
+            <Button type="button" loading={pending} onClick={() => run(placePurchaseOrderAction)}>
               {copy.order.place}
             </Button>
             <Link
@@ -58,7 +59,7 @@ export function OrderActions({ orderId, status, canOrder }: OrderActionsProps) {
           <Button
             type="button"
             variant="destructive"
-            disabled={pending}
+            loading={pending}
             onClick={() => run(cancelPurchaseOrderAction)}
           >
             {copy.order.cancel}
@@ -68,16 +69,8 @@ export function OrderActions({ orderId, status, canOrder }: OrderActionsProps) {
       {status === "DRAFT" ? (
         <p className="text-muted-foreground text-sm">{copy.order.draftHint}</p>
       ) : null}
-      {feedback?.error ? (
-        <p role="alert" className="text-destructive text-sm">
-          {feedback.error}
-        </p>
-      ) : null}
-      {feedback?.success ? (
-        <p role="status" className="text-success text-sm">
-          {feedback.success}
-        </p>
-      ) : null}
+      {feedback?.error ? <Notice tone="error">{feedback.error}</Notice> : null}
+      {feedback?.success ? <Notice tone="success">{feedback.success}</Notice> : null}
     </div>
   );
 }

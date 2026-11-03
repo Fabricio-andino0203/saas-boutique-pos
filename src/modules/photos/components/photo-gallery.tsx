@@ -7,6 +7,7 @@ import { useState, useTransition } from "react";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { NativeSelect } from "@/components/shared/native-select";
 import { Button } from "@/components/ui/button";
+import { Notice } from "@/components/shared/notice";
 import { PHOTO_LIMITS } from "@/config/constants";
 import { messages } from "@/config/messages.es";
 import { cn } from "@/lib/utils";
@@ -282,16 +283,8 @@ export function PhotoGallery({ productId, photos, colors }: PhotoGalleryProps) {
         </ul>
       ) : null}
 
-      {feedback?.error ? (
-        <p role="alert" className="text-destructive text-sm">
-          {feedback.error}
-        </p>
-      ) : null}
-      {feedback?.success ? (
-        <p role="status" className="text-success text-sm">
-          {feedback.success}
-        </p>
-      ) : null}
+      {feedback?.error ? <Notice tone="error">{feedback.error}</Notice> : null}
+      {feedback?.success ? <Notice tone="success">{feedback.success}</Notice> : null}
 
       <ConfirmDialog
         open={removing !== null}

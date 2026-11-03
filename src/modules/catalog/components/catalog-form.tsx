@@ -6,6 +6,7 @@ import { FormField } from "@/components/shared/form-field";
 import { NativeSelect } from "@/components/shared/native-select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Notice } from "@/components/shared/notice";
 import { messages } from "@/config/messages.es";
 import type { FormState } from "@/modules/auth/schemas";
 import { setItemArchivedAction, saveItemAction } from "@/modules/catalog/actions";
@@ -20,18 +21,10 @@ const copy = messages.catalog;
 
 function Feedback({ state }: { state: FormState }) {
   if (state?.error) {
-    return (
-      <p role="alert" className="text-destructive text-sm">
-        {state.error}
-      </p>
-    );
+    return <Notice tone="error">{state.error}</Notice>;
   }
   if (state?.success) {
-    return (
-      <p role="status" className="text-success text-sm">
-        {state.success}
-      </p>
-    );
+    return <Notice tone="success">{state.success}</Notice>;
   }
   return null;
 }
@@ -130,7 +123,7 @@ export function CatalogForm({ entity, id, values, options }: CatalogFormProps) {
         ),
       )}
       <Feedback state={state} />
-      <Button type="submit" disabled={pending}>
+      <Button type="submit" loading={pending}>
         {id
           ? pending
             ? copy.actions.saving
@@ -162,7 +155,7 @@ export function ArchiveForm({
         <p className="text-muted-foreground text-sm">{copy.messages.archiveHint}</p>
       )}
       <Feedback state={state} />
-      <Button type="submit" variant={archived ? "outline" : "destructive"} disabled={pending}>
+      <Button type="submit" variant={archived ? "outline" : "destructive"} loading={pending}>
         {archived ? copy.actions.restore : copy.actions.archive}
       </Button>
     </form>

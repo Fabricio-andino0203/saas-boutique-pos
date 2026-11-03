@@ -17,6 +17,10 @@
   --color-heading: var(--heading);
   --default-transition-duration: 150ms;
   --default-transition-timing-function: ease-out;
+  --animate-shimmer: shimmer 1.4s ease-in-out infinite;
+  --animate-check-pop: check-pop 420ms cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+  --animate-check-draw: check-draw 380ms ease-out 180ms both;
+  --animate-rise: rise 360ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
   --font-heading: var(--font-poppins), var(--font-sans);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
@@ -166,6 +170,69 @@
 @layer components {
   .money {
     @apply text-right tabular-nums;
+  }
+  /* Entrada escalonada de un grupo (la usa el inicio una sola vez, al cargar): cada hijo sube un poco después del anterior. */
+  .stagger > * {
+    animation: rise 360ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+  .stagger > :nth-child(2) {
+    animation-delay: 45ms;
+  }
+  .stagger > :nth-child(3) {
+    animation-delay: 90ms;
+  }
+  .stagger > :nth-child(4) {
+    animation-delay: 135ms;
+  }
+  .stagger > :nth-child(5) {
+    animation-delay: 180ms;
+  }
+  .stagger > :nth-child(n + 6) {
+    animation-delay: 225ms;
+  }
+}
+
+@keyframes shimmer {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes check-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes check-draw {
+  from {
+    stroke-dashoffset: 34;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Los avisos emergentes no se imprimen. */
+@media print {
+  [data-sonner-toaster] {
+    display: none !important;
   }
 }
 

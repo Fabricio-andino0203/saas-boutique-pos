@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { Button } from "@/components/ui/button";
+import { Notice } from "@/components/shared/notice";
 import { messages } from "@/config/messages.es";
 import { loadSampleDataAction } from "@/modules/settings/actions";
 import type { SettingsActionState } from "@/modules/settings/schemas";
@@ -21,19 +22,11 @@ export function SampleDataButton({ alreadyLoaded }: { alreadyLoaded: boolean }) 
 
   return (
     <div className="space-y-2">
-      <Button type="button" variant="outline" disabled={pending} onClick={() => setOpen(true)}>
+      <Button type="button" variant="outline" loading={pending} onClick={() => setOpen(true)}>
         {pending ? copy.loading : copy.button}
       </Button>
-      {result?.error ? (
-        <p role="alert" className="text-destructive text-sm">
-          {result.error}
-        </p>
-      ) : null}
-      {result?.success ? (
-        <p role="status" className="text-success text-sm">
-          {result.success}
-        </p>
-      ) : null}
+      {result?.error ? <Notice tone="error">{result.error}</Notice> : null}
+      {result?.success ? <Notice tone="success">{result.success}</Notice> : null}
       <ConfirmDialog
         open={open}
         onOpenChange={setOpen}

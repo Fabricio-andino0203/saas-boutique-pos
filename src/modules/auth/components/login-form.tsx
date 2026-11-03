@@ -4,6 +4,7 @@ import { useActionState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Notice } from "@/components/shared/notice";
 import { messages } from "@/config/messages.es";
 import { loginAction } from "@/modules/auth/actions";
 
@@ -31,12 +32,8 @@ export function LoginForm({ next }: { next: string }) {
           required
         />
       </div>
-      {state?.error ? (
-        <p role="alert" className="text-destructive text-sm">
-          {state.error}
-        </p>
-      ) : null}
-      <Button type="submit" className="h-11 w-full" disabled={pending}>
+      {state?.error ? <Notice tone="error">{state.error}</Notice> : null}
+      <Button type="submit" className="h-11 w-full" loading={pending}>
         {pending ? messages.auth.login.submitting : messages.auth.login.submit}
       </Button>
     </form>

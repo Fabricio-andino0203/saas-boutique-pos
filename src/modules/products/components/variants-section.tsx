@@ -17,6 +17,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Notice } from "@/components/shared/notice";
 import { messages } from "@/config/messages.es";
 import { formatMoney } from "@/lib/format";
 import {
@@ -38,18 +39,10 @@ type Feedback = { error?: string; success?: string } | null;
 
 function FeedbackText({ feedback }: { feedback: Feedback }) {
   if (feedback?.error) {
-    return (
-      <p role="alert" className="text-destructive text-sm">
-        {feedback.error}
-      </p>
-    );
+    return <Notice tone="error">{feedback.error}</Notice>;
   }
   if (feedback?.success) {
-    return (
-      <p role="status" className="text-success text-sm">
-        {feedback.success}
-      </p>
-    );
+    return <Notice tone="success">{feedback.success}</Notice>;
   }
   return null;
 }
@@ -231,7 +224,7 @@ function VariantRowView({
                 />
               </FormField>
               <div className="flex gap-2 sm:pt-6">
-                <Button type="button" disabled={pending} onClick={save}>
+                <Button type="button" loading={pending} onClick={save}>
                   {copy.saveVariant}
                 </Button>
                 <Button type="button" variant="outline" onClick={() => setEditing(false)}>

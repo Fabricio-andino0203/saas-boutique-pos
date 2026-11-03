@@ -11,6 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Notice } from "@/components/shared/notice";
 import { messages } from "@/config/messages.es";
 import { requirePageCapability } from "@/lib/auth";
 import { formatLocalDateTime } from "@/lib/dates";
@@ -47,11 +48,7 @@ export default async function ReceiptPage({
           title={`${copy.receipt.detailTitle} ${receipt.number}`}
           description={`${receipt.supplierName} · ${formatLocalDateTime(receipt.receivedAt)} · ${receipt.receivedByName}`}
         />
-        {justReceived ? (
-          <p role="status" className="text-success text-sm">
-            {copy.receipt.created}
-          </p>
-        ) : null}
+        {justReceived ? <Notice tone="success">{copy.receipt.created}</Notice> : null}
         <p className="text-sm">
           {receipt.supplierInvoiceRef ? (
             <span>

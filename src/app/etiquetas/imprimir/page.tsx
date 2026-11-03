@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { buttonVariants } from "@/components/ui/button";
+import { Notice } from "@/components/shared/notice";
 import { messages } from "@/config/messages.es";
 import { requirePageCapability } from "@/lib/auth";
 import { LabelSheet } from "@/modules/labels/components/label-sheet";
@@ -50,9 +51,7 @@ export default async function PrintLabelsPage({
         <p className="text-muted-foreground w-full text-xs">{copy.hint}</p>
       </div>
       {labels === null ? (
-        <p role="alert" className="text-destructive">
-          {copy.invalid}
-        </p>
+        <Notice tone="error">{copy.invalid}</Notice>
       ) : labels.length === 0 ? (
         <p className="no-print">{copy.empty}</p>
       ) : (

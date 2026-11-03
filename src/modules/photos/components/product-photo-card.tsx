@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { Notice } from "@/components/shared/notice";
 import { PHOTO_LIMITS } from "@/config/constants";
 import { messages } from "@/config/messages.es";
 import { cn } from "@/lib/utils";
@@ -93,9 +94,9 @@ export function ProductPhotoCard({ product }: { product: PhotoProductRow }) {
         </label>
       ) : null}
       {problem ? (
-        <p role="alert" className="text-destructive text-xs">
+        <Notice tone="error" size="sm">
           {problem}
-        </p>
+        </Notice>
       ) : null}
     </li>
   );

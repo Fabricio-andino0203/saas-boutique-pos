@@ -3,10 +3,12 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { toast } from "sonner";
 
 import { FormField } from "@/components/shared/form-field";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Notice } from "@/components/shared/notice";
 import { messages } from "@/config/messages.es";
 import { saveCustomerAction } from "@/modules/customers/actions";
 
@@ -57,6 +59,7 @@ export function CustomerForm({ initial }: CustomerFormProps) {
         setError(result.message);
         return;
       }
+      toast.success(messages.toasts.customerSaved);
       router.push(`/clientes/${result.id}`);
       router.refresh();
     });
@@ -138,13 +141,9 @@ export function CustomerForm({ initial }: CustomerFormProps) {
           className="border-input placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 w-full min-w-0 rounded-lg border bg-transparent px-2.5 py-1.5 text-base outline-none focus-visible:ring-3 md:text-sm"
         />
       </FormField>
-      {error ? (
-        <p role="alert" className="text-destructive text-sm">
-          {error}
-        </p>
-      ) : null}
+      {error ? <Notice tone="error">{error}</Notice> : null}
       <div className="flex flex-wrap gap-2">
-        <Button type="submit" disabled={pending}>
+        <Button type="submit" loading={pending}>
           {pending ? copy.saving : initial ? copy.save : copy.create}
         </Button>
         <Link

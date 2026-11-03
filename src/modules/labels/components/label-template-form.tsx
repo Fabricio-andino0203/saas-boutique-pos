@@ -6,6 +6,7 @@ import { FormField } from "@/components/shared/form-field";
 import { NativeSelect } from "@/components/shared/native-select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Notice } from "@/components/shared/notice";
 import { messages } from "@/config/messages.es";
 import type { LabelTemplate } from "@/lib/settings";
 import { saveLabelTemplateAction, type LabelActionState } from "@/modules/labels/actions";
@@ -170,17 +171,9 @@ export function LabelTemplateForm({ initial }: { initial: LabelTemplate }) {
         <Preview template={current} />
       </div>
 
-      {state?.error ? (
-        <p role="alert" className="text-destructive text-sm">
-          {state.error}
-        </p>
-      ) : null}
-      {state?.success ? (
-        <p role="status" className="text-success text-sm">
-          {state.success}
-        </p>
-      ) : null}
-      <Button type="button" disabled={pending} onClick={save}>
+      {state?.error ? <Notice tone="error">{state.error}</Notice> : null}
+      {state?.success ? <Notice tone="success">{state.success}</Notice> : null}
+      <Button type="button" loading={pending} onClick={save}>
         {pending ? copy.saving : copy.save}
       </Button>
     </div>

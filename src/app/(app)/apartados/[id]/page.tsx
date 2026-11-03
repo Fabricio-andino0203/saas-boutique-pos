@@ -12,6 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Notice } from "@/components/shared/notice";
 import { messages } from "@/config/messages.es";
 import { requirePageCapability } from "@/lib/auth";
 import { formatLocalDateTime } from "@/lib/dates";
@@ -91,11 +92,7 @@ export default async function LayawayPage({ params }: { params: Promise<{ id: st
         ) : null}
       </dl>
 
-      {active && layaway.daysLeft < 0 ? (
-        <p role="status" className="text-warning text-sm">
-          {t.overdue}
-        </p>
-      ) : null}
+      {active && layaway.daysLeft < 0 ? <Notice tone="warning">{t.overdue}</Notice> : null}
       {layaway.cancel ? (
         <section role="status" className="bg-muted space-y-1 rounded-lg border p-4 text-sm">
           <p className="font-semibold">{copy.status[layaway.status]}</p>

@@ -6,6 +6,7 @@ import { useState, useTransition } from "react";
 import { FormField } from "@/components/shared/form-field";
 import { MoneyInput } from "@/components/shared/money-input";
 import { Button } from "@/components/ui/button";
+import { Notice } from "@/components/shared/notice";
 import { messages } from "@/config/messages.es";
 import { formatMoney } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -149,7 +150,7 @@ export function CloseCashForm() {
       )}
 
       {preview === null ? (
-        <Button type="button" disabled={pending} onClick={check}>
+        <Button type="button" loading={pending} onClick={check}>
           {pending ? copy.checking : copy.check}
         </Button>
       ) : (
@@ -201,7 +202,7 @@ export function CloseCashForm() {
             <Button
               type="button"
               variant="outline"
-              disabled={pending}
+              loading={pending}
               onClick={() => {
                 setPreview(null);
                 setError(null);
@@ -213,11 +214,7 @@ export function CloseCashForm() {
         </div>
       )}
 
-      {error ? (
-        <p role="alert" className="text-destructive text-sm">
-          {error}
-        </p>
-      ) : null}
+      {error ? <Notice tone="error">{error}</Notice> : null}
     </section>
   );
 }

@@ -7,6 +7,7 @@ import { FormField } from "@/components/shared/form-field";
 import { NativeSelect } from "@/components/shared/native-select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Notice } from "@/components/shared/notice";
 import { messages } from "@/config/messages.es";
 import { adjustStockAction } from "@/modules/inventory/actions";
 import { ADJUSTMENT_REASONS } from "@/modules/inventory/reasons";
@@ -124,17 +125,9 @@ export function AdjustStockForm({ variantId, onHand }: { variantId: string; onHa
           .
         </p>
       ) : null}
-      {state?.error ? (
-        <p role="alert" className="text-destructive text-sm">
-          {state.error}
-        </p>
-      ) : null}
-      {state?.success ? (
-        <p role="status" className="text-success text-sm">
-          {state.success}
-        </p>
-      ) : null}
-      <Button type="button" disabled={pending} onClick={submit}>
+      {state?.error ? <Notice tone="error">{state.error}</Notice> : null}
+      {state?.success ? <Notice tone="success">{state.success}</Notice> : null}
+      <Button type="button" loading={pending} onClick={submit}>
         {pending ? copy.submitting : copy.submit}
       </Button>
     </section>

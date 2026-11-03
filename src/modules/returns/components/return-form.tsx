@@ -8,6 +8,7 @@ import { FormField } from "@/components/shared/form-field";
 import { NativeSelect } from "@/components/shared/native-select";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Notice } from "@/components/shared/notice";
 import { messages } from "@/config/messages.es";
 import { newId } from "@/lib/client-id";
 import { formatLocalDateTime } from "@/lib/dates";
@@ -193,9 +194,9 @@ export function ReturnForm({
           </p>
         ) : null}
         {done.creditNoteMissing ? (
-          <p role="alert" className="text-warning text-sm">
+          <Notice tone="warning" role="alert">
             {copy.creditNote.missing}
-          </p>
+          </Notice>
         ) : null}
         <div className="flex flex-wrap justify-center gap-2">
           <a
@@ -228,10 +229,10 @@ export function ReturnForm({
           {sale.customer?.name ?? copy.sale.finalConsumer}
         </p>
         {sale.policy.outsideWindow ? (
-          <p role="status" className="text-warning">
+          <Notice tone="warning">
             {copy.policy.outsideBefore} {sale.policy.daysSince} {copy.policy.outsideMiddle}{" "}
             {sale.policy.maxDays} {copy.policy.outsideAfter} {copy.policy.needsManager}
-          </p>
+          </Notice>
         ) : null}
       </section>
 
@@ -470,11 +471,7 @@ export function ReturnForm({
         </fieldset>
       ) : null}
 
-      {error ? (
-        <p role="alert" className="text-destructive text-sm">
-          {error}
-        </p>
-      ) : null}
+      {error ? <Notice tone="error">{error}</Notice> : null}
 
       <div className="flex flex-wrap justify-end gap-2">
         <Link href="/devoluciones" className={buttonVariants({ variant: "ghost" })}>
@@ -485,7 +482,7 @@ export function ReturnForm({
             type="button"
             variant="outline"
             className="h-12 text-base"
-            disabled={pending}
+            loading={pending}
             onClick={() => void startExchange()}
           >
             {messages.returns.exchange.action}
@@ -494,7 +491,7 @@ export function ReturnForm({
         <Button
           type="button"
           className="h-12 min-w-48 text-lg font-semibold"
-          disabled={pending}
+          loading={pending}
           onClick={submit}
         >
           {pending ? copy.submitting : copy.submit}

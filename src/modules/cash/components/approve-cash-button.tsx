@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 import { Button } from "@/components/ui/button";
+import { Notice } from "@/components/shared/notice";
 import { messages } from "@/config/messages.es";
 import { approveCashCloseAction } from "@/modules/cash/actions";
 import type { CashActionState } from "@/modules/cash/types";
@@ -28,20 +29,12 @@ export function ApproveCashButton({ sessionId }: { sessionId: string }) {
 
   return (
     <div className="space-y-2">
-      <Button type="button" disabled={pending} onClick={approve}>
+      <Button type="button" loading={pending} onClick={approve}>
         {pending ? copy.approving : copy.action}
       </Button>
       <p className="text-muted-foreground text-xs">{copy.hint}</p>
-      {state?.error ? (
-        <p role="alert" className="text-destructive text-sm">
-          {state.error}
-        </p>
-      ) : null}
-      {state?.success ? (
-        <p role="status" className="text-success text-sm">
-          {state.success}
-        </p>
-      ) : null}
+      {state?.error ? <Notice tone="error">{state.error}</Notice> : null}
+      {state?.success ? <Notice tone="success">{state.success}</Notice> : null}
     </div>
   );
 }

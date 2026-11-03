@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 import { Button } from "@/components/ui/button";
+import { Notice } from "@/components/shared/notice";
 import { messages } from "@/config/messages.es";
 import { updateProductAction } from "@/modules/products/actions";
 import type { ProductDetail, ProductFormOptions } from "@/modules/products/types";
@@ -67,17 +68,9 @@ export function ProductDetailForm({
         canViewCost={canViewCost}
         pricesLocked={!canChangePrice}
       />
-      {feedback?.error ? (
-        <p role="alert" className="text-destructive text-sm">
-          {feedback.error}
-        </p>
-      ) : null}
-      {feedback?.success ? (
-        <p role="status" className="text-success text-sm">
-          {feedback.success}
-        </p>
-      ) : null}
-      <Button type="button" disabled={pending} onClick={save}>
+      {feedback?.error ? <Notice tone="error">{feedback.error}</Notice> : null}
+      {feedback?.success ? <Notice tone="success">{feedback.success}</Notice> : null}
+      <Button type="button" loading={pending} onClick={save}>
         {pending ? copy.saving : copy.save}
       </Button>
     </section>

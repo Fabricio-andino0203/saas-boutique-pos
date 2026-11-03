@@ -13,6 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Notice } from "@/components/shared/notice";
 import { messages } from "@/config/messages.es";
 import { formatMoney } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -61,9 +62,9 @@ function CountedCell({ row, editable }: { row: CountItemRow; editable: boolean }
         }}
       />
       {error ? (
-        <p role="alert" className="text-destructive max-w-40 text-xs">
+        <Notice tone="error" size="sm" className="max-w-40">
           {error}
-        </p>
+        </Notice>
       ) : null}
     </div>
   );

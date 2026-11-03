@@ -11,6 +11,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { BrandLogo } from "@/components/layout/brand-mark";
+import { NavPending } from "@/components/layout/nav-pending";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -65,6 +66,7 @@ export async function PlatformShell({ children }: { children: ReactNode }) {
                   <SidebarMenuButton render={<Link href={item.href} />}>
                     <item.icon />
                     <span>{item.label}</span>
+                    <NavPending />
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}

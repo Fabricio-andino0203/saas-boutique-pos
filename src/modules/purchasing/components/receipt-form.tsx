@@ -17,6 +17,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Notice } from "@/components/shared/notice";
 import { messages } from "@/config/messages.es";
 import { formatMoney } from "@/lib/format";
 import { mulCents, sumCents } from "@/lib/money";
@@ -267,11 +268,7 @@ export function ReceiptForm({ suppliers, canCaptureCost, order }: ReceiptFormPro
         )}
       </section>
 
-      {error ? (
-        <p role="alert" className="text-destructive text-sm">
-          {error}
-        </p>
-      ) : null}
+      {error ? <Notice tone="error">{error}</Notice> : null}
       <Button type="button" disabled={pending || units === 0} onClick={confirm}>
         {pending ? copy.receipt.confirming : copy.receipt.confirm}
       </Button>

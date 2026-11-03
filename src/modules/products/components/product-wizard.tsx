@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 import { Button } from "@/components/ui/button";
+import { Notice } from "@/components/shared/notice";
 import { messages } from "@/config/messages.es";
 import { cn } from "@/lib/utils";
 import { uploadProductPhoto } from "@/modules/photos/client";
@@ -197,18 +198,14 @@ export function ProductWizard({ options, canViewCost }: ProductWizardProps) {
         </div>
       ) : null}
 
-      {error ? (
-        <p role="alert" className="text-destructive text-sm">
-          {error}
-        </p>
-      ) : null}
+      {error ? <Notice tone="error">{error}</Notice> : null}
 
       <div className="flex gap-2">
         {step > 0 ? (
           <Button
             type="button"
             variant="outline"
-            disabled={pending}
+            loading={pending}
             onClick={() => {
               setError(null);
               setStep((current) => current - 1);
@@ -222,7 +219,7 @@ export function ProductWizard({ options, canViewCost }: ProductWizardProps) {
             {copy.next}
           </Button>
         ) : (
-          <Button type="button" disabled={pending} onClick={save}>
+          <Button type="button" loading={pending} onClick={save}>
             {pending
               ? uploadingPhotos
                 ? messages.photos.wizard.uploading

@@ -4,6 +4,7 @@ import { useActionState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Notice } from "@/components/shared/notice";
 import { platformMessages } from "@/config/messages.platform.es";
 import {
   deactivatePlatformUserAction,
@@ -56,19 +57,19 @@ function RowActionForm({
           type="submit"
           size="sm"
           variant={destructive ? "destructive" : "outline"}
-          disabled={pending}
+          loading={pending}
         >
           {label}
         </Button>
         {state?.error ? (
-          <p role="alert" className="text-destructive w-full text-xs">
+          <Notice tone="error" size="sm" className="w-full">
             {state.error}
-          </p>
+          </Notice>
         ) : null}
         {state?.success ? (
-          <p role="status" className="w-full text-xs text-green-700 dark:text-green-400">
+          <Notice tone="success" size="sm" className="w-full">
             {state.success}
-          </p>
+          </Notice>
         ) : null}
       </form>
     </details>

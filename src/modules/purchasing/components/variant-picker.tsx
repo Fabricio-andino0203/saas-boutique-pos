@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Notice } from "@/components/shared/notice";
 import { messages } from "@/config/messages.es";
 import { ProductThumb } from "@/modules/photos/components/product-thumb";
 import type { VariantOption, VariantPage } from "@/modules/purchasing/queries";
@@ -114,16 +115,8 @@ export function VariantPicker({ onPick, helper, search, browse }: VariantPickerP
           {copy.search}
         </Button>
       </div>
-      {helper ? (
-        <p role="alert" className="text-destructive text-sm">
-          {helper}
-        </p>
-      ) : null}
-      {failed ? (
-        <p role="alert" className="text-destructive text-sm">
-          {copy.failed}
-        </p>
-      ) : null}
+      {helper ? <Notice tone="error">{helper}</Notice> : null}
+      {failed ? <Notice tone="error">{copy.failed}</Notice> : null}
       {showingAll ? (
         <p className="text-muted-foreground text-sm">
           <span className="text-foreground font-medium">{copy.all}</span> · {copy.allHint}
@@ -164,7 +157,7 @@ export function VariantPicker({ onPick, helper, search, browse }: VariantPickerP
         )
       ) : null}
       {showingAll && hasMore ? (
-        <Button type="button" variant="ghost" size="sm" disabled={pending} onClick={loadMore}>
+        <Button type="button" variant="ghost" size="sm" loading={pending} onClick={loadMore}>
           {pending ? copy.loading : copy.loadMore}
         </Button>
       ) : null}

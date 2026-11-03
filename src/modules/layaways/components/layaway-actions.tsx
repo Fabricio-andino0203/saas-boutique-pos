@@ -14,6 +14,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Notice } from "@/components/shared/notice";
 import { messages } from "@/config/messages.es";
 import { newId } from "@/lib/client-id";
 import { formatMoney } from "@/lib/format";
@@ -185,11 +186,7 @@ function PayForm({
           </FormField>
         )}
       </div>
-      {error ? (
-        <p role="alert" className="text-destructive text-sm">
-          {error}
-        </p>
-      ) : null}
+      {error ? <Notice tone="error">{error}</Notice> : null}
       {done ? (
         <p role="status" className="text-success flex flex-wrap items-center gap-3 text-sm">
           {done.text}
@@ -203,7 +200,7 @@ function PayForm({
           </a>
         </p>
       ) : null}
-      <Button type="submit" disabled={pending}>
+      <Button type="submit" loading={pending}>
         {pending ? t.submitting : t.submit}
       </Button>
     </form>
@@ -337,9 +334,9 @@ function SettleForm({
             />
           </FormField>
           {changeCents > 0 ? (
-            <p role="status" className="text-success text-sm">
+            <Notice tone="success">
               {t.change}: <strong className="tabular-nums">{formatMoney(changeCents)}</strong>
-            </p>
+            </Notice>
           ) : null}
         </>
       ) : (
@@ -347,12 +344,8 @@ function SettleForm({
           {t.noPayment}
         </p>
       )}
-      {error ? (
-        <p role="alert" className="text-destructive text-sm">
-          {error}
-        </p>
-      ) : null}
-      <Button type="submit" disabled={pending}>
+      {error ? <Notice tone="error">{error}</Notice> : null}
+      <Button type="submit" loading={pending}>
         {pending ? t.submitting : t.submit}
       </Button>
     </form>
@@ -492,16 +485,12 @@ function CancelForm({
           </div>
         </fieldset>
       ) : null}
-      {error ? (
-        <p role="alert" className="text-destructive text-sm">
-          {error}
-        </p>
-      ) : null}
+      {error ? <Notice tone="error">{error}</Notice> : null}
       <div className="flex flex-wrap justify-end gap-2">
-        <Button type="button" variant="ghost" disabled={pending} onClick={onClose}>
+        <Button type="button" variant="ghost" loading={pending} onClick={onClose}>
           {t.back}
         </Button>
-        <Button type="button" variant="destructive" disabled={pending} onClick={submit}>
+        <Button type="button" variant="destructive" loading={pending} onClick={submit}>
           {pending ? t.submitting : t.submit}
         </Button>
       </div>

@@ -4,6 +4,7 @@ import { Minus, Plus, Trash2, UserRound, X } from "lucide-react";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { Notice } from "@/components/shared/notice";
 import { messages } from "@/config/messages.es";
 import { formatMoney, formatPercentBps } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -219,11 +220,7 @@ export function TicketPanel({
       </div>
 
       <footer className="space-y-2 border-t p-3">
-        {summary.invalidDiscount ? (
-          <p role="alert" className="text-destructive text-sm">
-            {ticket.invalidDiscount}
-          </p>
-        ) : null}
+        {summary.invalidDiscount ? <Notice tone="error">{ticket.invalidDiscount}</Notice> : null}
         <dl className="space-y-0.5 text-sm">
           <div className="flex justify-between">
             <dt className="text-muted-foreground">{ticket.subtotal}</dt>

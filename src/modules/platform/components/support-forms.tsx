@@ -6,6 +6,7 @@ import { FormField } from "@/components/shared/form-field";
 import { NativeSelect } from "@/components/shared/native-select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Notice } from "@/components/shared/notice";
 import { platformMessages } from "@/config/messages.platform.es";
 import { useRefreshOnSuccess } from "@/modules/platform/components/use-redirect-on-state";
 import type { PlatformFormState } from "@/modules/platform/schemas";
@@ -23,16 +24,8 @@ type Action = (previous: PlatformFormState, formData: FormData) => Promise<Platf
 function Feedback({ state }: { state: PlatformFormState }) {
   return (
     <>
-      {state?.error ? (
-        <p role="alert" className="text-destructive text-sm">
-          {state.error}
-        </p>
-      ) : null}
-      {state?.success ? (
-        <p role="status" className="text-sm break-words text-green-700 dark:text-green-400">
-          {state.success}
-        </p>
-      ) : null}
+      {state?.error ? <Notice tone="error">{state.error}</Notice> : null}
+      {state?.success ? <Notice tone="success">{state.success}</Notice> : null}
     </>
   );
 }
@@ -85,7 +78,7 @@ export function OpenSupportForm({ slug }: { slug: string }) {
       </FormField>
       <div className="flex flex-wrap items-end gap-2">
         <PasswordField id="support-open-password" />
-        <Button type="submit" disabled={pending}>
+        <Button type="submit" loading={pending}>
           {copy.open.submit}
         </Button>
       </div>
@@ -103,7 +96,7 @@ export function CloseSupportForm({ slug }: { slug: string }) {
       <input type="hidden" name="slug" value={slug} />
       <div className="flex flex-wrap items-end gap-2">
         <PasswordField id="support-close-password" />
-        <Button type="submit" variant="outline" disabled={pending}>
+        <Button type="submit" variant="outline" loading={pending}>
           {copy.current.close}
         </Button>
       </div>
@@ -142,7 +135,7 @@ function UserActionForm({
         {children}
         <div className="flex flex-wrap items-end gap-2">
           <PasswordField id={`${id}-password`} />
-          <Button type="submit" size="sm" variant="outline" disabled={pending}>
+          <Button type="submit" size="sm" variant="outline" loading={pending}>
             {label}
           </Button>
         </div>

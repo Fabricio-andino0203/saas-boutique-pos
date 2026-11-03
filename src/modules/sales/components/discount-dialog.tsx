@@ -12,6 +12,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Notice } from "@/components/shared/notice";
 import { messages } from "@/config/messages.es";
 import {
   formatMoney,
@@ -192,16 +193,8 @@ function DiscountForm({
           : `${copy.limit} ${config.cashierDiscountPercent} %.`}{" "}
         {parsed?.type === "AMOUNT" ? `(${formatMoney(parsed.cents)})` : null}
       </p>
-      {over ? (
-        <p role="status" className="text-warning text-sm">
-          {copy.overLimit}
-        </p>
-      ) : null}
-      {error ? (
-        <p role="alert" className="text-destructive text-sm">
-          {error}
-        </p>
-      ) : null}
+      {over ? <Notice tone="warning">{copy.overLimit}</Notice> : null}
+      {error ? <Notice tone="error">{error}</Notice> : null}
 
       <div className="flex flex-wrap justify-end gap-2">
         <Button

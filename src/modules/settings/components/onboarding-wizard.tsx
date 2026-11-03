@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { toast } from "sonner";
 
 import { Button, buttonVariants } from "@/components/ui/button";
 import { messages } from "@/config/messages.es";
@@ -32,6 +33,7 @@ export function OnboardingWizard({ business, settings, sampleLoaded }: Onboardin
   function finish() {
     startTransition(async () => {
       await finishOnboardingAction();
+      toast.success(messages.toasts.onboardingDone);
       router.push("/");
       router.refresh();
     });
@@ -124,7 +126,7 @@ export function OnboardingWizard({ business, settings, sampleLoaded }: Onboardin
             {copy.doneTitle}
           </h2>
           <p className="text-muted-foreground text-sm">{copy.doneText}</p>
-          <Button type="button" disabled={pending} onClick={finish}>
+          <Button type="button" loading={pending} onClick={finish}>
             {copy.goHome}
           </Button>
         </section>

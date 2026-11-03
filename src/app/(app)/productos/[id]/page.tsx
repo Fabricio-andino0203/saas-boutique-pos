@@ -12,6 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Notice } from "@/components/shared/notice";
 import { messages } from "@/config/messages.es";
 import { requirePageCapability } from "@/lib/auth";
 import { formatLocalDateTime } from "@/lib/dates";
@@ -78,11 +79,7 @@ export default async function ProductPage({
             </Link>
           }
         />
-        {justCreated ? (
-          <p role="status" className="text-success text-sm">
-            {messages.products.created}
-          </p>
-        ) : null}
+        {justCreated ? <Notice tone="success">{messages.products.created}</Notice> : null}
         {photosFailed ? (
           <p role="alert" className="bg-muted rounded-lg p-3 text-sm">
             {messages.photos.createdWithFailures}

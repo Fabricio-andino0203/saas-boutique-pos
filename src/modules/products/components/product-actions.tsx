@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 import { Button } from "@/components/ui/button";
+import { Notice } from "@/components/shared/notice";
 import { messages } from "@/config/messages.es";
 import { duplicateProductAction, setProductArchivedAction } from "@/modules/products/actions";
 
@@ -21,7 +22,7 @@ export function ProductActions({ productId, archived }: { productId: string; arc
           <Button
             type="button"
             variant="outline"
-            disabled={pending}
+            loading={pending}
             onClick={() =>
               startTransition(async () => {
                 const result = await duplicateProductAction(productId);
@@ -39,7 +40,7 @@ export function ProductActions({ productId, archived }: { productId: string; arc
           <Button
             type="button"
             variant={archived ? "outline" : "destructive"}
-            disabled={pending}
+            loading={pending}
             onClick={() =>
               startTransition(async () => {
                 const result = await setProductArchivedAction(productId, !archived);
@@ -57,16 +58,8 @@ export function ProductActions({ productId, archived }: { productId: string; arc
           )}
         </div>
       </div>
-      {feedback?.error ? (
-        <p role="alert" className="text-destructive text-sm">
-          {feedback.error}
-        </p>
-      ) : null}
-      {feedback?.success ? (
-        <p role="status" className="text-success text-sm">
-          {feedback.success}
-        </p>
-      ) : null}
+      {feedback?.error ? <Notice tone="error">{feedback.error}</Notice> : null}
+      {feedback?.success ? <Notice tone="success">{feedback.success}</Notice> : null}
     </section>
   );
 }

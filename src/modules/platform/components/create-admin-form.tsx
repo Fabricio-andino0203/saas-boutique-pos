@@ -5,6 +5,7 @@ import { useActionState } from "react";
 import { FormField } from "@/components/shared/form-field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Notice } from "@/components/shared/notice";
 import { platformMessages } from "@/config/messages.platform.es";
 import { createPlatformUserAction } from "@/modules/platform/actions";
 import { useRefreshOnSuccess } from "@/modules/platform/components/use-redirect-on-state";
@@ -56,17 +57,9 @@ export function CreateAdminForm() {
         />
       </FormField>
       <div className="space-y-3 sm:col-span-2">
-        {state?.error ? (
-          <p role="alert" className="text-destructive text-sm">
-            {state.error}
-          </p>
-        ) : null}
-        {state?.success ? (
-          <p role="status" className="text-sm text-green-700 dark:text-green-400">
-            {state.success}
-          </p>
-        ) : null}
-        <Button type="submit" disabled={pending}>
+        {state?.error ? <Notice tone="error">{state.error}</Notice> : null}
+        {state?.success ? <Notice tone="success">{state.success}</Notice> : null}
+        <Button type="submit" loading={pending}>
           {pending ? copy.submitting : copy.submit}
         </Button>
       </div>

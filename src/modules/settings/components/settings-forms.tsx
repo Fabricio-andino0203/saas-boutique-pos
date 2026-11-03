@@ -5,6 +5,7 @@ import { useActionState } from "react";
 import { FormField } from "@/components/shared/form-field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Notice } from "@/components/shared/notice";
 import { messages } from "@/config/messages.es";
 import { formatPercentBps } from "@/lib/format";
 import { PAYMENT_METHODS, type SettingsSnapshot } from "@/lib/settings";
@@ -20,18 +21,10 @@ const copy = messages.settings;
 
 function Feedback({ state }: { state: SettingsActionState }) {
   if (state?.error) {
-    return (
-      <p role="alert" className="text-destructive text-sm">
-        {state.error}
-      </p>
-    );
+    return <Notice tone="error">{state.error}</Notice>;
   }
   if (state?.success) {
-    return (
-      <p role="status" className="text-success text-sm">
-        {state.success}
-      </p>
-    );
+    return <Notice tone="success">{state.success}</Notice>;
   }
   return null;
 }
@@ -108,7 +101,7 @@ export function BusinessForm({
         <Input id="address" name="address" autoComplete="off" defaultValue={values.address} />
       </FormField>
       {pending ? null : <Feedback state={state} />}
-      <Button type="submit" disabled={pending}>
+      <Button type="submit" loading={pending}>
         {pending ? copy.saving : submitLabel}
       </Button>
     </form>
@@ -279,7 +272,7 @@ export function SettingsForm({
       ) : null}
 
       {pending ? null : <Feedback state={state} />}
-      <Button type="submit" disabled={pending}>
+      <Button type="submit" loading={pending}>
         {pending ? copy.saving : submitLabel}
       </Button>
     </form>

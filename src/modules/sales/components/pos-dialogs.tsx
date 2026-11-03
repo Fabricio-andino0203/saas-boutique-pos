@@ -12,6 +12,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Notice } from "@/components/shared/notice";
 import { messages } from "@/config/messages.es";
 import { formatLocalDateTime } from "@/lib/dates";
 import { formatMoney } from "@/lib/format";
@@ -146,18 +147,14 @@ function CustomerForm({ current, onSelect, onClose }: CustomerDialogProps) {
           }}
         />
       </FormField>
-      {error ? (
-        <p role="alert" className="text-destructive text-sm">
-          {error}
-        </p>
-      ) : null}
+      {error ? <Notice tone="error">{error}</Notice> : null}
       <div className="flex flex-wrap justify-end gap-2">
         {current ? (
           <Button type="button" variant="outline" onClick={() => onSelect(null)}>
             {customerCopy.remove}
           </Button>
         ) : null}
-        <Button type="button" disabled={pending} onClick={save}>
+        <Button type="button" loading={pending} onClick={save}>
           {pending ? customerCopy.saving : customerCopy.save}
         </Button>
         <Button type="button" variant="ghost" onClick={onClose}>

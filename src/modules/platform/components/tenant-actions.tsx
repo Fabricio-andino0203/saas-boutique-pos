@@ -4,6 +4,7 @@ import { useActionState, type ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Notice } from "@/components/shared/notice";
 import { platformMessages } from "@/config/messages.platform.es";
 import { useRefreshOnSuccess } from "@/modules/platform/components/use-redirect-on-state";
 import type { PlatformFormState } from "@/modules/platform/schemas";
@@ -73,21 +74,13 @@ function ActionForm({
             type="submit"
             size="sm"
             variant={destructive ? "destructive" : "outline"}
-            disabled={pending}
+            loading={pending}
           >
             {label}
           </Button>
         </div>
-        {state?.error ? (
-          <p role="alert" className="text-destructive text-sm">
-            {state.error}
-          </p>
-        ) : null}
-        {state?.success ? (
-          <p role="status" className="text-sm text-green-700 dark:text-green-400">
-            {state.success}
-          </p>
-        ) : null}
+        {state?.error ? <Notice tone="error">{state.error}</Notice> : null}
+        {state?.success ? <Notice tone="success">{state.success}</Notice> : null}
       </form>
     </details>
   );

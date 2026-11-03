@@ -6,6 +6,7 @@ import { FormField } from "@/components/shared/form-field";
 import { NativeSelect } from "@/components/shared/native-select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Notice } from "@/components/shared/notice";
 import { platformMessages } from "@/config/messages.platform.es";
 import {
   useRedirectOnState,
@@ -116,12 +117,8 @@ export function CreateTenantForm({
         />
       </FormField>
       <div className="space-y-3 sm:col-span-2">
-        {state?.error ? (
-          <p role="alert" className="text-destructive text-sm">
-            {state.error}
-          </p>
-        ) : null}
-        <Button type="submit" disabled={pending}>
+        {state?.error ? <Notice tone="error">{state.error}</Notice> : null}
+        <Button type="submit" loading={pending}>
           {pending ? copy.submitting : copy.submit}
         </Button>
       </div>

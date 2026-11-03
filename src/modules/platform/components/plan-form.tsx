@@ -6,6 +6,7 @@ import { FormField } from "@/components/shared/form-field";
 import { NativeSelect } from "@/components/shared/native-select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Notice } from "@/components/shared/notice";
 import { platformMessages } from "@/config/messages.platform.es";
 import { PLAN_FEATURES, PLAN_LIMIT_KINDS } from "@/config/plan-catalog";
 import { BILLING_INTERVALS } from "@/lib/tenancy/billing";
@@ -202,17 +203,9 @@ export function PlanForm({ defaults = EMPTY_PLAN }: { defaults?: PlanFormDefault
       </FormField>
 
       <div className="space-y-3 sm:col-span-2">
-        {state?.error ? (
-          <p role="alert" className="text-destructive text-sm">
-            {state.error}
-          </p>
-        ) : null}
-        {state?.success ? (
-          <p role="status" className="text-sm text-green-700 dark:text-green-400">
-            {state.success}
-          </p>
-        ) : null}
-        <Button type="submit" disabled={pending}>
+        {state?.error ? <Notice tone="error">{state.error}</Notice> : null}
+        {state?.success ? <Notice tone="success">{state.success}</Notice> : null}
+        <Button type="submit" loading={pending}>
           {pending ? form.saving : editing ? form.submitUpdate : form.submitCreate}
         </Button>
       </div>

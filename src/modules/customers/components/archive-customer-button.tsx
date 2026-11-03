@@ -2,8 +2,10 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { Notice } from "@/components/shared/notice";
 import { messages } from "@/config/messages.es";
 import { setCustomerArchivedAction } from "@/modules/customers/actions";
 
@@ -23,6 +25,7 @@ export function ArchiveCustomerButton({ id, archived }: { id: string; archived: 
         setError(result.message);
         return;
       }
+      toast.success(archived ? messages.toasts.customerRestored : messages.toasts.customerArchived);
       router.refresh();
     });
   }
@@ -32,17 +35,13 @@ export function ArchiveCustomerButton({ id, archived }: { id: string; archived: 
       <Button
         type="button"
         variant={archived ? "outline" : "destructive"}
-        disabled={pending}
+        loading={pending}
         onClick={toggle}
       >
         {archived ? copy.restore : copy.archive}
       </Button>
       {archived ? null : <p className="text-muted-foreground text-xs">{copy.archiveHint}</p>}
-      {error ? (
-        <p role="alert" className="text-destructive text-sm">
-          {error}
-        </p>
-      ) : null}
+      {error ? <Notice tone="error">{error}</Notice> : null}
     </div>
   );
 }

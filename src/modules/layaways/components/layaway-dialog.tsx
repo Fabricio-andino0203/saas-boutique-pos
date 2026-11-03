@@ -14,6 +14,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Notice } from "@/components/shared/notice";
 import { messages } from "@/config/messages.es";
 import { newId } from "@/lib/client-id";
 import { formatLocalDateTime } from "@/lib/dates";
@@ -205,11 +206,7 @@ function LayawayForm({
         </div>
       </dl>
 
-      {!customer ? (
-        <p role="status" className="text-warning text-sm">
-          {copy.noCustomer}
-        </p>
-      ) : null}
+      {!customer ? <Notice tone="warning">{copy.noCustomer}</Notice> : null}
 
       <fieldset className="space-y-2">
         <legend className="mb-1 text-sm font-medium">{copy.method}</legend>
@@ -258,20 +255,16 @@ function LayawayForm({
         )}
       </div>
 
-      {error ? (
-        <p role="alert" className="text-destructive text-sm">
-          {error}
-        </p>
-      ) : null}
+      {error ? <Notice tone="error">{error}</Notice> : null}
 
       <div className="flex flex-wrap justify-end gap-2">
-        <Button type="button" variant="ghost" disabled={pending} onClick={onClose}>
+        <Button type="button" variant="ghost" loading={pending} onClick={onClose}>
           {copy.back}
         </Button>
         <Button
           type="button"
           className="h-12 min-w-40 text-lg font-semibold"
-          disabled={pending}
+          loading={pending}
           onClick={submit}
         >
           {pending ? copy.submitting : copy.submit}

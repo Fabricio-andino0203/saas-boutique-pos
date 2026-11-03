@@ -14,6 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Notice } from "@/components/shared/notice";
 import { messages } from "@/config/messages.es";
 import { browseLabelVariantsAction, searchLabelVariantsAction } from "@/modules/labels/actions";
 import type { VariantOption, VariantPage } from "@/modules/purchasing/queries";
@@ -156,11 +157,7 @@ export function LabelBuilder({
       <p className="font-medium tabular-nums">
         {total} <span className="font-normal">{copy.total}</span>
       </p>
-      {total > MAX_LABELS ? (
-        <p role="alert" className="text-destructive text-sm">
-          {copy.tooMany}
-        </p>
-      ) : null}
+      {total > MAX_LABELS ? <Notice tone="error">{copy.tooMany}</Notice> : null}
       <Button type="button" disabled={total === 0 || total > MAX_LABELS} onClick={print}>
         {copy.print}
       </Button>

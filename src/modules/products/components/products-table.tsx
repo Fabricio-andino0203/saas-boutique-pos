@@ -11,6 +11,7 @@ import { MoneyInput } from "@/components/shared/money-input";
 import { NativeSelect } from "@/components/shared/native-select";
 import { buttonVariants, Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Notice } from "@/components/shared/notice";
 import { messages } from "@/config/messages.es";
 import { formatMoney, parsePercentBps } from "@/lib/format";
 import { ProductThumb } from "@/modules/photos/components/product-thumb";
@@ -148,18 +149,10 @@ function BulkPanel({
           </FormField>
         </div>
       ) : null}
-      {feedback?.error ? (
-        <p role="alert" className="text-destructive text-sm">
-          {feedback.error}
-        </p>
-      ) : null}
-      {feedback?.success ? (
-        <p role="status" className="text-success text-sm">
-          {feedback.success}
-        </p>
-      ) : null}
+      {feedback?.error ? <Notice tone="error">{feedback.error}</Notice> : null}
+      {feedback?.success ? <Notice tone="success">{feedback.success}</Notice> : null}
       <div className="flex gap-2">
-        <Button type="button" disabled={pending} onClick={apply}>
+        <Button type="button" loading={pending} onClick={apply}>
           {pending ? copy.bulk.applying : copy.bulk.apply}
         </Button>
         <Button type="button" variant="outline" onClick={onCancel}>
@@ -296,11 +289,7 @@ export function ProductsTable({
 
   return (
     <div className="space-y-4">
-      {notice ? (
-        <p role="status" className="text-success text-sm">
-          {notice}
-        </p>
-      ) : null}
+      {notice ? <Notice tone="success">{notice}</Notice> : null}
       {selected.length > 0 ? (
         <div className="flex flex-wrap items-center gap-3">
           <span className="text-sm">

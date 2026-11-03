@@ -7,6 +7,7 @@ import { FormField } from "@/components/shared/form-field";
 import { MoneyInput } from "@/components/shared/money-input";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Notice } from "@/components/shared/notice";
 import { messages } from "@/config/messages.es";
 import { newId } from "@/lib/client-id";
 import { formatMoney } from "@/lib/format";
@@ -117,17 +118,9 @@ export function AdjustCreditForm({ customerId }: { customerId: string }) {
           />
         </FormField>
       </div>
-      {error ? (
-        <p role="alert" className="text-destructive text-sm">
-          {error}
-        </p>
-      ) : null}
-      {done ? (
-        <p role="status" className="text-success text-sm">
-          {done}
-        </p>
-      ) : null}
-      <Button type="submit" disabled={pending}>
+      {error ? <Notice tone="error">{error}</Notice> : null}
+      {done ? <Notice tone="success">{done}</Notice> : null}
+      <Button type="submit" loading={pending}>
         {pending ? copy.submitting : copy.submit}
       </Button>
     </form>

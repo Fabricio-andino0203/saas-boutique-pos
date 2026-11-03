@@ -4,6 +4,7 @@ import { useActionState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Notice } from "@/components/shared/notice";
 import { platformMessages } from "@/config/messages.platform.es";
 import { platformLoginAction } from "@/modules/platform/actions";
 import { useRedirectOnState } from "@/modules/platform/components/use-redirect-on-state";
@@ -34,11 +35,7 @@ export function PlatformLoginForm() {
           required
         />
       </div>
-      {state?.error ? (
-        <p role="alert" className="text-destructive text-sm">
-          {state.error}
-        </p>
-      ) : null}
+      {state?.error ? <Notice tone="error">{state.error}</Notice> : null}
       <Button
         type="submit"
         className="h-11 w-full"

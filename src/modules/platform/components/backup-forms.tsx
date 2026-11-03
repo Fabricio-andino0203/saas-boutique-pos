@@ -4,6 +4,7 @@ import { useActionState, type ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Notice } from "@/components/shared/notice";
 import { platformMessages } from "@/config/messages.platform.es";
 import {
   relinkTenantAction,
@@ -57,20 +58,12 @@ function PasswordForm({
               required
             />
           </div>
-          <Button type="submit" size="sm" variant="outline" disabled={pending}>
+          <Button type="submit" size="sm" variant="outline" loading={pending}>
             {label}
           </Button>
         </div>
-        {state?.error ? (
-          <p role="alert" className="text-destructive text-sm">
-            {state.error}
-          </p>
-        ) : null}
-        {state?.success ? (
-          <p role="status" className="text-sm text-green-700 dark:text-green-400">
-            {state.success}
-          </p>
-        ) : null}
+        {state?.error ? <Notice tone="error">{state.error}</Notice> : null}
+        {state?.success ? <Notice tone="success">{state.success}</Notice> : null}
       </form>
     </details>
   );

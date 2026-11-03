@@ -1,23 +1,14 @@
 "use client";
 
 import { Moon, Sun } from "lucide-react";
-import { useSyncExternalStore } from "react";
 
 import { THEME_STORAGE_KEY } from "@/components/layout/theme-script";
+import { useIsDark } from "@/components/layout/use-theme";
 import { Button } from "@/components/ui/button";
 import { messages } from "@/config/messages.es";
 
-/** La clase `dark` de `<html>` es la única fuente de verdad: el script del `<head>` la pone y este botón la cambia. */
-function subscribe(onChange: () => void) {
-  const observer = new MutationObserver(onChange);
-  observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
-  return () => observer.disconnect();
-}
-
-const isDark = () => document.documentElement.classList.contains("dark");
-
 export function ThemeToggle() {
-  const dark = useSyncExternalStore(subscribe, isDark, () => false);
+  const dark = useIsDark();
 
   function toggle() {
     const next = !dark;

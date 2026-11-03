@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { PageHeader } from "@/components/shared/page-header";
+import { Notice } from "@/components/shared/notice";
 import { platformMessages } from "@/config/messages.platform.es";
 import { requirePlatformSession } from "@/lib/platform-auth";
 import { MigrateFleetForm } from "@/modules/platform/components/migrate-fleet-form";
@@ -46,11 +47,7 @@ export default async function PlatformReviewPage() {
 
       {report ? (
         <div className="space-y-6">
-          {report.ok ? (
-            <p role="status" className="text-sm text-green-700 dark:text-green-400">
-              {copy.ok}
-            </p>
-          ) : null}
+          {report.ok ? <Notice tone="success">{copy.ok}</Notice> : null}
           <Section title={copy.sections.orphanDatabases} lines={report.orphanDatabases} />
           <Section title={copy.sections.orphanRoles} lines={report.orphanRoles} />
           <Section title={copy.sections.replacedDatabases} lines={report.replacedDatabases} />

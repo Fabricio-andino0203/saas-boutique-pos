@@ -7,6 +7,7 @@ import { FormField } from "@/components/shared/form-field";
 import { MoneyInput } from "@/components/shared/money-input";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Notice } from "@/components/shared/notice";
 import { messages } from "@/config/messages.es";
 import { addCashMovementAction } from "@/modules/cash/actions";
 import type { CashActionState } from "@/modules/cash/types";
@@ -80,19 +81,11 @@ export function CashMovementForm() {
           />
         </FormField>
       </div>
-      <Button type="button" disabled={pending} onClick={submit}>
+      <Button type="button" loading={pending} onClick={submit}>
         {pending ? copy.submitting : copy.submit}
       </Button>
-      {state?.error ? (
-        <p role="alert" className="text-destructive text-sm">
-          {state.error}
-        </p>
-      ) : null}
-      {state?.success ? (
-        <p role="status" className="text-success text-sm">
-          {state.success}
-        </p>
-      ) : null}
+      {state?.error ? <Notice tone="error">{state.error}</Notice> : null}
+      {state?.success ? <Notice tone="success">{state.success}</Notice> : null}
     </section>
   );
 }

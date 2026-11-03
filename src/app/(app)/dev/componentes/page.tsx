@@ -3,12 +3,16 @@
 import type { ColumnDef } from "@tanstack/react-table";
 import { notFound } from "next/navigation";
 import { useState } from "react";
+import { toast } from "sonner";
 
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { DataTable } from "@/components/shared/data-table";
 import { MoneyInput } from "@/components/shared/money-input";
+import { Notice } from "@/components/shared/notice";
 import { PageHeader } from "@/components/shared/page-header";
+import { SuccessCheck } from "@/components/shared/success-check";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { messages } from "@/config/messages.es";
 import { formatMoney } from "@/lib/format";
 
@@ -112,6 +116,48 @@ export default function ComponentGalleryPage() {
 
       <Section id="table-rows" title={gallery.table.rows}>
         <DataTable columns={columns} data={sampleRows} caption={gallery.table.rows} />
+      </Section>
+
+      <Section id="feedback-buttons" title={gallery.feedback.buttons}>
+        <div className="flex flex-wrap items-center gap-3">
+          <Button>{gallery.feedback.primary}</Button>
+          <Button variant="outline">{gallery.feedback.outline}</Button>
+          <Button variant="secondary">{gallery.feedback.secondary}</Button>
+          <Button variant="ghost">{gallery.feedback.ghost}</Button>
+          <Button variant="destructive">{gallery.feedback.destructive}</Button>
+          <Button loading>{gallery.feedback.loading}</Button>
+          <Button disabled>{gallery.feedback.disabled}</Button>
+        </div>
+      </Section>
+
+      <Section id="feedback-notices" title={gallery.feedback.notices}>
+        <div className="space-y-2">
+          <Notice tone="error">{gallery.feedback.noticeError}</Notice>
+          <Notice tone="success">{gallery.feedback.noticeSuccess}</Notice>
+          <Notice tone="warning">{gallery.feedback.noticeWarning}</Notice>
+          <Notice tone="info">{gallery.feedback.noticeInfo}</Notice>
+          <Notice tone="info" size="sm">
+            {gallery.feedback.noticeSmall}
+          </Notice>
+        </div>
+      </Section>
+
+      <Section id="feedback-toasts" title={gallery.feedback.toasts}>
+        <Button variant="outline" onClick={() => toast.success(gallery.feedback.toastMessage)}>
+          {gallery.feedback.toastSuccess}
+        </Button>
+      </Section>
+
+      <Section id="feedback-loading" title={gallery.feedback.loadingBlocks}>
+        <div className="space-y-2">
+          <Skeleton className="h-6 w-1/3" />
+          <Skeleton className="h-4 w-2/3" />
+          <Skeleton className="h-24 w-full" />
+        </div>
+      </Section>
+
+      <Section id="feedback-success" title={gallery.feedback.success}>
+        <SuccessCheck />
       </Section>
     </div>
   );

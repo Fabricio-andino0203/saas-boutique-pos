@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 import { Button } from "@/components/ui/button";
+import { Notice } from "@/components/shared/notice";
 import { messages } from "@/config/messages.es";
 import {
   applyCountAction,
@@ -43,7 +44,7 @@ export function CountActions({ countId, status, canApprove }: CountActionsProps)
     <div className="space-y-3">
       <div className="flex flex-wrap gap-2">
         {status === "OPEN" ? (
-          <Button type="button" disabled={pending} onClick={() => run(submitCountAction)}>
+          <Button type="button" loading={pending} onClick={() => run(submitCountAction)}>
             {copy.review}
           </Button>
         ) : (
@@ -51,13 +52,13 @@ export function CountActions({ countId, status, canApprove }: CountActionsProps)
             <Button
               type="button"
               variant="outline"
-              disabled={pending}
+              loading={pending}
               onClick={() => run(reopenCountAction)}
             >
               {copy.reopen}
             </Button>
             {canApprove ? (
-              <Button type="button" disabled={pending} onClick={() => run(applyCountAction)}>
+              <Button type="button" loading={pending} onClick={() => run(applyCountAction)}>
                 {pending ? copy.approving : copy.approve}
               </Button>
             ) : null}
@@ -66,7 +67,7 @@ export function CountActions({ countId, status, canApprove }: CountActionsProps)
         <Button
           type="button"
           variant="destructive"
-          disabled={pending}
+          loading={pending}
           onClick={() => run(cancelCountAction)}
         >
           {copy.cancel}
@@ -76,16 +77,8 @@ export function CountActions({ countId, status, canApprove }: CountActionsProps)
         <p className="text-muted-foreground text-sm">{copy.needManager}</p>
       ) : null}
       <p className="text-muted-foreground text-xs">{copy.cancelHint}</p>
-      {feedback?.error ? (
-        <p role="alert" className="text-destructive text-sm">
-          {feedback.error}
-        </p>
-      ) : null}
-      {feedback?.success ? (
-        <p role="status" className="text-success text-sm">
-          {feedback.success}
-        </p>
-      ) : null}
+      {feedback?.error ? <Notice tone="error">{feedback.error}</Notice> : null}
+      {feedback?.success ? <Notice tone="success">{feedback.success}</Notice> : null}
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Notice } from "@/components/shared/notice";
 import { messages } from "@/config/messages.es";
 import { scanCountAction, type ScanState } from "@/modules/inventory/count-actions";
 
@@ -106,11 +107,7 @@ export function CountScanner({ countId, items, counted }: CountScannerProps) {
           }}
         />
       </div>
-      {message ? (
-        <p role="alert" className="text-destructive text-sm">
-          {message}
-        </p>
-      ) : null}
+      {message ? <Notice tone="error">{message}</Notice> : null}
 
       <div aria-live="polite" className="bg-muted/50 space-y-1 rounded-lg p-4">
         <p className="text-muted-foreground text-sm">{copy.last}</p>

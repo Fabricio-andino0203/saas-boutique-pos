@@ -32,7 +32,7 @@ export function LogoutButton({
           {label}
         </button>
       ) : (
-        <Button type="submit" variant="outline" size="sm" disabled={pending}>
+        <Button type="submit" variant="outline" size="sm" loading={pending}>
           <LogOut aria-hidden="true" />
           {label}
         </Button>

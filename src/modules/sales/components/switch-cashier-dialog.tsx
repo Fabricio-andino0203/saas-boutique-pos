@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { toast } from "sonner";
 
 import { FormField } from "@/components/shared/form-field";
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Notice } from "@/components/shared/notice";
 import { messages } from "@/config/messages.es";
 import { switchCashierAction } from "@/modules/auth/actions";
 
@@ -42,6 +44,7 @@ function SwitchForm({ onClose }: { onClose: () => void }) {
       const result = await switchCashierAction({ username, pin });
       if (result.ok) {
         onClose();
+        toast.success(messages.toasts.cashierSwitched);
         router.refresh();
       } else {
         setError(result.message);
@@ -81,16 +84,12 @@ function SwitchForm({ onClose }: { onClose: () => void }) {
           }}
         />
       </FormField>
-      {error ? (
-        <p role="alert" className="text-destructive text-sm">
-          {error}
-        </p>
-      ) : null}
+      {error ? <Notice tone="error">{error}</Notice> : null}
       <div className="flex flex-wrap justify-end gap-2">
-        <Button type="button" variant="ghost" disabled={pending} onClick={onClose}>
+        <Button type="button" variant="ghost" loading={pending} onClick={onClose}>
           {messages.common.close}
         </Button>
-        <Button type="button" disabled={pending} onClick={submit}>
+        <Button type="button" loading={pending} onClick={submit}>
           {pending ? copy.submitting : copy.submit}
         </Button>
       </div>

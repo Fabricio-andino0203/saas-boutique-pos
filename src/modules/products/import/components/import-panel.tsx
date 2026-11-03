@@ -14,6 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Notice } from "@/components/shared/notice";
 import { messages } from "@/config/messages.es";
 import { confirmImportAction, previewImportAction } from "@/modules/products/import/actions";
 import type { ImportActionState, ImportPreview } from "@/modules/products/import/types";
@@ -121,11 +122,7 @@ export function ImportPanel() {
             >
               {pending && !preview ? copy.checking : copy.check}
             </Button>
-            {state && "error" in state ? (
-              <p role="alert" className="text-destructive text-sm">
-                {state.error}
-              </p>
-            ) : null}
+            {state && "error" in state ? <Notice tone="error">{state.error}</Notice> : null}
           </section>
 
           {preview ? (
@@ -190,7 +187,7 @@ export function ImportPanel() {
                       </ul>
                     </div>
                   ) : null}
-                  <Button type="button" disabled={pending} onClick={() => run(confirmImportAction)}>
+                  <Button type="button" loading={pending} onClick={() => run(confirmImportAction)}>
                     {pending ? copy.confirming : copy.confirm}
                   </Button>
                 </div>

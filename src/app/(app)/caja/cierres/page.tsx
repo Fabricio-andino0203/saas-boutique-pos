@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { EmptyState } from "@/components/shared/empty-state";
+import { Notice } from "@/components/shared/notice";
 import { PageHeader } from "@/components/shared/page-header";
 import { buttonVariants } from "@/components/ui/button";
 import {
@@ -53,10 +54,10 @@ export default async function CashClosingsPage({
         }
       />
       {pending > 0 ? (
-        <p role="status" className="bg-warning/10 text-warning rounded-lg border p-3 text-sm">
+        <Notice tone="warning">
           <span className="font-semibold tabular-nums">{pending}</span>{" "}
           {pending === 1 ? copy.pendingOne : copy.pending}
-        </p>
+        </Notice>
       ) : null}
 
       {sessions.rows.length === 0 ? (

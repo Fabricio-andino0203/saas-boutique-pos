@@ -2,10 +2,12 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { toast } from "sonner";
 
 import { FormField } from "@/components/shared/form-field";
 import { NativeSelect } from "@/components/shared/native-select";
 import { Button } from "@/components/ui/button";
+import { Notice } from "@/components/shared/notice";
 import { messages } from "@/config/messages.es";
 import { openCountAction } from "@/modules/inventory/count-actions";
 
@@ -26,6 +28,7 @@ export function NewCountForm({ categories }: { categories: { value: string; labe
         categoryId: scope === "CATEGORY" ? categoryId : undefined,
       });
       if ("id" in result) {
+        toast.success(messages.toasts.countStarted);
         router.push(`/inventario/conteos/${result.id}`);
       } else {
         setError(result.error);
@@ -78,12 +81,8 @@ export function NewCountForm({ categories }: { categories: { value: string; labe
         </div>
       ) : null}
       <p className="text-muted-foreground text-sm">{copy.hint}</p>
-      {error ? (
-        <p role="alert" className="text-destructive text-sm">
-          {error}
-        </p>
-      ) : null}
-      <Button type="button" disabled={pending} onClick={open}>
+      {error ? <Notice tone="error">{error}</Notice> : null}
+      <Button type="button" loading={pending} onClick={open}>
         {pending ? copy.submitting : copy.submit}
       </Button>
     </section>

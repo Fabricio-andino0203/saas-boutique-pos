@@ -4,6 +4,7 @@ import { useActionState, useEffect, useRef } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Notice } from "@/components/shared/notice";
 import { messages } from "@/config/messages.es";
 import { changePasswordAction } from "@/modules/auth/actions";
 
@@ -58,17 +59,9 @@ export function ChangePasswordForm({ forced = false }: { forced?: boolean }) {
           required
         />
       </div>
-      {state?.error ? (
-        <p role="alert" className="text-destructive text-sm">
-          {state.error}
-        </p>
-      ) : null}
-      {state?.success ? (
-        <p role="status" className="text-success text-sm">
-          {state.success}
-        </p>
-      ) : null}
-      <Button type="submit" disabled={pending}>
+      {state?.error ? <Notice tone="error">{state.error}</Notice> : null}
+      {state?.success ? <Notice tone="success">{state.success}</Notice> : null}
+      <Button type="submit" loading={pending}>
         {pending ? copy.submitting : forced ? copy.forced.submit : copy.submit}
       </Button>
     </form>

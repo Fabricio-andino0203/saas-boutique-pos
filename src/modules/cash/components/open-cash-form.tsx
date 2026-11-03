@@ -2,10 +2,12 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { toast } from "sonner";
 
 import { FormField } from "@/components/shared/form-field";
 import { MoneyInput } from "@/components/shared/money-input";
 import { Button } from "@/components/ui/button";
+import { Notice } from "@/components/shared/notice";
 import { messages } from "@/config/messages.es";
 import { openCashAction } from "@/modules/cash/actions";
 import type { CashActionState } from "@/modules/cash/types";
@@ -24,6 +26,7 @@ export function OpenCashForm({ terminalName }: { terminalName: string }) {
       const result = await openCashAction(floatCents ?? Number.NaN);
       setState(result);
       if (result?.success) {
+        toast.success(messages.toasts.cashOpened);
         router.refresh();
       }
     });
@@ -49,14 +52,10 @@ export function OpenCashForm({ terminalName }: { terminalName: string }) {
           />
         </FormField>
       </div>
-      <Button type="button" disabled={pending} onClick={submit}>
+      <Button type="button" loading={pending} onClick={submit}>
         {pending ? copy.submitting : copy.submit}
       </Button>
-      {state?.error ? (
-        <p role="alert" className="text-destructive text-sm">
-          {state.error}
-        </p>
-      ) : null}
+      {state?.error ? <Notice tone="error">{state.error}</Notice> : null}
     </section>
   );
 }

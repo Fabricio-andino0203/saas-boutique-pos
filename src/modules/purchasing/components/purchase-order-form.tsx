@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { toast } from "sonner";
 
 import { FormField } from "@/components/shared/form-field";
 import { MoneyInput } from "@/components/shared/money-input";
@@ -17,6 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Notice } from "@/components/shared/notice";
 import { messages } from "@/config/messages.es";
 import { formatMoney } from "@/lib/format";
 import { mulCents, sumCents } from "@/lib/money";
@@ -99,6 +101,7 @@ export function PurchaseOrderForm({ suppliers, order }: PurchaseOrderFormProps) 
         })),
       });
       if (result?.id) {
+        toast.success(messages.toasts.purchaseOrderCreated);
         router.push(`/compras/${result.id}`);
         router.refresh();
       } else {
@@ -226,12 +229,8 @@ export function PurchaseOrderForm({ suppliers, order }: PurchaseOrderFormProps) 
         </p>
       </section>
 
-      {error ? (
-        <p role="alert" className="text-destructive text-sm">
-          {error}
-        </p>
-      ) : null}
-      <Button type="button" disabled={pending} onClick={save}>
+      {error ? <Notice tone="error">{error}</Notice> : null}
+      <Button type="button" loading={pending} onClick={save}>
         {pending ? copy.order.saving : copy.order.save}
       </Button>
     </div>

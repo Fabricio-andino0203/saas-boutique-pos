@@ -13,6 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Notice } from "@/components/shared/notice";
 import { PHOTO_LIMITS } from "@/config/constants";
 import { messages } from "@/config/messages.es";
 import { cn } from "@/lib/utils";
@@ -279,9 +280,9 @@ export function BulkPhotoUpload() {
       )}
 
       {notice ? (
-        <p role="alert" className="text-warning text-sm">
+        <Notice tone="warning" role="alert">
           {notice}
-        </p>
+        </Notice>
       ) : null}
     </section>
   );

@@ -6,6 +6,7 @@ import { FormField } from "@/components/shared/form-field";
 import { NativeSelect } from "@/components/shared/native-select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Notice } from "@/components/shared/notice";
 import { messages } from "@/config/messages.es";
 import { ROLES, type Role } from "@/lib/permissions";
 import type { FormState } from "@/modules/auth/schemas";
@@ -20,18 +21,10 @@ type EditableUser = { id: string; name: string; role: Role; isActive: boolean };
 
 function Feedback({ state }: { state: FormState }) {
   if (state?.error) {
-    return (
-      <p role="alert" className="text-destructive text-sm">
-        {state.error}
-      </p>
-    );
+    return <Notice tone="error">{state.error}</Notice>;
   }
   if (state?.success) {
-    return (
-      <p role="status" className="text-success text-sm">
-        {state.success}
-      </p>
-    );
+    return <Notice tone="success">{state.success}</Notice>;
   }
   return null;
 }
@@ -58,7 +51,7 @@ function UpdateForm({ user, isSelf }: { user: EditableUser; isSelf: boolean }) {
         {isSelf ? <input type="hidden" name="role" value={user.role} /> : null}
       </FormField>
       <Feedback state={state} />
-      <Button type="submit" disabled={pending}>
+      <Button type="submit" loading={pending}>
         {pending ? copy.saving : copy.save}
       </Button>
     </form>
@@ -105,7 +98,7 @@ function ResetPasswordForm({ userId }: { userId: string }) {
         />
       </FormField>
       <Feedback state={state} />
-      <Button type="submit" variant="outline" disabled={pending}>
+      <Button type="submit" variant="outline" loading={pending}>
         {copy.submit}
       </Button>
     </form>
@@ -121,7 +114,7 @@ function ResetPinForm({ userId }: { userId: string }) {
         <Input id="pin" name="pin" inputMode="numeric" autoComplete="off" required />
       </FormField>
       <Feedback state={state} />
-      <Button type="submit" variant="outline" disabled={pending}>
+      <Button type="submit" variant="outline" loading={pending}>
         {copy.submit}
       </Button>
     </form>
