@@ -3,6 +3,7 @@ import { expect, test } from "@playwright/test";
 import { messages } from "../../src/config/messages.es";
 
 import { loginAs } from "./helpers/login";
+import { openMenuGroup } from "./helpers/menu";
 import { createSimpleProduct } from "./helpers/products";
 
 const copy = messages.inventory;
@@ -18,6 +19,7 @@ test("the cashier has no inventory menu and cannot open the screens", async ({ p
 
 test("the warehouse sees the stock without any cost", async ({ page }) => {
   await loginAs(page, "warehouse");
+  await openMenuGroup(page, messages.nav.groups.inventory);
   await page.getByRole("link", { name: messages.nav.stock, exact: true }).click();
   await expect(page.getByRole("heading", { level: 1, name: copy.title })).toBeVisible();
   await expect(page.getByText(copy.summary.priceValue)).toBeVisible();

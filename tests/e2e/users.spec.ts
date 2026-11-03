@@ -3,6 +3,7 @@ import { expect, test } from "@playwright/test";
 import { messages } from "../../src/config/messages.es";
 
 import { loginAs } from "./helpers/login";
+import { openMenuGroup } from "./helpers/menu";
 
 const notFoundTitle = messages.states.notFound.title;
 
@@ -25,6 +26,7 @@ for (const username of ["cashier", "warehouse", "manager"] as const) {
 
 test("the owner sees the admin menu and the user list", async ({ page }) => {
   await loginAs(page, "owner");
+  await openMenuGroup(page, messages.nav.groups.admin);
   await expect(page.getByRole("link", { name: messages.nav.users, exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: messages.nav.audit, exact: true })).toBeVisible();
 

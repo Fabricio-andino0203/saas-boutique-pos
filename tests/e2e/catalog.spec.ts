@@ -3,6 +3,7 @@ import { expect, test } from "@playwright/test";
 import { messages } from "../../src/config/messages.es";
 
 import { loginAs } from "./helpers/login";
+import { openMenuGroup } from "./helpers/menu";
 
 const catalog = messages.catalog;
 
@@ -20,6 +21,8 @@ test("the cashier has no catalog menu and cannot open the screens", async ({ pag
 
 test("the warehouse sees brands and suppliers in the menu", async ({ page }) => {
   await loginAs(page, "warehouse");
+  await openMenuGroup(page, messages.nav.groups.merchandise);
+  await openMenuGroup(page, messages.nav.groups.people);
   await expect(
     page.getByRole("link", { name: catalog.entities.brands.plural, exact: true }),
   ).toBeVisible();

@@ -3,6 +3,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { messages } from "../../src/config/messages.es";
 
 import { loginAs } from "./helpers/login";
+import { openMenuGroup } from "./helpers/menu";
 
 const copy = messages.settings;
 
@@ -35,6 +36,7 @@ test("the owner changes the business name and the cashier discount limit, then r
 }) => {
   test.slow();
   await loginAs(page, "owner");
+  await openMenuGroup(page, messages.nav.groups.admin);
   await page.getByRole("link", { name: messages.nav.settings, exact: true }).click();
   await expect(page.getByRole("heading", { level: 1, name: copy.title })).toBeVisible();
 

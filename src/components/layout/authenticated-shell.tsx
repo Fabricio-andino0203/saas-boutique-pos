@@ -12,6 +12,7 @@ import {
   House,
   Images,
   LogOut,
+  Package,
   PackageCheck,
   Palette,
   PiggyBank,
@@ -24,14 +25,20 @@ import {
   Settings,
   Shirt,
   ShoppingCart,
+  SlidersHorizontal,
+  Store,
   Tag,
   Tags,
   TriangleAlert,
   Truck,
   Undo2,
   Users,
+  UsersRound,
+  Wallet,
+  Warehouse,
   type LucideIcon,
 } from "lucide-react";
+import { cookies } from "next/headers";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
@@ -59,7 +66,7 @@ import { includesFeature } from "@/lib/tenancy/billing";
 import { logoutAction } from "@/modules/auth/actions";
 
 type NavItem = { href: string; label: string; icon: LucideIcon; capability?: Capability };
-type NavGroup = { label: string; items: readonly NavItem[] };
+type NavGroup = { label: string; icon: LucideIcon; items: readonly NavItem[] };
 
 const homeItem: NavItem = { href: "/", label: messages.nav.home, icon: House };
 
@@ -72,6 +79,7 @@ const toEntry = (item: NavItem): NavEntry => ({
 const navGroups: readonly NavGroup[] = [
   {
     label: messages.nav.groups.sales,
+    icon: Store,
     items: [
       { href: "/vender", label: messages.nav.sell, icon: ShoppingCart, capability: "sale.create" },
       {
@@ -109,6 +117,7 @@ const navGroups: readonly NavGroup[] = [
   },
   {
     label: messages.nav.groups.merchandise,
+    icon: Package,
     items: [
       {
         href: "/productos",
@@ -156,6 +165,7 @@ const navGroups: readonly NavGroup[] = [
   },
   {
     label: messages.nav.groups.inventory,
+    icon: Warehouse,
     items: [
       {
         href: "/inventario",
@@ -197,6 +207,7 @@ const navGroups: readonly NavGroup[] = [
   },
   {
     label: messages.nav.groups.people,
+    icon: UsersRound,
     items: [
       {
         href: "/clientes",
@@ -214,6 +225,7 @@ const navGroups: readonly NavGroup[] = [
   },
   {
     label: messages.nav.groups.finance,
+    icon: Wallet,
     items: [
       {
         href: "/finanzas",
@@ -243,6 +255,7 @@ const navGroups: readonly NavGroup[] = [
   },
   {
     label: messages.nav.groups.admin,
+    icon: SlidersHorizontal,
     items: [
       { href: "/usuarios", label: messages.nav.users, icon: Users, capability: "user.manage" },
       { href: "/auditoria", label: messages.nav.audit, icon: ScrollText, capability: "audit.view" },
@@ -259,6 +272,8 @@ const navGroups: readonly NavGroup[] = [
 export async function AuthenticatedShell({ children }: { children: ReactNode }) {
   const { user } = await requireSession();
   const entitlements = await currentEntitlements();
+  // Si la persona dejó el menú reducido a iconos, así vuelve a abrirse (la elección se guarda en una cookie).
+  const sidebarOpen = (await cookies()).get("sidebar_state")?.value !== "false";
 
   // El menú no ofrece lo que el rol no puede hacer ni los módulos que el plan del negocio no incluye (el servidor lo exige igual).
   const visibleGroups = navGroups
@@ -275,15 +290,15 @@ export async function AuthenticatedShell({ children }: { children: ReactNode }) 
     .filter((group) => group.items.length > 0);
 
   return (
-    <SidebarProvider>
+    <SidebarProvider defaultOpen={sidebarOpen}>
       <a
         href="#contenido"
         className="bg-primary text-primary-foreground sr-only rounded-md px-3 py-2 focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50"
       >
         {messages.common.skipToContent}
       </a>
-      <Sidebar>
-        <SidebarHeader className="border-divider border-b px-4 py-4">
+      <Sidebar collapsible="icon">
+        <SidebarHeader className="border-divider border-b px-4 py-4 group-data-[collapsible=icon]:px-2">
           <BrandLogo />
         </SidebarHeader>
         <SidebarContent>
@@ -292,6 +307,7 @@ export async function AuthenticatedShell({ children }: { children: ReactNode }) 
               { items: [toEntry(homeItem)] },
               ...visibleGroups.map((group) => ({
                 label: group.label,
+                icon: <group.icon />,
                 items: group.items.map(toEntry),
               })),
             ]}

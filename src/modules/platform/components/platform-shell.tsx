@@ -7,6 +7,7 @@ import {
   ShieldCheck,
   type LucideIcon,
 } from "lucide-react";
+import { cookies } from "next/headers";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
@@ -42,17 +43,19 @@ const navItems: readonly { href: string; label: string; icon: LucideIcon }[] = [
 /** Marco del panel de la plataforma: exige una sesión completa (contraseña y código) antes de mostrar nada. */
 export async function PlatformShell({ children }: { children: ReactNode }) {
   const { user } = await requirePlatformSession();
+  // Si la persona dejó el menú reducido a iconos, así vuelve a abrirse (la elección se guarda en una cookie).
+  const sidebarOpen = (await cookies()).get("sidebar_state")?.value !== "false";
 
   return (
-    <SidebarProvider>
+    <SidebarProvider defaultOpen={sidebarOpen}>
       <a
         href="#contenido"
         className="bg-primary text-primary-foreground sr-only rounded-md px-3 py-2 focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50"
       >
         {messages.common.skipToContent}
       </a>
-      <Sidebar>
-        <SidebarHeader className="border-divider border-b px-4 py-4">
+      <Sidebar collapsible="icon">
+        <SidebarHeader className="border-divider border-b px-4 py-4 group-data-[collapsible=icon]:px-2">
           <BrandLogo caption={platformMessages.app.caption} />
         </SidebarHeader>
         <SidebarContent>

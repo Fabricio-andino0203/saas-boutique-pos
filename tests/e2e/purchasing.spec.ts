@@ -3,6 +3,7 @@ import { expect, test } from "@playwright/test";
 import { messages } from "../../src/config/messages.es";
 
 import { loginAs } from "./helpers/login";
+import { openMenuGroup } from "./helpers/menu";
 import { createSimpleProduct, fillMoney } from "./helpers/products";
 
 const copy = messages.purchasing;
@@ -27,6 +28,7 @@ test("the warehouse can receive goods but cannot place orders or see totals at c
   page,
 }) => {
   await loginAs(page, "warehouse");
+  await openMenuGroup(page, messages.nav.groups.inventory);
   await page.getByRole("link", { name: messages.nav.purchases, exact: true }).click();
   await expect(page.getByRole("heading", { level: 1, name: copy.title })).toBeVisible();
   await expect(page.getByRole("link", { name: copy.newOrder })).toHaveCount(0);

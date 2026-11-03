@@ -59,7 +59,12 @@ export function BrandLogo({
       )}
     >
       <BrandMark className={stacked ? "size-16" : "size-9"} />
-      <span className={cn("flex flex-col leading-none", stacked && "items-center")}>
+      <span
+        className={cn(
+          "flex flex-col leading-none group-data-[collapsible=icon]:hidden",
+          stacked && "items-center",
+        )}
+      >
         <span
           className={cn(
             "font-heading text-heading font-extrabold tracking-tight uppercase",

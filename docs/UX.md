@@ -15,7 +15,7 @@
 
 ## 2. Navegación
 
-Barra lateral izquierda, colapsable (iconos + texto), agrupada:
+Barra lateral izquierda, agrupada en **grupos plegables** (por omisión solo el primero y el de la pantalla actual están abiertos; lo que cada persona abre o cierra se recuerda en su navegador) y reducible a **iconos**: con el menú reducido cada grupo es un solo icono (Ventas, Mercadería, Inventario, Gente, Finanzas, Administración) y su lista de pantallas se abre al lado al pasar el mouse o con Enter; «Inicio» queda suelto con su tooltip. La elección de reducir se guarda en una cookie, así el menú vuelve a abrirse como se dejó. En el teléfono es la hoja lateral de siempre con los mismos grupos. Agrupación de referencia (los nombres exactos están en `messages.nav.groups`):
 
 - **Vender:** Punto de venta · Caja · Apartados · Devoluciones
 - **Mercadería:** Productos · Inventario · Compras · Etiquetas

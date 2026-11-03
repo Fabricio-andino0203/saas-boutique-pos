@@ -3,6 +3,7 @@ import { expect, test } from "@playwright/test";
 import { messages } from "../../src/config/messages.es";
 
 import { loginAs } from "./helpers/login";
+import { openMenuGroup } from "./helpers/menu";
 
 const entries = messages.finance.entries;
 const form = messages.finance.form;
@@ -16,6 +17,7 @@ test("the manager records an expense, sees it in the totals and voids it with a 
   const detail = `E2E Recibo de luz ${Date.now()}`;
 
   await loginAs(page, "manager");
+  await openMenuGroup(page, messages.nav.groups.finance);
   await page.getByRole("link", { name: messages.nav.financeEntries, exact: true }).click();
   await expect(page.getByRole("heading", { level: 1, name: entries.title })).toBeVisible();
   await expect(page.getByRole("link", { name: messages.nav.financeEntries })).toHaveAttribute(
@@ -122,6 +124,7 @@ test("the owner adds a fixed cost, pays this month, sees it as an expense and ge
   const name = `E2E Internet ${Date.now()}`;
 
   await loginAs(page, "owner");
+  await openMenuGroup(page, messages.nav.groups.finance);
   await page.getByRole("link", { name: messages.nav.financeFixedCosts, exact: true }).click();
   await expect(page.getByRole("heading", { level: 1, name: fixed.title })).toBeVisible();
 
@@ -192,6 +195,7 @@ test("the summary shows the income statement with the expense categories, and th
   const summary = messages.finance.summary;
 
   await loginAs(page, "manager");
+  await openMenuGroup(page, messages.nav.groups.finance);
   await page.getByRole("link", { name: messages.nav.financeSummary, exact: true }).click();
   await expect(page.getByRole("heading", { level: 1, name: summary.title })).toBeVisible();
   await expect(page.getByRole("link", { name: messages.nav.financeSummary })).toHaveAttribute(
