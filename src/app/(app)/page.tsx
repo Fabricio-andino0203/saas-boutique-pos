@@ -65,7 +65,7 @@ export default async function HomePage() {
             <h2 id="cash-title" className="font-medium">
               {cashCopy.title}
             </h2>
-            <Link href="/caja" className="text-primary text-sm underline underline-offset-4">
+            <Link href="/vender" className="text-primary text-sm underline underline-offset-4">
               {myCash ? cashCopy.goToCash : cashCopy.open}
             </Link>
           </div>

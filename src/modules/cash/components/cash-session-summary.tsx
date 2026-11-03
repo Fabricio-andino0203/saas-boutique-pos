@@ -83,6 +83,10 @@ export function CashSessionSummary({ detail }: { detail: CashSessionDetail }) {
         </h2>
         <dl className="grid max-w-md grid-cols-[1fr_auto] gap-x-6 gap-y-1 text-sm">
           <Row label={copy.float} value={formatMoney(totals.openingFloatCents)} />
+          {session.inheritedFloatCents !== null &&
+          session.inheritedFloatCents !== totals.openingFloatCents ? (
+            <Row label={copy.inheritedFloat} value={formatMoney(session.inheritedFloatCents)} />
+          ) : null}
           <Row label={`+ ${copy.cashPayments}`} value={formatMoney(totals.cashPaymentsCents)} />
           <Row label={`+ ${copy.layawayCash}`} value={formatMoney(totals.layawayCashCents)} />
           <Row label={`− ${copy.change}`} value={formatMoney(totals.changeGivenCents)} />
@@ -101,7 +105,23 @@ export function CashSessionSummary({ detail }: { detail: CashSessionDetail }) {
               tone={difference === 0 ? "ok" : "bad"}
             />
           ) : null}
+          {closed && session.withdrawnCents !== null && session.countedCashCents !== null ? (
+            <>
+              <Row label={copy.withdrawn} value={formatMoney(session.withdrawnCents)} />
+              <Row
+                label={copy.leftInDrawer}
+                value={formatMoney(session.countedCashCents - session.withdrawnCents)}
+                strong
+              />
+            </>
+          ) : null}
         </dl>
+        {session.openingNotes ? (
+          <p className="text-sm">
+            <span className="text-muted-foreground">{copy.openingNotes}:</span>{" "}
+            {session.openingNotes}
+          </p>
+        ) : null}
         <p className="text-muted-foreground text-sm">
           {copy.salesCount}: <span className="tabular-nums">{sales.count}</span> · {copy.salesTotal}
           : <span className="tabular-nums">{formatMoney(sales.totalCents)}</span> · {copy.voided}:{" "}

@@ -33,14 +33,16 @@ function toCounts(quantities: Record<string, string>): DenominationCounts {
 
 /**
  * Cierre en dos pasos: primero se cuenta el efectivo y se ve la diferencia con lo esperado; después se
- * comenta (obligatorio si no cuadra) y se cierra. El servidor vuelve a calcular todo al cerrar.
+ * indica cuánto se retira del cajón (el resto queda para abrir mañana), se comenta (obligatorio si no cuadra) y se cierra. El
+ * servidor vuelve a calcular todo al cerrar. Con `financeBox` el retiro va a la caja de finanzas.
  */
-export function CloseCashForm() {
+export function CloseCashForm({ financeBox = false }: { financeBox?: boolean }) {
   const router = useRouter();
   const [byDenomination, setByDenomination] = useState(false);
   const [totalCents, setTotalCents] = useState<number | null>(null);
   const [quantities, setQuantities] = useState<Record<string, string>>({});
   const [preview, setPreview] = useState<Preview | null>(null);
+  const [withdrawCents, setWithdrawCents] = useState<number | null>(null);
   const [notes, setNotes] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -50,6 +52,10 @@ export function CloseCashForm() {
   const difference = preview?.differenceCents ?? 0;
   const needsNotes = preview !== null && difference !== 0;
   const notesReady = !needsNotes || notes.trim().length >= 3;
+  const counted = countedCents ?? 0;
+  const withdrawn = withdrawCents ?? 0;
+  const withdrawTooMuch = withdrawn > counted;
+  const leftInDrawer = counted - withdrawn;
 
   function check() {
     setError(null);
@@ -72,6 +78,7 @@ export function CloseCashForm() {
     startTransition(async () => {
       const result = await submitCashCloseAction({
         countedCashCents: countedCents ?? Number.NaN,
+        withdrawnCents: withdrawn,
         denominations: byDenomination ? counts : undefined,
         notes,
       });
@@ -181,6 +188,49 @@ export function CloseCashForm() {
               ? copy.matches
               : `${difference > 0 ? copy.over : copy.short} ${formatMoney(Math.abs(difference))}`}
           </p>
+          <fieldset className="border-divider space-y-3 rounded-lg border p-3">
+            <legend className="px-1 text-sm font-medium">{copy.withdrawTitle}</legend>
+            <div className="max-w-xs">
+              <FormField
+                label={copy.withdrawAmount}
+                htmlFor="withdraw-cash"
+                hint={financeBox ? copy.withdrawHintFinance : copy.withdrawHintPlain}
+              >
+                <MoneyInput
+                  id="withdraw-cash"
+                  valueCents={withdrawCents}
+                  onValueChange={setWithdrawCents}
+                  placeholder="L 0.00"
+                />
+              </FormField>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setWithdrawCents(counted)}
+              >
+                {copy.withdrawAll}
+              </Button>
+              <Button type="button" variant="outline" size="sm" onClick={() => setWithdrawCents(0)}>
+                {copy.withdrawNone}
+              </Button>
+            </div>
+            <p
+              role="status"
+              className={cn("text-sm", withdrawTooMuch ? "text-destructive" : "font-medium")}
+            >
+              {withdrawTooMuch ? (
+                copy.tooMuch
+              ) : (
+                <>
+                  {copy.leftInDrawer}:{" "}
+                  <span className="tabular-nums">{formatMoney(leftInDrawer)}</span>
+                </>
+              )}
+            </p>
+          </fieldset>
           <FormField
             label={copy.notes}
             htmlFor="close-notes"
@@ -196,7 +246,11 @@ export function CloseCashForm() {
             />
           </FormField>
           <div className="flex flex-wrap gap-2">
-            <Button type="button" disabled={pending || !notesReady} onClick={close}>
+            <Button
+              type="button"
+              disabled={pending || !notesReady || withdrawTooMuch}
+              onClick={close}
+            >
               {pending ? copy.submitting : copy.submit}
             </Button>
             <Button
@@ -205,6 +259,7 @@ export function CloseCashForm() {
               loading={pending}
               onClick={() => {
                 setPreview(null);
+                setWithdrawCents(null);
                 setError(null);
               }}
             >

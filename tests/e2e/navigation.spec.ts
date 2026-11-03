@@ -13,7 +13,7 @@ test("the sidebar marks the page that is open and only that one", async ({ page 
 
   await page.goto("/caja/cierres");
   await expect(link(messages.nav.cashClosings)).toHaveAttribute("aria-current", "page");
-  await expect(link(messages.nav.cash)).not.toHaveAttribute("aria-current", "page");
+  await expect(link(messages.nav.sell)).not.toHaveAttribute("aria-current", "page");
   await expect(link(messages.nav.home)).not.toHaveAttribute("aria-current", "page");
 });
 
@@ -64,9 +64,9 @@ test("the menu shrinks to icons, each group opens its list and the choice surviv
   await expect(link(messages.nav.sell)).toHaveCount(0); // la lista vive dentro del icono
 
   await group(messages.nav.groups.sales).hover();
-  await expect(link(messages.nav.cash)).toBeVisible();
-  await link(messages.nav.cash).click();
-  await expect(page).toHaveURL(/\/caja$/);
+  await expect(link(messages.nav.cashClosings)).toBeVisible();
+  await link(messages.nav.cashClosings).click();
+  await expect(page).toHaveURL(/\/caja\/cierres$/);
   await expect(group(messages.nav.groups.sales)).toBeVisible();
 
   // La elección se guarda en una cookie: recargar no vuelve a abrir el menú.

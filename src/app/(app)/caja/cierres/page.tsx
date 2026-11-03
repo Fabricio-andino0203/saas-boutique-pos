@@ -48,7 +48,7 @@ export default async function CashClosingsPage({
         title={copy.title}
         description={copy.description}
         actions={
-          <Link href="/caja" className={buttonVariants({ variant: "outline" })}>
+          <Link href="/vender" className={buttonVariants({ variant: "outline" })}>
             {copy.goToCash}
           </Link>
         }

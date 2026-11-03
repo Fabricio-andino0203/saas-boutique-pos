@@ -23,8 +23,11 @@ type FinanceCategoryOption = { id: string; name: string; type: "EXPENSE" | "INCO
  */
 export function CashMovementForm({
   financeCategories = null,
+  onSaved,
 }: {
   financeCategories?: readonly FinanceCategoryOption[] | null;
+  /** Se llama después de guardar (el panel de Vender vuelve a cargar el turno). */
+  onSaved?: () => void;
 }) {
   const router = useRouter();
   const [type, setType] = useState<"IN" | "OUT">("OUT");
@@ -63,6 +66,7 @@ export function CashMovementForm({
         setAmountCents(null);
         setReason("");
         router.refresh();
+        onSaved?.();
       }
     });
   }

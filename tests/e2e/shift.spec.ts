@@ -3,7 +3,7 @@ import { expect, test, type Browser, type Page } from "@playwright/test";
 import { messages } from "../../src/config/messages.es";
 
 import { createInvoiceRange, deactivateInvoiceRange } from "./helpers/billing";
-import { closeLeftoverCash, fillMoney } from "./helpers/cash";
+import { closeLeftoverCash, fillMoney, openCashPanel, openShift } from "./helpers/cash";
 import { loginAs } from "./helpers/login";
 import { addStock, createSimpleProduct } from "./helpers/products";
 
@@ -17,7 +17,9 @@ test("people without a cash drawer have no cash menu and cannot open the screens
   page,
 }) => {
   await loginAs(page, "warehouse");
-  await expect(page.getByRole("link", { name: messages.nav.cash, exact: true })).toHaveCount(0);
+  await expect(
+    page.getByRole("link", { name: messages.nav.cashClosings, exact: true }),
+  ).toHaveCount(0);
   await expect(page.getByRole("link", { name: messages.nav.sell, exact: true })).toHaveCount(0);
   for (const path of ["/caja", "/caja/cierres", "/vender", "/imprimir/cierre/cualquiera"]) {
     await page.goto(path);
@@ -32,13 +34,11 @@ test("the cashier opens the shift, moves cash, closes with a difference and a ma
   test.slow();
   await loginAs(page, "cashier");
   await closeLeftoverCash(page);
-  await page.goto("/caja");
 
-  // Abrir con fondo de L 500
-  await expect(page.getByRole("heading", { name: copy.open.title })).toBeVisible();
-  await fillMoney(page, copy.open.float, "500");
-  await page.getByRole("button", { name: copy.open.submit }).click();
-  const expected = page.getByRole("group", { name: copy.current.expected });
+  // Abrir con fondo de L 500 (Vender ofrece abrir la caja) y entrar a las opciones de caja de Vender
+  await openShift(page, "500");
+  const panel = await openCashPanel(page, "movements");
+  const expected = panel.getByRole("group", { name: copy.current.expected });
   await expect(expected).toContainText("L 500.00");
 
   // Una salida de L 100 con motivo, y una que no se puede (más de lo que hay)
@@ -46,8 +46,8 @@ test("the cashier opens the shift, moves cash, closes with a difference and a ma
   await page.getByLabel(copy.movements.reason, { exact: true }).fill("E2E pago de flete");
   // Con Finanzas en el plan, una salida arranca como gasto y se elige su categoría.
   await expect(page.getByRole("radio", { name: copy.movements.finance.expense })).toBeChecked();
-  await page
-    .getByLabel(copy.movements.finance.category)
+  await panel
+    .getByLabel(copy.movements.finance.category, { exact: true })
     .selectOption({ label: "Transporte y envíos" });
   await page.getByRole("button", { name: copy.movements.submit }).click();
   await expect(expected).toContainText("L 400.00");
@@ -66,6 +66,7 @@ test("the cashier opens the shift, moves cash, closes with a difference and a ma
   await expect(expected).toContainText("L 450.00");
 
   // Cerrar contando L 449: falta L 1 y el comentario es obligatorio
+  await panel.getByRole("tab", { name: copy.panel.tabs.close }).click();
   await fillMoney(page, copy.close.counted, "449");
   await page.getByRole("button", { name: copy.close.check }).click();
   await expect(page.getByText(`${copy.close.short} L 1.00`)).toBeVisible();
@@ -85,9 +86,10 @@ test("the cashier opens the shift, moves cash, closes with a difference and a ma
     "E2E faltó un billete de un lempira",
   );
 
-  // Una caja cerrada ya no recibe movimientos: /caja vuelve a pedir abrir
+  // Una caja cerrada ya no recibe movimientos: /caja lleva a Vender, que vuelve a pedir abrir
   await page.goto("/caja");
-  await expect(page.getByRole("heading", { name: copy.open.title })).toBeVisible();
+  await expect(page).toHaveURL(/\/vender$/);
+  await expect(page.getByRole("heading", { name: copy.open.title, exact: true })).toBeVisible();
 
   // El gerente la ve en la lista de pendientes y la aprueba
   const other = await browser.newContext({ baseURL: new URL(detailUrl).origin });
@@ -116,11 +118,9 @@ test("the cashier counts bills and coins and closes a shift that balances", asyn
   test.slow();
   await loginAs(page, "cashier");
   await closeLeftoverCash(page);
-  await page.goto("/caja");
-
-  await fillMoney(page, copy.open.float, "0");
-  await page.getByRole("button", { name: copy.open.submit }).click();
-  const expected = page.getByRole("group", { name: copy.current.expected });
+  await openShift(page, "0");
+  const panel = await openCashPanel(page, "movements");
+  const expected = panel.getByRole("group", { name: copy.current.expected });
   await expect(expected).toContainText("L 0.00");
 
   await page.getByRole("radio", { name: copy.movements.IN }).check();
@@ -130,6 +130,7 @@ test("the cashier counts bills and coins and closes a shift that balances", asyn
   await expect(expected).toContainText("L 700.00");
 
   // L 500 + L 200 por denominaciones: el total sale solo
+  await panel.getByRole("tab", { name: copy.panel.tabs.close }).click();
   await page.getByRole("checkbox", { name: copy.close.byDenomination }).check();
   await page.getByLabel(`${copy.close.denomination} L 500.00`, { exact: true }).fill("1");
   await page.getByLabel(`${copy.close.denomination} L 200.00`, { exact: true }).fill("1");
@@ -148,6 +149,84 @@ test("the cashier counts bills and coins and closes a shift that balances", asyn
   await expect(page.getByText("× 1")).toHaveCount(2);
 });
 
+test("closing withdraws cash to the finance box and the rest stays in the drawer for the next opening", async ({
+  page,
+  browser,
+}) => {
+  test.slow();
+  const baseURL = test.info().project.use.baseURL as string;
+  await loginAs(page, "cashier");
+  await closeLeftoverCash(page);
+  await openShift(page, "500");
+
+  // Entran L 300 más: en el cajón debe haber L 800
+  const panel = await openCashPanel(page, "movements");
+  await page.getByRole("radio", { name: copy.movements.IN }).check();
+  await fillMoney(page, copy.movements.amount, "300");
+  await page.getByLabel(copy.movements.reason, { exact: true }).fill("E2E aporte antes del retiro");
+  await page.getByRole("button", { name: copy.movements.submit }).click();
+  await expect(panel.getByRole("group", { name: copy.current.expected })).toContainText("L 800.00");
+
+  // Contó L 800 y retira L 700: no se puede retirar más de lo contado, y quedan L 100 para mañana
+  await panel.getByRole("tab", { name: copy.panel.tabs.close }).click();
+  await fillMoney(page, copy.close.counted, "800");
+  await page.getByRole("button", { name: copy.close.check }).click();
+  await expect(page.getByText(copy.close.matches)).toBeVisible();
+  const closeButton = page.getByRole("button", { name: copy.close.submit, exact: true });
+  await fillMoney(page, copy.close.withdrawAmount, "801");
+  await expect(page.getByText(copy.close.tooMuch)).toBeVisible();
+  await expect(closeButton).toBeDisabled();
+  await fillMoney(page, copy.close.withdrawAmount, "700");
+  await expect(page.getByText(`${copy.close.leftInDrawer}: L 100.00`)).toBeVisible();
+  await closeButton.click();
+
+  await expect(page).toHaveURL(/\/caja\/cierres\/[a-z0-9]+$/);
+  const summary = page.getByRole("region", { name: copy.detail.summary });
+  await expect(summary).toContainText(copy.detail.withdrawn);
+  await expect(summary).toContainText("L 700.00");
+  await expect(summary).toContainText(copy.detail.leftInDrawer);
+  await expect(summary).toContainText("L 100.00");
+
+  // La siguiente caja ofrece los L 100 que quedaron; cambiarlos pide explicar por qué
+  await page.goto("/vender");
+  await expect(page.getByText(copy.open.inherited)).toBeVisible();
+  await expect(page.getByLabel(copy.open.float, { exact: true })).toHaveValue("L 100.00");
+  await fillMoney(page, copy.open.float, "50");
+  const openButton = page.getByRole("button", { name: copy.open.submit });
+  await expect(page.getByLabel(copy.open.changedNotes)).toBeVisible();
+  await expect(openButton).toBeDisabled();
+  await page.getByLabel(copy.open.changedNotes).fill("E2E se llevaron L 50 al banco");
+  await expect(openButton).toBeEnabled();
+  await openButton.click();
+  await expect(
+    page.getByRole("button", { name: messages.pos.actions.cash, exact: true }),
+  ).toBeVisible();
+
+  // Cierra retirando todo: la terminal queda sin fondo heredado para las demás pruebas
+  const second = await openCashPanel(page, "close");
+  await expect(second.getByRole("group", { name: copy.current.expected })).toContainText("L 50.00");
+  await fillMoney(page, copy.close.counted, "50");
+  await page.getByRole("button", { name: copy.close.check }).click();
+  await expect(page.getByText(copy.close.matches)).toBeVisible();
+  await page.getByRole("button", { name: copy.close.withdrawAll }).click();
+  await expect(page.getByText(`${copy.close.leftInDrawer}: L 0.00`)).toBeVisible();
+  await page.getByRole("button", { name: copy.close.submit, exact: true }).click();
+  await expect(page).toHaveURL(/\/caja\/cierres\/[a-z0-9]+$/);
+
+  // La caja de finanzas del propietario recibió los dos retiros
+  const ownerContext = await browser.newContext({ baseURL });
+  const owner = await ownerContext.newPage();
+  await loginAs(owner, "owner");
+  await owner.goto("/finanzas/caja");
+  await expect(
+    owner.getByRole("heading", { name: messages.finance.box.title, level: 1 }),
+  ).toBeVisible();
+  const deposits = owner.getByRole("region", { name: messages.finance.box.depositsTitle });
+  await expect(deposits).toContainText("L 700.00");
+  await expect(deposits).toContainText("L 50.00");
+  await ownerContext.close();
+});
+
 // ───────────── Punto de venta ─────────────
 
 const pos = messages.pos;
@@ -157,8 +236,9 @@ test("without an open shift the sale screen asks to open the cash", async ({ pag
   await closeLeftoverCash(page);
   await page.goto("/vender");
   await expect(page.getByRole("heading", { name: pos.closed.title })).toBeVisible();
-  await page.getByRole("link", { name: pos.closed.action }).click();
-  await expect(page).toHaveURL(/\/caja$/);
+  await expect(
+    page.getByRole("heading", { name: messages.cash.open.title, exact: true }),
+  ).toBeVisible();
 });
 
 test("the cashier sells with search, quantities, a discount, a held ticket and a customer", async ({
@@ -180,11 +260,7 @@ test("the cashier sells with search, quantities, a discount, a held ticket and a
   // La cajera abre su caja y entra a vender
   await loginAs(page, "cashier");
   await closeLeftoverCash(page);
-  await page.goto("/caja");
-  await fillMoney(page, messages.cash.open.float, "0");
-  await page.getByRole("button", { name: messages.cash.open.submit }).click();
-  await expect(page.getByRole("group", { name: messages.cash.current.expected })).toBeVisible();
-  await page.goto("/vender");
+  await openShift(page, "0");
   await expect(page.getByRole("heading", { name: pos.title, level: 1 })).toBeVisible();
   const search = page.getByRole("textbox", { name: pos.search.label });
   await expect(search).toBeFocused();
@@ -272,11 +348,7 @@ async function createStockedProduct(
 async function openCashAndSell(page: Page) {
   await loginAs(page, "cashier");
   await closeLeftoverCash(page);
-  await page.goto("/caja");
-  await fillMoney(page, messages.cash.open.float, "0");
-  await page.getByRole("button", { name: messages.cash.open.submit }).click();
-  await expect(page.getByRole("group", { name: messages.cash.current.expected })).toBeVisible();
-  await page.goto("/vender");
+  await openShift(page, "0");
   await expect(page.getByRole("heading", { name: pos.title, level: 1 })).toBeVisible();
 }
 
@@ -552,10 +624,9 @@ test("acceptance: scan three garments, 10 % off, split payment, ticket, and the 
   // La cajera inicia sesión y abre la caja con L 500 de fondo
   await loginAs(page, "cashier");
   await closeLeftoverCash(page);
-  await page.goto("/caja");
-  await fillMoney(page, messages.cash.open.float, "500");
-  await page.getByRole("button", { name: messages.cash.open.submit }).click();
-  await expect(page.getByRole("group", { name: messages.cash.current.expected })).toContainText(
+  await openShift(page, "500");
+  const opened = await openCashPanel(page);
+  await expect(opened.getByRole("group", { name: messages.cash.current.expected })).toContainText(
     "L 500.00",
   );
 
@@ -614,8 +685,9 @@ test("acceptance: scan three garments, 10 % off, split payment, ticket, and the 
   await expect(sheet).toContainText("L 540.00");
 
   // Cierre: debe haber L 500 de fondo + L 400 en efectivo = L 900 (la tarjeta no entra al cajón)
-  await page.goto("/caja");
-  await expect(page.getByRole("group", { name: messages.cash.current.expected })).toContainText(
+  await page.goto("/vender");
+  const closing = await openCashPanel(page, "close");
+  await expect(closing.getByRole("group", { name: messages.cash.current.expected })).toContainText(
     "L 900.00",
   );
   await fillMoney(page, messages.cash.close.counted, "900");
@@ -774,11 +846,14 @@ test("the cashier returns to store credit, a manager's PIN approves a cash refun
   await expect(page.getByText(ret.methods.CASH)).toBeVisible();
 
   // El efectivo esperado bajó con el reembolso: 0 de fondo + 300 de la venta − 150
-  await page.goto("/caja");
-  await expect(page.getByRole("group", { name: messages.cash.current.expected })).toContainText(
+  await page.goto("/vender");
+  const refunded = await openCashPanel(page);
+  await expect(refunded.getByRole("group", { name: messages.cash.current.expected })).toContainText(
     "L 150.00",
   );
-  await expect(page.getByText(messages.cash.current.cashRefunds, { exact: true })).toBeVisible();
+  await expect(
+    refunded.getByText(messages.cash.current.cashRefunds, { exact: true }),
+  ).toBeVisible();
 
   // La venta lista sus dos devoluciones y ya no ofrece anularse
   await page.goto("/ventas");
@@ -878,10 +953,11 @@ test("the cashier exchanges a garment for a pricier one and only pays the differ
   await expect(receipt).toContainText("L 100.00");
 
   // En el cajón entraron los L 100 de la primera venta y los L 80 de la diferencia
-  await page.goto("/caja");
-  await expect(page.getByRole("group", { name: messages.cash.current.expected })).toContainText(
-    "L 180.00",
-  );
+  await page.goto("/vender");
+  const exchanged = await openCashPanel(page);
+  await expect(
+    exchanged.getByRole("group", { name: messages.cash.current.expected }),
+  ).toContainText("L 180.00");
 
   // La venta nueva muestra el crédito por cambio como una forma de pago
   await page.goto("/ventas");
@@ -1081,10 +1157,12 @@ test("the cashier reserves a garment with a deposit, receives another, settles i
   await expect(page.getByText(lay.settle.done.noChange)).toBeVisible();
 
   // En el cajón entraron los L 50 + L 60 de los abonos y los L 90 del saldo
-  await page.goto("/caja");
-  await expect(page.getByRole("group", { name: messages.cash.current.expected })).toContainText(
-    "L 200.00",
-  );
+  await page.goto("/vender");
+  const layawayCash = await openCashPanel(page);
+  await expect(
+    layawayCash.getByRole("group", { name: messages.cash.current.expected }),
+  ).toContainText("L 200.00");
+  await page.keyboard.press("Escape");
 
   // Un segundo apartado; la cajera no puede cancelarlo sin el PIN de un gerente
   await page.goto("/vender");

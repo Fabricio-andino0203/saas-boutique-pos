@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 
 import { Button } from "@/components/ui/button";
+import { CashPanel } from "@/modules/cash/components/cash-panel";
 import { Input } from "@/components/ui/input";
 import { Notice } from "@/components/shared/notice";
 import { messages } from "@/config/messages.es";
@@ -98,6 +99,8 @@ export function PosScreen({
   const [notice, setNotice] = useState<Notice | null>(null);
   const [picker, setPicker] = useState<SellableProduct | null>(null);
   const [dialog, setDialog] = useState<DialogName | null>(null);
+  // Con el panel de caja abierto los atajos del punto de venta se pausan.
+  const [cashOpen, setCashOpen] = useState(false);
   // El saldo de crédito del cliente del ticket; se vuelve a leer al elegirlo y al abrir o cerrar el cobro.
   const [credit, setCredit] = useState<{ customerId: string; cents: number } | null>(null);
   const customerId = customer?.id ?? null;
@@ -329,7 +332,7 @@ export function PosScreen({
       goReturns,
       runLookup,
       selected,
-      blocked: dialog !== null || picker !== null,
+      blocked: dialog !== null || picker !== null || cashOpen,
     };
   });
 
@@ -424,6 +427,13 @@ export function PosScreen({
             <Undo2 aria-hidden="true" />
             {copy.actions.returns} <kbd className="text-muted-foreground text-xs">F8</kbd>
           </Button>
+          {config.canUseCash ? (
+            <CashPanel
+              ownSession={config.ownsCash}
+              openedByName={config.openedByName}
+              onOpenChange={setCashOpen}
+            />
+          ) : null}
           <Button type="button" variant="outline" onClick={() => openDialog("switch")}>
             <UserRoundCog aria-hidden="true" />
             {copy.switch.button}

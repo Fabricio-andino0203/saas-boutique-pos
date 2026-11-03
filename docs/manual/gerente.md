@@ -21,6 +21,7 @@ Si fallas el PIN cinco veces, tu cuenta se bloquea 15 minutos: espera o pide al 
 1. Ve a **Cierres de caja**. Arriba, en **Cierres por aprobar**, están los turnos que esperan tu aprobación.
 2. Abre uno: ves lo esperado, lo contado, la **diferencia** y las entradas y salidas de efectivo con su motivo.
 3. Si la diferencia tiene explicación (un cambio que no se anotó, una salida a un proveedor), apruébalo. Si no, habla con el cajero antes de aprobar.
+4. Mira también **Retirado al cerrar** y **Quedó en la caja**: lo retirado va a la **caja de finanzas** (si tu plan tiene Finanzas) y lo que quedó es el fondo con el que abre la caja de mañana. Si alguien abre con otro fondo, verás el motivo que escribió.
 
 Una caja que **no se cierra** impide que otra persona abra la suya en la misma terminal ("la caja la tiene abierta otra persona"): pídele a quien la dejó abierta que la cierre.
 

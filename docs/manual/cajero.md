@@ -5,7 +5,7 @@ Todo lo que necesitas para vender. Si algo no sale como aquí, pídele ayuda al 
 ## 1. Entrar y abrir tu caja
 
 1. Entra con tu **usuario y contraseña**.
-2. Ve a **Caja**. Cuenta el efectivo con el que empiezas (el *fondo inicial*), escríbelo y pulsa **Abrir caja**. Si empiezas sin efectivo, escribe 0.
+2. Ve a **Vender**. Si no hay caja abierta, ahí mismo te pide abrirla: cuenta el efectivo con el que empiezas (el *fondo inicial*), escríbelo y pulsa **Abrir caja**. Si empiezas sin efectivo, escribe 0. **Si ayer quedó efectivo en el cajón, el fondo ya aparece puesto**: cuéntalo; si hay otra cantidad, cámbiala y explica por qué.
 
 | Entrar | Abrir caja |
 | :---: | :---: |
@@ -43,16 +43,17 @@ Todo lo que necesitas para vender. Si algo no sale como aquí, pídele ayuda al 
 
 ## 4. Cerrar tu caja al terminar
 
-1. Ve a **Caja**. Arriba ves **Tu turno**: el efectivo que *debe haber* según las ventas.
-2. Más abajo, en **Cerrar caja**, cuenta el efectivo del cajón (si quieres, marca *Contar por billetes y monedas*) y pulsa **Ver diferencia**.
-3. El sistema te muestra la diferencia con lo esperado. Si cuadra, confirma el cierre. Si no, vuelve a contar; si sigue sin cuadrar, confirma el cierre **y avisa al gerente**: él revisa y aprueba.
-4. Entrega el efectivo y el resumen al gerente.
+1. En **Vender**, pulsa el botón **Caja** de arriba. Se abre un panel con tu turno; arriba siempre ves el efectivo que *debe haber* según las ventas.
+2. En la pestaña **Cerrar caja**, cuenta el efectivo del cajón (si quieres, marca *Contar por billetes y monedas*) y pulsa **Ver diferencia**.
+3. El sistema te muestra la diferencia con lo esperado. Si cuadra, sigue. Si no, vuelve a contar; si sigue sin cuadrar, explícalo en el comentario **y avisa al gerente**: él revisa y aprueba.
+4. **¿Cuánto retiras?** Escribe lo que sacas del cajón para llevarlo (o para la caja de finanzas); lo que no retires **se queda en el cajón y mañana la caja abre con ese saldo**. Abajo ves cuánto queda. «Retirar todo» y «No retirar nada» te ahorran escribir.
+5. Confirma el cierre y entrega el efectivo que retiraste y el resumen al gerente.
 
 | Tu turno | Cerrar caja |
 | :---: | :---: |
 | ![Resumen del turno](img/08-tu-turno.jpg) | ![Formulario de cierre](img/09-cerrar-caja.jpg) |
 
-**Entradas y salidas de efectivo:** si pones o sacas dinero del cajón y no es una venta (pagar a un proveedor, dar cambio), regístralo en **Caja → Entradas y salidas**, con el motivo. Si no, el cierre no va a cuadrar.
+**Entradas y salidas de efectivo:** si pones o sacas dinero del cajón y no es una venta (pagar a un proveedor, dar cambio), regístralo en el botón **Caja** de Vender, pestaña **Entradas y salidas**, con el motivo. Si no, el cierre no va a cuadrar.
 
 ## 5. Atajos útiles
 

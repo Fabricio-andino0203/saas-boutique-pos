@@ -6,7 +6,8 @@ import { requirePageCapability } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { hasCapability } from "@/lib/permissions";
 import { getSettings } from "@/lib/settings";
-import { getTerminalStatus } from "@/modules/cash/queries";
+import { OpenCashForm } from "@/modules/cash/components/open-cash-form";
+import { getOpenSessionOf, getTerminalStatus } from "@/modules/cash/queries";
 import { getInvoicingState } from "@/modules/fiscal/alerts";
 import { PosScreen } from "@/modules/sales/components/pos-screen";
 import { listPosCategories } from "@/modules/sales/pos-queries";
@@ -16,21 +17,41 @@ export default async function PosPage() {
   const { user } = await requirePageCapability("sale.create");
   const terminal = await getTerminalStatus();
 
-  // Sin turno abierto en la terminal no se vende: una pantalla amable y el camino para abrirlo.
+  // Sin turno abierto en la terminal no se vende: se abre aquí mismo, con el fondo que dejó el último cierre.
   if (!terminal.openBy) {
     const copy = messages.pos.closed;
+    const canOpen = hasCapability(user.role, "cash.open");
     return (
-      <div className="mx-auto max-w-lg space-y-4 py-12 text-center">
-        <h1 className="text-2xl font-semibold tracking-tight">{copy.title}</h1>
-        <p className="text-muted-foreground">{copy.description}</p>
-        {hasCapability(user.role, "cash.open") ? (
-          <Link href="/caja" className={buttonVariants()}>
-            {copy.action}
-          </Link>
+      <div className="mx-auto max-w-lg space-y-6 py-12">
+        <div className="space-y-2 text-center">
+          <h1 className="text-2xl font-semibold tracking-tight">{copy.title}</h1>
+          <p className="text-muted-foreground">{copy.description}</p>
+        </div>
+        {canOpen ? (
+          <OpenCashForm
+            terminalName={terminal.terminalName}
+            inherited={
+              terminal.inherited
+                ? {
+                    cents: terminal.inherited.cents,
+                    closedAt: terminal.inherited.closedAt.toISOString(),
+                    closedByName: terminal.inherited.closedByName,
+                  }
+                : null
+            }
+          />
         ) : null}
+        <p className="text-center">
+          <Link href="/caja/cierres" className={buttonVariants({ variant: "outline" })}>
+            {messages.nav.cashClosings}
+          </Link>
+        </p>
       </div>
     );
   }
+
+  const canUseCash = hasCapability(user.role, "cash.open");
+  const ownsCash = canUseCash ? (await getOpenSessionOf(user.id)) !== null : false;
 
   const [settings, categories, invoicing] = await Promise.all([
     getSettings(db),
@@ -52,6 +73,8 @@ export default async function PosPage() {
       expiryDays: settings["layaway.expiryDays"],
     },
     canLayaway: hasCapability(user.role, "layaway.manage"),
+    canUseCash,
+    ownsCash,
   };
   return <PosScreen config={config} categories={categories} />;
 }

@@ -55,6 +55,10 @@ export type PosConfig = {
   layaway: { minDepositPercent: number; expiryDays: number };
   /** Puede crear apartados desde el ticket. */
   canLayaway: boolean;
+  /** Puede usar las opciones de caja dentro de Vender (turno, entradas y salidas, cierre). */
+  canUseCash: boolean;
+  /** La caja abierta de la terminal es de quien está en pantalla (solo esa persona puede cerrarla desde el panel). */
+  ownsCash: boolean;
 };
 
 export type PosActionError = { error: string };

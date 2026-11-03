@@ -1,6 +1,5 @@
 import {
   ArrowLeftRight,
-  Banknote,
   ChartColumn,
   Barcode,
   Boxes,
@@ -11,6 +10,7 @@ import {
   History,
   House,
   Images,
+  Landmark,
   LogOut,
   Package,
   PackageCheck,
@@ -106,7 +106,6 @@ const navGroups: readonly NavGroup[] = [
         icon: ChartColumn,
         capability: "report.view",
       },
-      { href: "/caja", label: messages.nav.cash, icon: Banknote, capability: "cash.open" },
       {
         href: "/caja/cierres",
         label: messages.nav.cashClosings,
@@ -237,6 +236,12 @@ const navGroups: readonly NavGroup[] = [
         href: "/finanzas/movimientos",
         label: messages.nav.financeEntries,
         icon: ArrowLeftRight,
+        capability: "finance.view",
+      },
+      {
+        href: "/finanzas/caja",
+        label: messages.nav.financeBox,
+        icon: Landmark,
         capability: "finance.view",
       },
       {

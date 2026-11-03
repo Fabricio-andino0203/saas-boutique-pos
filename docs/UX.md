@@ -17,7 +17,7 @@
 
 Barra lateral izquierda, agrupada en **grupos plegables** (por omisión solo el primero y el de la pantalla actual están abiertos; lo que cada persona abre o cierra se recuerda en su navegador) y reducible a **iconos**: con el menú reducido cada grupo es un solo icono (Ventas, Mercadería, Inventario, Gente, Finanzas, Administración) y su lista de pantallas se abre al lado al pasar el mouse o con Enter; «Inicio» queda suelto con su tooltip. La elección de reducir se guarda en una cookie, así el menú vuelve a abrirse como se dejó. En el teléfono es la hoja lateral de siempre con los mismos grupos. Agrupación de referencia (los nombres exactos están en `messages.nav.groups`):
 
-- **Vender:** Punto de venta · Caja · Apartados · Devoluciones
+- **Vender:** Punto de venta · Apartados · Devoluciones · Cierres de caja (la caja en sí se opera dentro del punto de venta, §6)
 - **Mercadería:** Productos · Inventario · Compras · Etiquetas
 - **Gente:** Clientes · Proveedores
 - **Negocio:** Ventas (historial) · Reportes · Dashboard
@@ -101,9 +101,12 @@ El mayor cuello de botella de cualquier boutique es **cargar productos**. Diseñ
 
 ## 6. Caja
 
-- **Apertura:** un solo campo (fondo inicial) y [Abrir caja].
-- **Cierre:** asistente de 3 pasos: *resumen esperado → contar efectivo (opcional por denominaciones) → diferencia y comentario*. La diferencia se colorea: verde (0), ámbar (pequeña), rojo (grande). Imprimible.
-- Estado de caja siempre visible en la barra superior; si está cerrada, el POS muestra una pantalla amable: "Abre tu caja para empezar a vender".
+La caja vive **dentro de Vender** (no tiene entrada propia en el menú; `/caja` lleva a Vender). El botón **Caja** del encabezado del punto de venta abre un panel lateral con tres pestañas —*Turno* (resumen), *Entradas y salidas* (gastos, retiros, más cambio) y *Cerrar caja*— y el efectivo que debe haber siempre a la vista encima de ellas. El panel se pide al abrirlo y tras cada cambio; los atajos del punto de venta se pausan mientras está abierto. Las tres pestañas quedan montadas: cambiar de una a otra no borra lo que se estaba contando.
+
+- **Apertura:** si no hay turno abierto, Vender muestra el formulario de apertura (un campo: fondo inicial) y [Abrir caja]. Si el último cierre dejó efectivo en el cajón, ese **fondo heredado** ya aparece puesto con quién lo dejó y cuándo. Cambiarlo, cuando lo heredado era mayor que cero, pide explicar por qué (comentario obligatorio, queda en la auditoría).
+- **Cierre:** asistente de pasos: *contar efectivo (opcional por denominaciones) → ver la diferencia → cuánto se retira → comentario y cerrar*. La diferencia se colorea: verde (0), ámbar (pequeña), rojo (grande). El retiro tiene botones «Retirar todo» y «No retirar nada» y una línea que dice cuánto **queda en la caja para mañana**; no deja retirar más de lo contado. Imprimible.
+- La caja de otra persona: si la terminal la abrió alguien más, el panel lo explica y no deja operar (solo quien abrió el turno lo cierra).
+- Sin turno abierto, Vender muestra el formulario de apertura en lugar del punto de venta.
 
 ## 7. Reportes y dashboard
 
@@ -131,11 +134,12 @@ El mayor cuello de botella de cualquier boutique es **cargar productos**. Diseñ
 
 ### Finanzas (módulo de plan)
 
-- **Menú:** grupo «Finanzas» (Resumen, Movimientos, Costos fijos, Categorías de Finanzas) solo para Propietario y Gerente y solo si el plan incluye el módulo. El cajero no lo ve y las direcciones le muestran «no encontrado».
+- **Menú:** grupo «Finanzas» (Resumen, Movimientos, Caja de finanzas, Costos fijos, Categorías de Finanzas) solo para Propietario y Gerente y solo si el plan incluye el módulo. El cajero no lo ve y las direcciones le muestran «no encontrado».
 - **Resumen** (`/finanzas`): la utilidad neta del periodo como cifra grande con su margen, cuatro cifras planas (ventas netas, utilidad bruta, otros ingresos, gastos) y el **estado de resultados** como tabla con las categorías como subtotales. Mismo selector de periodo que los reportes.
 - **Movimientos:** gastos e ingresos que no son ventas, con filtros (tipo, categoría, forma de pago, anulados), totales que no cuentan los anulados, «Nuevo gasto» / «Nuevo ingreso» y «Anular» con motivo (el movimiento no se borra). Un gasto que salió de la caja lleva la marca «De la caja» y no se anula desde aquí.
 - **Costos fijos:** primero lo que está **por pagar** (con «Vencido» si ya pasó el día) y «Registrar pago» con el monto habitual editable; abajo, la lista de costos fijos. Se muestran los últimos 6 meses y el actual.
 - **Caja:** con el módulo, las salidas y entradas de efectivo preguntan «¿Qué fue?» y, si es un gasto o un ingreso, su categoría; sin el módulo el formulario es el de siempre.
+- **Caja de finanzas** (`/finanzas/caja`): el saldo del efectivo del negocio fuera del cajón como cifra grande, tres cifras planas (retirado en cierres, ingresos en efectivo, gastos en efectivo) y la lista de **retiros de los cierres de caja** con enlace a cada cierre. Un saldo negativo se pinta en rojo con un aviso «revísalos» y un enlace a esos gastos; no se oculta. El resumen de Finanzas la enseña en una sección corta con enlace.
 - **Patrones:** los formularios van en ventanas (`Dialog`), los errores se quedan dentro de la ventana con `Notice`, y lo que termina bien confirma con un toast. Los meses se escriben con mayúscula inicial («Noviembre de 2026»).
 
 ## 9. Accesibilidad y responsividad
