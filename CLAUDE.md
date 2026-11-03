@@ -151,6 +151,7 @@ Estas reglas existen porque un error aquí descuadra caja o inventario. Si una t
 | `docs/ROADMAP.md` | En qué orden: fases, entregables, criterios de aceptación, prompts |
 | `docs/DECISIONS_PENDING.md` | Preguntas abiertas y el valor por defecto asumido |
 | `docs/RUNBOOK.md` | Operar el servidor: instalar, actualizar, respaldar, restaurar, incidentes |
+| `docs/PLANTILLA_ACTUALIZACION.md` | Plantilla paso a paso para subir una versión a Railway a mano (push, registros esperados, comprobaciones, volver atrás) |
 | `docs/manual/` | Manuales de uso por rol (cajero en 1 página, gerente, propietario, almacén) |
 | `docs/CAPACITACION.md` · `docs/UX_FEEDBACK.md` | Capacitación de 10 minutos y registro de fricciones de uso |
 | `docs/SAAS_PROPUESTA.md` · `docs/SAAS_ETAPA_0.md` … `docs/SAAS_ETAPA_6.md` | Iniciativa SaaS multi-negocio (rama de la plataforma): propuesta aprobada por etapas e informes de cada etapa |

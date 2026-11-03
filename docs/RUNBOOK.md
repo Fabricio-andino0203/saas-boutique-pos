@@ -75,6 +75,8 @@ Es segura de repetir: si no hay nada vencido, no hace nada. Actúa como el propi
 
 ## 4. Actualizar a una versión nueva
 
+> **En Railway** no se usa lo de abajo (es para el servidor con Docker Compose): se sigue la [plantilla de actualización](PLANTILLA_ACTUALIZACION.md), que cubre el `push`, los registros esperados, las comprobaciones y cómo volver atrás.
+
 1. Avisar en la tienda: la app se reinicia (≈ 30 s sin servicio).
 2. **Respaldo manual antes de actualizar** (las migraciones no se revierten):
 
