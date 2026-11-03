@@ -1,4 +1,5 @@
 import {
+  ArrowLeftRight,
   Banknote,
   ChartColumn,
   Barcode,
@@ -22,6 +23,7 @@ import {
   Shirt,
   ShoppingCart,
   Tag,
+  Tags,
   TriangleAlert,
   Truck,
   Undo2,
@@ -205,6 +207,23 @@ const navGroups: readonly NavGroup[] = [
         label: messages.catalog.entities.suppliers.plural,
         icon: Truck,
         capability: "purchase.receive",
+      },
+    ],
+  },
+  {
+    label: messages.nav.groups.finance,
+    items: [
+      {
+        href: "/finanzas/movimientos",
+        label: messages.nav.financeEntries,
+        icon: ArrowLeftRight,
+        capability: "finance.view",
+      },
+      {
+        href: "/finanzas/categorias",
+        label: messages.nav.financeCategories,
+        icon: Tags,
+        capability: "finance.view",
       },
     ],
   },

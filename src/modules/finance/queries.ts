@@ -133,3 +133,14 @@ export async function listFinanceEntries(
     truncated: found.length > ENTRY_LIST_LIMIT,
   };
 }
+
+export type SupplierOption = { id: string; name: string };
+
+/** Los proveedores activos, para elegir a quién se le pagó un gasto. */
+export async function listSupplierOptions(client: Client = db): Promise<SupplierOption[]> {
+  return client.supplier.findMany({
+    where: { archivedAt: null },
+    orderBy: { name: "asc" },
+    select: { id: true, name: true },
+  });
+}

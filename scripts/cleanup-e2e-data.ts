@@ -123,6 +123,13 @@ async function main(): Promise<void> {
       }),
     );
     await tryDelete(() => client.category.deleteMany({ where: named }));
+    // Categorías de Finanzas de prueba: las que ya tienen movimientos (el libro no se borra) solo se archivan.
+    await tryDelete(() =>
+      client.financeCategory.deleteMany({
+        where: { ...named, entries: { none: {} }, fixedCosts: { none: {} } },
+      }),
+    );
+    await client.financeCategory.updateMany({ where: named, data: { archivedAt: new Date() } });
     // Las que todavía usan productos archivados se archivan para que no ensucien el catálogo.
     await client.category.updateMany({ where: named, data: { archivedAt: new Date() } });
   } finally {
