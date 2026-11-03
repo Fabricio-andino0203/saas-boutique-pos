@@ -129,6 +129,15 @@ El mayor cuello de botella de cualquier boutique es **cargar productos**. Diseñ
 - **Carga y movimiento:** bloques `Skeleton` con un brillo de marca; ruedita en el menú si una pantalla tarda en abrir (`NavPending`, aparece tras 200 ms); check animado en «venta cobrada» (`SuccessCheck`); el inicio entra una sola vez con `.stagger`. Duraciones de 150–400 ms y todo se apaga con «reducir movimiento» (regla global en `globals.css`).
 - **Tokens** de diseño en CSS variables (`--color-primary`, `--radius`, etc.) para poder cambiar la marca en un solo lugar.
 
+### Finanzas (módulo de plan)
+
+- **Menú:** grupo «Finanzas» (Resumen, Movimientos, Costos fijos, Categorías de Finanzas) solo para Propietario y Gerente y solo si el plan incluye el módulo. El cajero no lo ve y las direcciones le muestran «no encontrado».
+- **Resumen** (`/finanzas`): la utilidad neta del periodo como cifra grande con su margen, cuatro cifras planas (ventas netas, utilidad bruta, otros ingresos, gastos) y el **estado de resultados** como tabla con las categorías como subtotales. Mismo selector de periodo que los reportes.
+- **Movimientos:** gastos e ingresos que no son ventas, con filtros (tipo, categoría, forma de pago, anulados), totales que no cuentan los anulados, «Nuevo gasto» / «Nuevo ingreso» y «Anular» con motivo (el movimiento no se borra). Un gasto que salió de la caja lleva la marca «De la caja» y no se anula desde aquí.
+- **Costos fijos:** primero lo que está **por pagar** (con «Vencido» si ya pasó el día) y «Registrar pago» con el monto habitual editable; abajo, la lista de costos fijos. Se muestran los últimos 6 meses y el actual.
+- **Caja:** con el módulo, las salidas y entradas de efectivo preguntan «¿Qué fue?» y, si es un gasto o un ingreso, su categoría; sin el módulo el formulario es el de siempre.
+- **Patrones:** los formularios van en ventanas (`Dialog`), los errores se quedan dentro de la ventana con `Notice`, y lo que termina bien confirma con un toast. Los meses se escriben con mayúscula inicial («Noviembre de 2026»).
+
 ## 9. Accesibilidad y responsividad
 
 - WCAG 2.1 AA: contraste, foco visible, navegación por teclado completa, `aria-label` en iconos, mensajes de error asociados a campos.

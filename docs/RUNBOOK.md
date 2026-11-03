@@ -398,7 +398,7 @@ Es repetible: correrlo dos veces no hace nada la segunda. Un barrido que falla n
 Panel → **Planes → Nuevo plan** (nombre, precio, cada cuánto se cobra, días de prueba, límites y módulos), o `dc exec app pnpm billing:seed-plans` para empezar con **Básico, Estándar y Completo** (precios de ejemplo: ajústalos). Editar un plan lo cambia para todos los negocios que lo tienen, **salvo el precio ya acordado**, que está copiado en cada suscripción. Un plan no se borra: se **desactiva** (deja de poder asignarse; quien ya lo tiene lo conserva).
 
 - **Límites:** usuarios activos y productos no archivados. Vacío = sin límite. Un negocio por encima del tope (porque bajó de plan) **conserva todo**; solo no puede agregar más.
-- **Módulos:** reportes y exportaciones, apartados, devoluciones y cambios, compras y proveedores, conteos físicos, etiquetas, clientes y crédito, facturación con CAI. Vender, cobrar, caja, inventario y catálogo van siempre.
+- **Módulos:** reportes y exportaciones, apartados, devoluciones y cambios, compras y proveedores, conteos físicos, etiquetas, clientes y crédito, facturación con CAI y **finanzas** (gastos, otros ingresos, costos fijos y utilidad neta, `docs/PRD.md` §4.12). Vender, cobrar, caja, inventario y catálogo van siempre. **Finanzas no se enciende sola en los planes que ya existen** (los de ejemplo que se crean de nuevo sí la traen en «Completo»): al actualizar a la versión que la trae, edita el plan en el panel y marca el módulo; la migración `finance` ya habrá creado las tablas y las categorías iniciales en cada negocio. Sin el módulo, la caja se comporta como siempre (sin la pregunta «¿Qué fue?» en las salidas de efectivo) y no hay menú ni pantallas de Finanzas.
 
 ### Darle plan a un negocio
 
