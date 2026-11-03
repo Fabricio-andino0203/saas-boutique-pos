@@ -5,7 +5,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { messages } from "@/config/messages.es";
 import { requirePageCapability } from "@/lib/auth";
 import { LabelBuilder } from "@/modules/labels/components/label-builder";
-import { getLabelSelection } from "@/modules/labels/service";
+import { getLabelSelection, isLabelQuantityMode, withStock } from "@/modules/labels/service";
 import { listVariantsPage } from "@/modules/purchasing/queries";
 
 const first = (value: string | string[] | undefined): string =>
@@ -14,7 +14,12 @@ const first = (value: string | string[] | undefined): string =>
 export default async function LabelsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ producto?: string; productos?: string; recepcion?: string }>;
+  searchParams: Promise<{
+    producto?: string;
+    productos?: string;
+    recepcion?: string;
+    cantidad?: string;
+  }>;
 }) {
   await requirePageCapability("stock.adjust");
   const raw = await searchParams;
@@ -22,11 +27,16 @@ export default async function LabelsPage({
     (id) => id !== "",
   );
   const receiptId = first(raw.recepcion);
+  // `cantidad=stock`: las etiquetas arrancan pedidas según el stock; sin eso, una de cada prenda. Se puede cambiar en la pantalla.
+  const quantityParam = first(raw.cantidad);
+  const quantity = isLabelQuantityMode(quantityParam) ? quantityParam : "one";
   const initial = await getLabelSelection({
     productIds: productIds.length > 0 ? productIds : undefined,
     receiptId: receiptId || undefined,
+    quantity,
   });
-  const firstPage = await listVariantsPage(0, { includeCost: false });
+  const page = await listVariantsPage(0, { includeCost: false });
+  const firstPage = { hasMore: page.hasMore, items: await withStock(page.items) };
   const copy = messages.labels;
 
   return (
@@ -44,7 +54,7 @@ export default async function LabelsPage({
         }
       />
       <LabelBuilder
-        key={`${productIds.join(",")}-${receiptId}`}
+        key={`${productIds.join(",")}-${receiptId}-${quantity}`}
         initial={initial}
         firstPage={firstPage}
       />

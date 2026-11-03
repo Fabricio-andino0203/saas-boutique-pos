@@ -71,12 +71,20 @@ export default async function ProductPage({
           title={product.name}
           description={`${copy.codeLabel}: ${product.code}`}
           actions={
-            <Link
-              href={`/inventario/etiquetas?producto=${product.id}`}
-              className={buttonVariants({ variant: "outline" })}
-            >
-              {messages.labels.fromProduct}
-            </Link>
+            <>
+              <Link
+                href={`/inventario/etiquetas?producto=${product.id}`}
+                className={buttonVariants({ variant: "outline" })}
+              >
+                {messages.labels.fromProduct}
+              </Link>
+              <Link
+                href={`/inventario/etiquetas?producto=${product.id}&cantidad=stock`}
+                className={buttonVariants({ variant: "outline" })}
+              >
+                {messages.labels.fromProductStock}
+              </Link>
+            </>
           }
         />
         {justCreated ? <Notice tone="success">{messages.products.created}</Notice> : null}

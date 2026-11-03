@@ -304,6 +304,12 @@ export function ProductsTable({
           >
             {messages.labels.fromSelection}
           </Link>
+          <Link
+            href={`/inventario/etiquetas?productos=${selected.join(",")}&cantidad=stock`}
+            className={buttonVariants({ variant: "outline" })}
+          >
+            {messages.labels.fromProductStock}
+          </Link>
           <Button
             type="button"
             variant="ghost"

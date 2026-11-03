@@ -6,6 +6,8 @@ import { ValidationError } from "@/lib/errors";
 import { requireCapability } from "@/lib/permissions";
 import { getSetting, LABEL_TEMPLATE_SCHEMA, setSetting, type LabelTemplate } from "@/lib/settings";
 import type { Actor } from "@/modules/catalog/service";
+import { listProducts } from "@/modules/products/service";
+import type { VariantOption } from "@/modules/purchasing/queries";
 
 /** Tope de etiquetas por impresión: protege la página y el papel de un error de tecleo. */
 export const MAX_LABELS = 1000;
@@ -112,12 +114,55 @@ export type SelectionRow = {
   productName: string;
   label: string;
   sku: string;
+  /** Cuántas etiquetas arrancan pedidas (la cantidad se puede cambiar en la pantalla). */
   quantity: number;
+  /** Cuántas unidades hay ahora (en todas las ubicaciones). */
+  onHand: number;
 };
+
+/**
+ * Cuántas etiquetas pedir al elegir las prendas de un producto: **una de cada** prenda o **las que hay en stock**. Es una
+ * comodidad opcional: la cantidad siempre se puede cambiar antes de imprimir.
+ */
+export type LabelQuantityMode = "one" | "stock";
+
+export const isLabelQuantityMode = (value: string): value is LabelQuantityMode =>
+  value === "one" || value === "stock";
+
+/** Las unidades que hay de cada prenda, sumando todas las ubicaciones; una prenda sin movimientos vale 0. */
+export async function stockByVariant(
+  variantIds: readonly string[],
+  client: PrismaClient = db,
+): Promise<Map<string, number>> {
+  if (variantIds.length === 0) {
+    return new Map();
+  }
+  const rows = await client.stockLevel.groupBy({
+    by: ["variantId"],
+    where: { variantId: { in: [...variantIds] } },
+    _sum: { onHand: true },
+  });
+  return new Map(rows.map((row) => [row.variantId, row._sum.onHand ?? 0]));
+}
+
+/** Las opciones del buscador de prendas con su stock, para que se vea cuántas hay antes de pedir etiquetas. */
+export async function withStock(
+  options: readonly VariantOption[],
+  client: PrismaClient = db,
+): Promise<(VariantOption & { onHand: number })[]> {
+  const stock = await stockByVariant(
+    options.map((option) => option.variantId),
+    client,
+  );
+  return options.map((option) => ({ ...option, onHand: stock.get(option.variantId) ?? 0 }));
+}
+
+const quantityFor = (mode: LabelQuantityMode, onHand: number): number =>
+  mode === "stock" ? Math.max(0, onHand) : 1;
 
 /** Prendas con las que arranca la pantalla de etiquetas: las de uno o varios productos, o las de una recepción. */
 export async function getLabelSelection(
-  params: { productIds?: string[]; receiptId?: string },
+  params: { productIds?: string[]; receiptId?: string; quantity?: LabelQuantityMode },
   client: PrismaClient = db,
 ): Promise<SelectionRow[]> {
   const include = {
@@ -132,12 +177,17 @@ export async function getLabelSelection(
       include: { variant: { include } },
       orderBy: { createdAt: "asc" },
     });
+    const stock = await stockByVariant(
+      items.map((item) => item.variantId),
+      client,
+    );
     return items.map((item) => ({
       variantId: item.variantId,
       productName: item.variant.product.name,
       label: [item.variant.size?.name, item.variant.color?.name].filter(Boolean).join(" · "),
       sku: item.variant.sku,
       quantity: item.quantity,
+      onHand: stock.get(item.variantId) ?? 0,
     }));
   }
   if (params.productIds && params.productIds.length > 0) {
@@ -146,13 +196,61 @@ export async function getLabelSelection(
       include,
       orderBy: [{ product: { name: "asc" } }, { sku: "asc" }],
     });
-    return variants.map((variant) => ({
-      variantId: variant.id,
-      productName: variant.product.name,
-      label: [variant.size?.name, variant.color?.name].filter(Boolean).join(" · "),
-      sku: variant.sku,
-      quantity: 1,
-    }));
+    const stock = await stockByVariant(
+      variants.map((variant) => variant.id),
+      client,
+    );
+    return variants.map((variant) => {
+      const onHand = stock.get(variant.id) ?? 0;
+      return {
+        variantId: variant.id,
+        productName: variant.product.name,
+        label: [variant.size?.name, variant.color?.name].filter(Boolean).join(" · "),
+        sku: variant.sku,
+        quantity: quantityFor(params.quantity ?? "one", onHand),
+        onHand,
+      };
+    });
   }
   return [];
+}
+
+export type LabelProductOption = {
+  id: string;
+  code: string;
+  name: string;
+  variantCount: number;
+  onHand: number;
+  imageId: string | null;
+};
+
+/** Productos activos que coinciden con lo escrito (nombre, código o código de barras), para elegir uno y sacar todas sus prendas. */
+export async function searchLabelProducts(
+  query: string,
+  client: PrismaClient = db,
+): Promise<LabelProductOption[]> {
+  const term = query.trim();
+  if (term === "") {
+    return [];
+  }
+  const { rows } = await listProducts({ q: term, status: "active", page: 1 }, client);
+  return rows
+    .filter((row) => row.variantCount > 0)
+    .map((row) => ({
+      id: row.id,
+      code: row.code,
+      name: row.name,
+      variantCount: row.variantCount,
+      onHand: row.onHand,
+      imageId: row.coverImageId,
+    }));
+}
+
+/** Todas las prendas de un producto, con la cantidad de etiquetas que pide el modo elegido. */
+export async function getProductLabelRows(
+  productId: string,
+  quantity: LabelQuantityMode,
+  client: PrismaClient = db,
+): Promise<SelectionRow[]> {
+  return getLabelSelection({ productIds: [productId], quantity }, client);
 }

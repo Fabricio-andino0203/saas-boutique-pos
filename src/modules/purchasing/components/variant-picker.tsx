@@ -11,28 +11,36 @@ import type { VariantOption, VariantPage } from "@/modules/purchasing/queries";
 
 const copy = messages.purchasing.picker;
 
-type VariantPickerProps = {
-  onPick: (variant: VariantOption) => void;
+type VariantPickerProps<T extends VariantOption> = {
+  onPick: (variant: T) => void;
   /** Sirve para avisar, por ejemplo, que la prenda no está en la orden. */
   helper?: string | null;
   /** La búsqueda de esta pantalla: cada módulo trae la suya, con su propio permiso (no la de otro módulo). */
-  search: (query: string) => Promise<VariantOption[]>;
+  search: (query: string) => Promise<T[]>;
   /**
    * Opcional. Si se da, mientras no se escribe nada la lista muestra TODAS las prendas (de a páginas, con «Ver más»), para elegir
    * mirando en vez de adivinar qué buscar; al escribir se filtra. `initial` es la primera página (la trae la página del servidor,
    * así la lista ya está al abrir la pantalla) y `load` pide las siguientes.
    */
-  browse?: { initial: VariantPage; load: (offset: number) => Promise<VariantPage> };
+  browse?: {
+    initial: VariantPage & { items: T[] };
+    load: (offset: number) => Promise<VariantPage & { items: T[] }>;
+  };
 };
 
 /**
  * Escáner y buscador: un código de barras o un código exacto entra de inmediato (como al escanear);
  * un nombre muestra las coincidencias para elegir. Con `browse`, además, se ve todo el catálogo.
  */
-export function VariantPicker({ onPick, helper, search, browse }: VariantPickerProps) {
+export function VariantPicker<T extends VariantOption = VariantOption>({
+  onPick,
+  helper,
+  search,
+  browse,
+}: VariantPickerProps<T>) {
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<VariantOption[] | null>(null);
-  const [all, setAll] = useState<VariantOption[]>(browse?.initial.items ?? []);
+  const [results, setResults] = useState<T[] | null>(null);
+  const [all, setAll] = useState<T[]>(browse?.initial.items ?? []);
   const [hasMore, setHasMore] = useState(browse?.initial.hasMore ?? false);
   const [failed, setFailed] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -53,7 +61,7 @@ export function VariantPicker({ onPick, helper, search, browse }: VariantPickerP
     });
   }
 
-  function pick(option: VariantOption) {
+  function pick(option: T) {
     onPick(option);
     setQuery("");
     setResults(null);

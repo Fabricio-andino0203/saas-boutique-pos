@@ -105,6 +105,7 @@ Contabilidad de partida doble, planillas y nómina, CRM de marketing, integraci�
 - **RF-CAT-8** Archivar productos/variantes (no borrar si tienen historial).
 - **RF-CAT-9** Historial de cambios de precio y costo.
 - **RF-CAT-10** Generación e impresión de **etiquetas** (código de barras + precio + talla + color) en hoja o rollo.
+- **RF-CAT-12** **Etiquetas de un producto y todas sus variantes:** se busca un producto (o se entra desde su ficha o desde la selección de la lista) y se agregan de una vez todas sus tallas y colores. La cantidad es **opcional**, como el almacén la necesite: **una etiqueta de cada prenda** (por omisión) o **las que hay en stock** de cada una (suma de todas las ubicaciones; una prenda sin stock queda en 0 y no se imprime); además cada fila muestra su stock, avisa si se pide más que el stock y tiene «Usar el stock», y hay botones para igualar todas al stock o poner 1 en cada una. Las cantidades siempre se pueden cambiar antes de imprimir (tope de 1000 por impresión).
 
 ### 4.3 Inventario (INV)
 

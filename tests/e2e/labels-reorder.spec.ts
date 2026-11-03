@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 import { messages } from "../../src/config/messages.es";
 
 import { loginAs } from "./helpers/login";
-import { createSimpleProduct } from "./helpers/products";
+import { addStock, createSimpleProduct } from "./helpers/products";
 
 const reorder = messages.reorder;
 const labels = messages.labels;
@@ -147,4 +147,59 @@ test("the labels screen lists every garment to choose by looking, and typing nar
     page.getByLabel(`${labels.builder.quantity}: ${name}`).filter({ visible: true }),
   ).toBeVisible();
   await expect(page.getByTestId("picker-all")).toBeVisible();
+});
+
+test("the labels of a product can follow the stock, as an option, and every quantity can still be changed", async ({
+  page,
+}) => {
+  test.slow();
+  const picker = labels.builder.productPicker;
+  const name = `E2E Etiqueta stock ${Date.now()}`;
+  await loginAs(page, "owner");
+  await createSimpleProduct(page, name, "60", "L 60.00");
+  await addStock(page, name, "7");
+
+  // Desde el producto: la opción «según el stock» pide tantas etiquetas como unidades hay.
+  await page.goto(`/productos?q=${encodeURIComponent(name)}`);
+  await page.getByRole("link", { name }).first().click();
+  await page.getByRole("link", { name: labels.fromProductStock }).click();
+  const quantity = page.getByLabel(`${labels.builder.quantity}: ${name}`).filter({ visible: true });
+  await expect(quantity).toHaveValue("7");
+  await expect(page.getByRole("row").filter({ hasText: name })).toContainText("7");
+
+  // Sin esa opción, una etiqueta de cada prenda (y se puede cambiar).
+  await page.goto(
+    `/inventario/etiquetas?producto=${new URL(page.url()).searchParams.get("producto")}`,
+  );
+  await expect(quantity).toHaveValue("1");
+  await expect(
+    page.getByRole("button", { name: `${labels.builder.useStock}: ${name}` }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: `${labels.builder.useStock}: ${name}` }).click();
+  await expect(quantity).toHaveValue("7");
+  await page.getByRole("button", { name: labels.builder.oneEach }).click();
+  await expect(quantity).toHaveValue("1");
+  await page.getByRole("button", { name: labels.builder.allToStock }).click();
+  await expect(quantity).toHaveValue("7");
+
+  // Desde la pantalla: buscar un producto y agregar todas sus prendas, con la cantidad que se elija.
+  await page.goto("/inventario/etiquetas");
+  const section = page.getByRole("region", { name: picker.title });
+  await section.getByLabel(picker.label, { exact: true }).fill(name);
+  await section.getByRole("button", { name: picker.search, exact: true }).click();
+  await section.getByRole("radio", { name: picker.modeStock }).check();
+  await section.getByRole("button", { name: `${picker.add}: ${name}` }).click();
+  await expect(section.getByText(`${picker.added} ${name}.`)).toBeVisible();
+  await expect(quantity).toHaveValue("7");
+
+  // Agregar de nuevo no duplica ni pisa lo que ya estaba.
+  await quantity.fill("2");
+  await section.getByRole("button", { name: `${picker.add}: ${name}` }).click();
+  await expect(section.getByText(picker.alreadyThere)).toBeVisible();
+  await expect(quantity).toHaveValue("2");
+
+  // La vista de impresión respeta la cantidad que quedó.
+  await page.getByRole("button", { name: labels.builder.print }).click();
+  const groups = page.getByRole("group", { name: new RegExp(`^${labels.print.label} `) });
+  await expect(groups).toHaveCount(2);
 });

@@ -10,8 +10,12 @@ import {
   buildLabels,
   getLabelSelection,
   getLabelTemplate,
+  getProductLabelRows,
+  isLabelQuantityMode,
   MAX_LABELS,
   saveLabelTemplate,
+  searchLabelProducts,
+  withStock,
 } from "@/modules/labels/service";
 import { createProduct } from "@/modules/products/service";
 import {
@@ -294,5 +298,140 @@ describe("getLabelSelection", () => {
     expect(byReceipt.map((r) => r.quantity).sort()).toEqual([3, 7]);
 
     expect(await getLabelSelection({}, testDb)).toEqual([]);
+  });
+});
+
+describe("labels of one product, adjusted to the stock (optional)", () => {
+  beforeEach(resetDatabase);
+
+  async function product(w: World, code: string, name: string, quantities: number[]) {
+    const { id } = await createProduct(
+      w.owner,
+      {
+        name,
+        categoryId: w.category.id,
+        basePriceCents: 1000,
+        code,
+        sizeIds: w.sizes.slice(0, quantities.length).map((s) => s.id),
+      },
+      testDb,
+    );
+    const variants = await testDb.variant.findMany({
+      where: { productId: id },
+      orderBy: { sku: "asc" },
+    });
+    for (const [index, variant] of variants.entries()) {
+      if ((quantities[index] ?? 0) > 0) {
+        await stock(w, variant.id, quantities[index] as number);
+      }
+    }
+    return { id, variants };
+  }
+
+  it("asks for one label of each garment by default and shows how many there are", async () => {
+    const w = await world();
+    const { id } = await product(w, "STK1", "Vestido", [8, 0]);
+    const rows = await getLabelSelection({ productIds: [id] }, testDb);
+    // Las prendas salen ordenadas por código (M antes que S); el stock se repartió en ese mismo orden: M tiene 8 y S ninguna.
+    expect(rows.map((row) => [row.label, row.quantity, row.onHand])).toEqual([
+      ["M", 1, 8],
+      ["S", 1, 0],
+    ]);
+  });
+
+  it("asks for as many labels as the stock when that option is chosen, and none for what is out of stock", async () => {
+    const w = await world();
+    const { id } = await product(w, "STK2", "Blusa", [8, 0]);
+    const rows = await getLabelSelection({ productIds: [id], quantity: "stock" }, testDb);
+    expect(rows.map((row) => [row.label, row.quantity, row.onHand])).toEqual([
+      ["M", 8, 8],
+      ["S", 0, 0],
+    ]);
+  });
+
+  it("adds up every location's stock", async () => {
+    const w = await world();
+    const { id, variants } = await product(w, "STK3", "Falda", [5]);
+    const other = await testDb.location.create({ data: { code: "BOD", name: "Bodega" } });
+    await testDb.$transaction((tx) =>
+      recordMovement(tx, {
+        variantId: variants[0]!.id,
+        locationId: other.id,
+        userId: w.owner.id,
+        type: "INITIAL",
+        quantity: 4,
+      }),
+    );
+    const rows = await getLabelSelection({ productIds: [id], quantity: "stock" }, testDb);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ onHand: 9, quantity: 9 });
+  });
+
+  it("keeps what a receipt brought in as the quantity and still shows the stock", async () => {
+    const w = await world();
+    const { variants } = await product(w, "STK4", "Chaqueta", [6]);
+    const receipt = await receiveGoods(
+      w.owner,
+      { supplierId: w.supplier.id, items: [{ variantId: variants[0]!.id, quantity: 2 }] },
+      testDb,
+    );
+    const rows = await getLabelSelection({ receiptId: receipt.id, quantity: "stock" }, testDb);
+    expect(rows.map((row) => [row.quantity, row.onHand])).toEqual([[2, 8]]);
+  });
+
+  it("gives every option of the garment search its stock", async () => {
+    const w = await world();
+    const { variants } = await product(w, "STK5", "Pantalón", [3]);
+    const options = [
+      {
+        variantId: variants[0]!.id,
+        productName: "Pantalón",
+        label: "S",
+        sku: variants[0]!.sku,
+        barcode: variants[0]!.barcode,
+        costCents: null,
+        exact: false,
+        imageId: null,
+      },
+    ];
+    const withStocks = await withStock(options, testDb);
+    expect(withStocks[0]).toMatchObject({ variantId: variants[0]!.id, onHand: 3 });
+    expect(await withStock([], testDb)).toEqual([]);
+  });
+
+  it("finds products to take all their garments, and leaves out archived ones and the ones without garments", async () => {
+    const w = await world();
+    const vestido = await product(w, "STK6", "Vestido floral", [4, 6]);
+    const archived = await product(w, "STK7", "Vestido viejo", [1]);
+    await testDb.product.update({ where: { id: archived.id }, data: { archivedAt: new Date() } });
+    const bare = await testDb.product.create({
+      data: {
+        code: "STK8",
+        name: "Vestido sin tallas",
+        categoryId: w.category.id,
+        basePriceCents: 100,
+      },
+    });
+
+    const found = await searchLabelProducts("Vestido", testDb);
+    expect(found.map((row) => row.id)).toEqual([vestido.id]);
+    expect(found[0]).toMatchObject({ code: "STK6", variantCount: 2, onHand: 10 });
+    expect(found.some((row) => row.id === bare.id)).toBe(false);
+    expect(await searchLabelProducts("   ", testDb)).toEqual([]);
+    expect(await searchLabelProducts("zzzz-nada", testDb)).toEqual([]);
+  });
+
+  it("takes all the garments of one product with the chosen quantity", async () => {
+    const w = await world();
+    const { id } = await product(w, "STK9", "Abrigo", [2, 3]);
+    const oneEach = await getProductLabelRows(id, "one", testDb);
+    expect(oneEach.map((row) => row.quantity)).toEqual([1, 1]);
+    const toStock = await getProductLabelRows(id, "stock", testDb);
+    expect(toStock.map((row) => [row.quantity, row.onHand]).sort()).toEqual([
+      [2, 2],
+      [3, 3],
+    ]);
+    expect(isLabelQuantityMode("stock")).toBe(true);
+    expect(isLabelQuantityMode("todo")).toBe(false);
   });
 });
