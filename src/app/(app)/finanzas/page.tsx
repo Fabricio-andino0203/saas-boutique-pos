@@ -14,12 +14,13 @@ import { requirePageCapability } from "@/lib/auth";
 import { formatMoney, formatPercentBps } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { FinanceExportLinks } from "@/modules/finance/components/finance-export-links";
-import { getFinanceSummary, listFixedCosts } from "@/modules/finance/queries";
+import { getFinanceBox, getFinanceSummary, listFixedCosts } from "@/modules/finance/queries";
 import { RangeFilter } from "@/modules/reports/components/range-filter";
 import { StatFigure } from "@/modules/reports/components/stat-card";
 import { parseRange } from "@/modules/reports/ranges";
 
 const copy = messages.finance.summary;
+const boxCopy = messages.finance.box;
 
 const first = (value: string | string[] | undefined): string =>
   (Array.isArray(value) ? value[0] : value) ?? "";
@@ -36,7 +37,11 @@ export default async function FinanceSummaryPage({
     desde: first(raw.desde),
     hasta: first(raw.hasta),
   });
-  const [summary, fixed] = await Promise.all([getFinanceSummary(range), listFixedCosts()]);
+  const [summary, fixed, box] = await Promise.all([
+    getFinanceSummary(range),
+    listFixedCosts(),
+    getFinanceBox(),
+  ]);
   const pendingTotal = fixed.pending.reduce((total, row) => total + row.amountCents, 0);
   const exportParams = range.preset
     ? { rango: range.preset }
@@ -190,6 +195,24 @@ export default async function FinanceSummaryPage({
           </p>
         ) : null}
         <p className="text-muted-foreground text-xs">{copy.note}</p>
+      </section>
+
+      <section aria-labelledby="box-title" className="space-y-2">
+        <h2 id="box-title" className="text-lg font-medium">
+          {boxCopy.title}
+        </h2>
+        <p
+          className={cn(
+            "text-2xl font-semibold tabular-nums",
+            box.needsReview && "text-destructive",
+          )}
+        >
+          {formatMoney(box.balanceCents)}
+        </p>
+        <p className="text-muted-foreground text-sm">{boxCopy.summaryHint}</p>
+        <Link href="/finanzas/caja" className="text-primary text-sm underline underline-offset-4">
+          {boxCopy.summaryLink}
+        </Link>
       </section>
 
       <section aria-labelledby="pending-title" className="space-y-2">
