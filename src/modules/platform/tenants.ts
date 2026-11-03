@@ -94,7 +94,7 @@ export async function adoptExistingStore(
     );
   }
   if (!schemaVersion) {
-    throw new ValidationError("La base no tiene las migraciones de Boutique POS aplicadas");
+    throw new ValidationError("La base no tiene las migraciones de Boutique Ventas aplicadas");
   }
 
   try {

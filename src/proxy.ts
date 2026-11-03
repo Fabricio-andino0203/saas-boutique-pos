@@ -113,6 +113,8 @@ export async function proxy(request: NextRequest): Promise<Response> {
   return NextResponse.redirect(url);
 }
 
+// Los iconos de la marca (pestaña del navegador y pantalla de inicio del teléfono) son públicos: el navegador los pide también
+// en la pantalla de entrada, antes de que exista una sesión, y no pueden terminar redirigidos a /login.
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|icon.svg|apple-icon.png).*)"],
 };

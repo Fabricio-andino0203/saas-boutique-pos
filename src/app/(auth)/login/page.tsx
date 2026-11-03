@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
+import { BrandLogo } from "@/components/layout/brand-mark";
 import { messages } from "@/config/messages.es";
 import { getSession } from "@/lib/auth";
 import { safeNextPath } from "@/lib/session-cookie";
@@ -25,9 +26,7 @@ async function LoginCard({ searchParams }: LoginPageProps) {
   return (
     <div className="border-divider bg-card w-full max-w-sm space-y-6 rounded-xl border p-8 shadow-sm">
       <div className="space-y-1 text-center">
-        <p className="text-muted-foreground text-sm font-medium tracking-wide uppercase">
-          {messages.app.name}
-        </p>
+        <BrandLogo variant="stacked" className="mb-4" />
         <h1 className="text-2xl font-semibold tracking-tight">{messages.auth.login.title}</h1>
         <p className="text-muted-foreground text-sm">{messages.auth.login.description}</p>
       </div>

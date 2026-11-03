@@ -10,6 +10,8 @@ import {
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import { BrandLogo } from "@/components/layout/brand-mark";
+import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { Separator } from "@/components/ui/separator";
 import {
   Sidebar,
@@ -53,7 +55,7 @@ export async function PlatformShell({ children }: { children: ReactNode }) {
       </a>
       <Sidebar>
         <SidebarHeader className="border-divider border-b px-4 py-4">
-          <span className="text-lg font-semibold tracking-tight">{platformMessages.app.name}</span>
+          <BrandLogo caption={platformMessages.app.caption} />
         </SidebarHeader>
         <SidebarContent>
           <SidebarGroup>
@@ -75,6 +77,7 @@ export async function PlatformShell({ children }: { children: ReactNode }) {
           <SidebarTrigger />
           <Separator orientation="vertical" className="h-5" />
           <div className="ml-auto flex items-center gap-3 text-sm">
+            <ThemeToggle />
             <Link href="/cuenta" aria-label={copy.account} className="hover:underline">
               <span className="font-medium">{user.name}</span>
               <span className="text-muted-foreground"> · @{user.username}</span>

@@ -114,11 +114,12 @@ El mayor cuello de botella de cualquier boutique es **cargar productos**. Diseñ
 ## 8. Sistema visual
 
 - **Sensación:** limpia, profesional, cálida; que acompañe a una boutique (no un ERP gris).
-- **Color:** neutros cálidos de base + **un color de marca** configurable (por defecto un acento sobrio, p. ej. verde salvia o ciruela). Semánticos fijos: éxito verde, advertencia ámbar, error rojo, info azul.
-- **Tipografía:** sans-serif legible (Inter o similar) con cifras tabulares para dinero; tamaños base de 16 px; en POS 18–24 px para totales.
+- **Marca:** **Boutique Ventas · by Andino Software** (kit `boutique_ventas_identidad_completa.svg`). Rosa `#F43F78` (logo, enfoque, acentos, cifras grandes), ciruela `#5B1E3D` (títulos y texto de marca), rosa suave `#FBC3D2` y fondo cálido `#FFF9FB`. Los botones y enlaces usan un rosa algo más profundo (`--primary`, `#D6275F` en claro y `#FF6B96` en oscuro) porque el rosa exacto con texto blanco da 3.6:1 y el mínimo AA es 4.5:1. Semánticos fijos: éxito verde, advertencia ámbar, error rojo (distinto del rosa de marca), info azul.
+- **Logo e iconos:** `BrandMark` y `BrandLogo` (`src/components/layout/brand-mark.tsx`) en menú lateral y pantallas de acceso; favicon `src/app/icon.svg`, `favicon.ico` (16/32/48) y `apple-icon.png` (180 px), generados desde el kit con la «B» de Poppins Bold convertida a trazos. Estos tres archivos son públicos (el proxy no los redirige a /login).
+- **Tipografía:** Poppins (600/700/800) para logotipo y títulos `h1`–`h3` (`font-heading`) e Inter para la interfaz, con cifras tabulares para dinero; tamaños base de 16 px; en POS 18–24 px para totales.
 - **Espaciado y tamaño táctil:** objetivos ≥ 44×44 px en POS; botones primarios grandes.
 - **Dinero:** siempre `L 1,234.50`, alineado a la derecha, cifras tabulares, negativos en rojo con signo.
-- **Modo oscuro:** opcional (Fase 6); el POS debe verse bien con luz de tienda (alto contraste).
+- **Modo claro y oscuro:** dos paletas pensadas por separado en `src/app/globals.css` (`:root` y `.dark`), no una invertida. El botón sol/luna (`ThemeToggle`) está en el encabezado de la app, del panel de plataforma y en las pantallas de acceso; la primera visita sigue la preferencia del sistema y la elección se recuerda por navegador (`localStorage`, clave `theme`). Un script en `<head>` (`theme-script.ts`) pone la clase `dark` antes de pintar para que no parpadee. Las hojas de impresión (tickets, facturas, etiquetas) fuerzan blanco y negro. `tests/unit/theme-contrast.test.ts` exige 4.5:1 en texto y 3:1 en bordes de controles y anillo de enfoque en ambos temas: al cambiar un color de la marca, esa prueba dice si sigue siendo legible.
 - **Iconos:** lucide-react, siempre con etiqueta de texto en acciones principales.
 - **Tokens** de diseño en CSS variables (`--color-primary`, `--radius`, etc.) para poder cambiar la marca en un solo lugar.
 

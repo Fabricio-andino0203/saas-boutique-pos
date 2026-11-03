@@ -44,7 +44,7 @@ export type RequestContext = { ip?: string; userAgent?: string; now?: Date };
 const MINUTE_MS = 60_000;
 const HOUR_MS = 60 * MINUTE_MS;
 
-const ISSUER = "Boutique POS";
+const ISSUER = "Boutique Ventas";
 
 function isUniqueViolation(error: unknown): boolean {
   return typeof error === "object" && error !== null && "code" in error && error.code === "P2002";

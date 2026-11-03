@@ -528,7 +528,7 @@ const FORMATS: Record<CellKind, string | undefined> = {
 /** El libro de Excel con una hoja por tabla, encabezado en negrita, filtros, columnas con formato y la primera fila fija. */
 export async function toXlsx(table: ExportTable): Promise<Uint8Array> {
   const workbook = new ExcelJS.Workbook();
-  workbook.creator = "Boutique POS";
+  workbook.creator = "Boutique Ventas";
   for (const sheet of table.sheets) {
     const worksheet = workbook.addWorksheet(sheet.name.slice(0, 31));
     worksheet.columns = sheet.columns.map((column) => ({

@@ -1,5 +1,7 @@
 export const messages = {
-  app: { name: "Boutique POS" },
+  app: { name: "Boutique Ventas", maker: "by Andino Software" },
+  /** Interruptor de tema claro/oscuro (el texto dice a qué tema cambia, no el que está activo). */
+  theme: { toDark: "Cambiar a modo oscuro", toLight: "Cambiar a modo claro" },
   /** Avisos de la suscripción del negocio (los ve cada usuario del negocio, arriba de la pantalla). */
   subscription: {
     trialEnding:

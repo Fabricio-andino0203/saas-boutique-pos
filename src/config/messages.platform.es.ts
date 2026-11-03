@@ -5,7 +5,11 @@ import { messages } from "@/config/messages.es";
  * (quien opera el servicio, no un cajero), pero siguen la misma regla: nada de texto suelto en el JSX.
  */
 export const platformMessages = {
-  app: { name: "Plataforma Boutique POS", short: "Plataforma" },
+  app: {
+    name: "Plataforma Boutique Ventas",
+    short: "Plataforma",
+    caption: "Plataforma · by Andino Software",
+  },
   /** Pantallas que ve cualquier persona que llega a la dirección de un negocio que no puede atender (las dibuja el proxy). */
   unavailable: {
     suspended: {

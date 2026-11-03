@@ -31,7 +31,9 @@ import {
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import { BrandLogo } from "@/components/layout/brand-mark";
 import { SubscriptionBanner } from "@/components/layout/subscription-banner";
+import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -245,7 +247,7 @@ export async function AuthenticatedShell({ children }: { children: ReactNode }) 
       </a>
       <Sidebar>
         <SidebarHeader className="border-divider border-b px-4 py-4">
-          <span className="text-lg font-semibold tracking-tight">{messages.app.name}</span>
+          <BrandLogo />
         </SidebarHeader>
         <SidebarContent>
           <SidebarGroup>
@@ -281,6 +283,7 @@ export async function AuthenticatedShell({ children }: { children: ReactNode }) 
           <SidebarTrigger />
           <Separator orientation="vertical" className="h-5" />
           <div className="ml-auto flex items-center gap-3 text-sm">
+            <ThemeToggle />
             <Link href="/cuenta" aria-label={messages.nav.account} className="hover:underline">
               <span className="font-medium">{user.name}</span>
               <span className="text-muted-foreground"> · {messages.auth.roles[user.role]}</span>
