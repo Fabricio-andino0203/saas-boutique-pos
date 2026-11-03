@@ -21,6 +21,9 @@ import {
   LayawayStateError,
   PhoneTakenError,
   ActiveRangeExistsError,
+  FinanceDrawerEntryError,
+  FinanceEntryVoidedError,
+  FixedCostPaidError,
   FeatureNotIncludedError,
   PhotoLimitError,
   PlanLimitError,
@@ -102,6 +105,9 @@ const table = [
   { create: () => new InvalidImageError(), code: "INVALID_IMAGE", status: 422 },
   { create: () => new ImageTooLargeError(), code: "IMAGE_TOO_LARGE", status: 413 },
   { create: () => new PhotoLimitError(), code: "PHOTO_LIMIT", status: 409 },
+  { create: () => new FinanceEntryVoidedError(), code: "FINANCE_ENTRY_VOIDED", status: 409 },
+  { create: () => new FinanceDrawerEntryError(), code: "FINANCE_DRAWER_ENTRY", status: 409 },
+  { create: () => new FixedCostPaidError(), code: "FIXED_COST_PAID", status: 409 },
 ] as const;
 
 describe("AppError subclasses", () => {

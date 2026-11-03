@@ -231,6 +231,10 @@ export const messages = {
       SETTINGS_CHANGED: "Configuración modificada",
       FISCAL_RANGE_CHANGED: "Rango de facturación modificado",
       GOODS_RECEIVED: "Mercadería recibida",
+      FINANCE_ENTRY_CREATED: "Movimiento de Finanzas registrado",
+      FINANCE_ENTRY_VOIDED: "Movimiento de Finanzas anulado",
+      FINANCE_CATEGORY_CHANGED: "Categoría de Finanzas modificada",
+      FIXED_COST_CHANGED: "Costo fijo modificado",
     },
   },
   products: {
@@ -2528,6 +2532,10 @@ export const messages = {
       "Ese archivo no se pudo usar como foto. Sube una imagen JPG, PNG o WebP que no esté dañada.",
     IMAGE_TOO_LARGE: "La foto pesa más de 8 MB. Sube una más liviana o redúcela antes.",
     PHOTO_LIMIT: "Este producto ya tiene 6 fotos, que es lo máximo. Quita una para agregar otra.",
+    FINANCE_ENTRY_VOIDED: "Ese movimiento ya está anulado.",
+    FINANCE_DRAWER_ENTRY:
+      "Este gasto salió de la caja y no se anula desde Finanzas. Corrígelo con una entrada de efectivo en la caja, con su motivo.",
+    FIXED_COST_PAID: "Ese costo fijo ya tiene un pago registrado en ese mes.",
     INSUFFICIENT_CASH:
       "No hay tanto efectivo en la caja. Revisa el monto: el efectivo esperado no puede quedar en negativo.",
     FISCAL_RANGE_EXHAUSTED: "El rango de facturas se agotó o ya venció. Solicita uno nuevo al SAR.",

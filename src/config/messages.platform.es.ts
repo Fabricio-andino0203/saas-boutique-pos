@@ -435,6 +435,7 @@ export const platformMessages = {
       labels: "Etiquetas con código de barras",
       customers: "Clientes y crédito de tienda",
       fiscal: "Facturación con CAI",
+      finance: "Finanzas: gastos, ingresos y utilidad",
     },
     limitLabels: {
       users: "Usuarios",

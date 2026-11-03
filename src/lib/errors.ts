@@ -44,6 +44,9 @@ export const APP_ERROR_CODES = [
   "INVALID_IMAGE",
   "IMAGE_TOO_LARGE",
   "PHOTO_LIMIT",
+  "FINANCE_ENTRY_VOIDED",
+  "FINANCE_DRAWER_ENTRY",
+  "FIXED_COST_PAID",
 ] as const;
 
 export type ErrorCode = (typeof APP_ERROR_CODES)[number];
@@ -365,5 +368,32 @@ export class PhotoLimitError extends AppError {
 export class CustomerInUseError extends AppError {
   constructor(message = "The customer still has active layaways", options?: AppErrorOptions) {
     super("CUSTOMER_IN_USE", 409, message, options);
+  }
+}
+
+/** El movimiento de Finanzas ya estaba anulado. */
+export class FinanceEntryVoidedError extends AppError {
+  constructor(message = "The finance entry is already voided", options?: AppErrorOptions) {
+    super("FINANCE_ENTRY_VOIDED", 409, message, options);
+  }
+}
+
+/** Un gasto que salió de la caja no se anula desde Finanzas: el efectivo ya salió, se corrige con una entrada de caja. */
+export class FinanceDrawerEntryError extends AppError {
+  constructor(
+    message = "A cash-drawer expense cannot be voided from Finance",
+    options?: AppErrorOptions,
+  ) {
+    super("FINANCE_DRAWER_ENTRY", 409, message, options);
+  }
+}
+
+/** Ese costo fijo ya tiene un pago vigente en ese mes. */
+export class FixedCostPaidError extends AppError {
+  constructor(
+    message = "The fixed cost is already paid for that month",
+    options?: AppErrorOptions,
+  ) {
+    super("FIXED_COST_PAID", 409, message, options);
   }
 }

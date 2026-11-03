@@ -15,6 +15,7 @@ export const PLAN_FEATURES = [
   "labels",
   "customers",
   "fiscal",
+  "finance",
 ] as const;
 
 export type PlanFeature = (typeof PLAN_FEATURES)[number];
@@ -43,6 +44,7 @@ export const FEATURE_PATHS: Record<PlanFeature, readonly string[]> = {
   labels: ["/inventario/etiquetas"],
   customers: ["/clientes"],
   fiscal: ["/configuracion/cai"],
+  finance: ["/finanzas", "/api/finanzas"],
 };
 
 /** El módulo que exige cada capacidad, para las acciones que se invocan desde pantallas de otro lugar (p. ej. el punto de venta). */
@@ -57,6 +59,9 @@ export const CAPABILITY_FEATURE: Readonly<Record<string, PlanFeature>> = {
   "report.financial": "reports",
   "stock.approveCount": "stockCounts",
   "credit.adjust": "customers",
+  "finance.view": "finance",
+  "finance.write": "finance",
+  "finance.void": "finance",
 };
 
 /** El módulo al que pertenece una dirección, o `undefined` si es del núcleo (siempre incluido). */
