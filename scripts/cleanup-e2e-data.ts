@@ -31,10 +31,16 @@ async function main(): Promise<void> {
       where: { role: "OWNER", isActive: true },
       select: { id: true },
     });
+    // Un turno con gastos o ingresos de Finanzas enlazados tampoco se borra (el libro de Finanzas es inmutable).
+    const hasFinance = { movements: { some: { financeEntry: { isNot: null } } } };
     if (owner) {
       await client.cashSession.updateMany({
         where: {
-          AND: [testShifts, { sales: { some: {} } }, { status: "CLOSED_PENDING_APPROVAL" }],
+          AND: [
+            testShifts,
+            { OR: [{ sales: { some: {} } }, hasFinance] },
+            { status: "CLOSED_PENDING_APPROVAL" },
+          ],
         },
         data: { status: "CLOSED", approvedById: owner.id },
       });
@@ -42,7 +48,7 @@ async function main(): Promise<void> {
     // Los ids se leen antes de borrar: sin sus movimientos, la sesión ya no se reconocería como de prueba.
     const shiftIds = (
       await client.cashSession.findMany({
-        where: { AND: [testShifts, { sales: { none: {} } }] },
+        where: { AND: [testShifts, { sales: { none: {} } }, { NOT: hasFinance }] },
         select: { id: true },
       })
     ).map((shift) => shift.id);

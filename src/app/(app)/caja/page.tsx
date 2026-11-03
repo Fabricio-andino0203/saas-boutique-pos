@@ -5,11 +5,14 @@ import { buttonVariants } from "@/components/ui/button";
 import { messages } from "@/config/messages.es";
 import { requirePageCapability } from "@/lib/auth";
 import { formatLocalDateTime } from "@/lib/dates";
+import { currentEntitlements } from "@/lib/entitlements";
 import { formatMoney } from "@/lib/format";
+import { includesFeature } from "@/lib/tenancy/billing";
 import { CashMovementForm } from "@/modules/cash/components/cash-movement-form";
 import { CloseCashForm } from "@/modules/cash/components/close-cash-form";
 import { OpenCashForm } from "@/modules/cash/components/open-cash-form";
 import { getCashSessionDetail, getOpenSessionOf, getTerminalStatus } from "@/modules/cash/queries";
+import { listFinanceCategories } from "@/modules/finance/queries";
 
 export default async function CashPage() {
   const { user } = await requirePageCapability("cash.open");
@@ -44,6 +47,10 @@ export default async function CashPage() {
   }
 
   const detail = await getCashSessionDetail(open.id);
+  // Con el módulo Finanzas en el plan, las salidas y entradas se pueden registrar como gasto o ingreso, con su categoría.
+  const financeCategories = includesFeature(await currentEntitlements(), "finance")
+    ? await listFinanceCategories()
+    : null;
   if (!detail) {
     return null;
   }
@@ -94,7 +101,7 @@ export default async function CashPage() {
         </p>
       </section>
 
-      <CashMovementForm />
+      <CashMovementForm financeCategories={financeCategories} />
 
       {detail.movements.length > 0 ? (
         <section aria-labelledby="turn-movements" className="space-y-2">

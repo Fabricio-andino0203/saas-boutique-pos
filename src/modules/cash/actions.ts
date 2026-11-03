@@ -3,6 +3,7 @@
 import { messages } from "@/config/messages.es";
 import { toActionResult } from "@/lib/action-result";
 import { requireUserCapability } from "@/lib/auth";
+import { requireFeature } from "@/lib/entitlements";
 import {
   cashMovementSchema,
   closeCashSchema,
@@ -36,6 +37,8 @@ export async function addCashMovementAction(input: {
   type: "IN" | "OUT";
   amountCents: number;
   reason: string;
+  /** Módulo Finanzas: la categoría del gasto (salida) o del ingreso (entrada), si se registra como tal. */
+  financeCategoryId?: string;
 }): Promise<CashActionState> {
   const parsed = cashMovementSchema.safeParse(input);
   if (!parsed.success) {
@@ -50,7 +53,12 @@ export async function addCashMovementAction(input: {
     };
   }
   const { user } = await requireUserCapability("cash.open");
-  const result = await toActionResult(() => addCashMovement(user, parsed.data), messages.errors);
+  const result = await toActionResult(async () => {
+    if (parsed.data.financeCategoryId) {
+      await requireFeature("finance"); // sin el módulo en el plan, la categoría no tiene a dónde ir
+    }
+    return addCashMovement(user, parsed.data);
+  }, messages.errors);
   return result.ok ? { success: copy.movements.saved } : { error: result.error.message };
 }
 

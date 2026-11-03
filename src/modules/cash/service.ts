@@ -18,6 +18,7 @@ import {
   openCashSchema,
   sumDenominations,
 } from "@/modules/cash/schemas";
+import { recordCashMovementEntry } from "@/modules/finance/service";
 
 type Tx = Prisma.TransactionClient;
 type Client = Tx | PrismaClient;
@@ -171,6 +172,17 @@ export async function addCashMovement(
         userId: actor.id,
       },
     });
+    // Con el módulo Finanzas, el mismo movimiento queda enlazado a su gasto o ingreso en la misma transacción.
+    if (data.financeCategoryId) {
+      await recordCashMovementEntry(tx, {
+        actorId: actor.id,
+        cashMovementId: movement.id,
+        type: data.type,
+        categoryId: data.financeCategoryId,
+        amountCents: data.amountCents,
+        description: data.reason,
+      });
+    }
     return { id: movement.id };
   });
 }

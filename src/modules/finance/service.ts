@@ -139,6 +139,62 @@ export async function createFinanceEntry(
 }
 
 /**
+ * Registra, dentro de la transacción de la caja, el movimiento de Finanzas de una salida o entrada de efectivo (RF-FIN-4):
+ * una salida es un gasto y una entrada es un ingreso que no es venta. No pide permisos de Finanzas (quien saca o mete el
+ * efectivo es el cajero, que tiene `cash.open`); quien llama ya revisó eso y que el plan incluya el módulo. Es el mismo
+ * movimiento de caja el que queda enlazado, así que el arqueo y las finanzas no se contradicen.
+ */
+export async function recordCashMovementEntry(
+  tx: Tx,
+  input: {
+    actorId: string;
+    cashMovementId: string;
+    type: "IN" | "OUT";
+    categoryId: string;
+    amountCents: number;
+    description: string;
+  },
+  now: Date = new Date(),
+): Promise<{ id: string }> {
+  const entryType = input.type === "OUT" ? "EXPENSE" : "INCOME";
+  const category = await tx.financeCategory.findUnique({ where: { id: input.categoryId } });
+  if (!category) {
+    throw new NotFoundError("Category not found");
+  }
+  if (category.archivedAt || category.type !== entryType) {
+    throw new ValidationError("Category is archived or of the other type");
+  }
+  const occurredAt = parseLocalDateKey(localDateKey(now));
+  if (!occurredAt) {
+    throw new ValidationError("Invalid date");
+  }
+  const entry = await tx.financeEntry.create({
+    data: {
+      type: entryType,
+      categoryId: input.categoryId,
+      amountCents: input.amountCents,
+      occurredAt,
+      paidWith: "CASH_DRAWER",
+      description: input.description,
+      cashMovementId: input.cashMovementId,
+      clientRequestId: `cash:${input.cashMovementId}`,
+      createdById: input.actorId,
+    },
+  });
+  await audit.log(tx, {
+    userId: input.actorId,
+    action: "FINANCE_ENTRY_CREATED",
+    entityType: "FinanceEntry",
+    entityId: entry.id,
+    after: {
+      ...(snapshot(entry) as Record<string, unknown>),
+      cashMovementId: input.cashMovementId,
+    },
+  });
+  return { id: entry.id };
+}
+
+/**
  * Anula un movimiento (con motivo). No se borra ni se edita: el libro conserva el movimiento y quién lo anuló. Un gasto que
  * salió de la caja no se anula aquí: el efectivo ya salió y se corrige con una entrada de efectivo.
  */

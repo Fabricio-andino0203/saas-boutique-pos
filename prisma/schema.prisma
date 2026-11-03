@@ -786,11 +786,11 @@ model FinanceEntry {
   voidReason      String?
 
   category     FinanceCategory @relation(fields: [categoryId], references: [id])
-  supplier     Supplier?       @relation(fields: [supplierId], references: [id])
-  cashMovement CashMovement?   @relation(fields: [cashMovementId], references: [id])
-  fixedCost    FixedCost?      @relation(fields: [fixedCostId], references: [id])
+  supplier     Supplier?       @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+  cashMovement CashMovement?   @relation(fields: [cashMovementId], references: [id], onDelete: Restrict)
+  fixedCost    FixedCost?      @relation(fields: [fixedCostId], references: [id], onDelete: Restrict)
   createdBy    User            @relation("FinanceEntryCreator", fields: [createdById], references: [id])
-  voidedBy     User?           @relation("FinanceEntryVoider", fields: [voidedById], references: [id])
+  voidedBy     User?           @relation("FinanceEntryVoider", fields: [voidedById], references: [id], onDelete: Restrict)
 
   @@index([occurredAt])
   @@index([type, categoryId])

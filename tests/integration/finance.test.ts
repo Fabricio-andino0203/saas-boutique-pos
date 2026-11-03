@@ -5,12 +5,14 @@ import {
   FinanceDrawerEntryError,
   FinanceEntryVoidedError,
   ForbiddenError,
+  InsufficientCashError,
   ItemInUseError,
   NameTakenError,
   NotFoundError,
   ValidationError,
 } from "@/lib/errors";
 import type { Role } from "@/lib/permissions";
+import { addCashMovement, openCashSession, previewCashClose } from "@/modules/cash/service";
 import {
   ENTRY_LIST_LIMIT,
   listFinanceCategories,
@@ -503,5 +505,156 @@ describe("listFinanceEntries", () => {
     expect(result.rows).toHaveLength(ENTRY_LIST_LIMIT);
     expect(result.truncated).toBe(true);
     expect(result.totals.expenseCents).toBe((ENTRY_LIST_LIMIT + 5) * 100);
+  });
+});
+
+describe("cash movements registered as expenses and income", () => {
+  beforeEach(resetDatabase);
+  afterAll(closeAll);
+
+  async function openTill() {
+    const base = await setup();
+    await openCashSession(base.cashier, { openingFloatCents: 100_000 });
+    const packaging = await testDb.financeCategory.findFirstOrThrow({
+      where: { type: "EXPENSE", name: "Empaques" },
+    });
+    const otherIncome = await testDb.financeCategory.findFirstOrThrow({
+      where: { type: "INCOME", name: "Otros ingresos" },
+    });
+    return { ...base, packaging, otherIncome };
+  }
+
+  it("records the cashier's withdrawal as an expense tied to the same cash movement", async () => {
+    const { cashier, packaging } = await openTill();
+    const { id } = await addCashMovement(cashier, {
+      type: "OUT",
+      amountCents: 20_000,
+      reason: "Bolsas para empaque",
+      financeCategoryId: packaging.id,
+    });
+
+    const movement = await testDb.cashMovement.findUniqueOrThrow({ where: { id } });
+    expect(movement).toMatchObject({
+      type: "OUT",
+      amountCents: 20_000,
+      reason: "Bolsas para empaque",
+    });
+    const entry = await testDb.financeEntry.findUniqueOrThrow({ where: { cashMovementId: id } });
+    expect(entry).toMatchObject({
+      type: "EXPENSE",
+      categoryId: packaging.id,
+      amountCents: 20_000,
+      paidWith: "CASH_DRAWER",
+      description: "Bolsas para empaque",
+      createdById: cashier.id,
+    });
+    const log = await testDb.auditLog.findFirstOrThrow({
+      where: { action: "FINANCE_ENTRY_CREATED" },
+    });
+    expect(log.after).toMatchObject({ cashMovementId: id, amountCents: 20_000 });
+
+    // El arqueo cuenta esa salida una sola vez.
+    expect((await previewCashClose(cashier, 80_000)).expectedCents).toBe(80_000);
+  });
+
+  it("records a cash-in as income", async () => {
+    const { cashier, otherIncome } = await openTill();
+    const { id } = await addCashMovement(cashier, {
+      type: "IN",
+      amountCents: 5_000,
+      reason: "Devolución del proveedor",
+      financeCategoryId: otherIncome.id,
+    });
+    expect(
+      await testDb.financeEntry.findUniqueOrThrow({ where: { cashMovementId: id } }),
+    ).toMatchObject({
+      type: "INCOME",
+      paidWith: "CASH_DRAWER",
+      amountCents: 5_000,
+    });
+    expect((await previewCashClose(cashier, 105_000)).expectedCents).toBe(105_000);
+  });
+
+  it("keeps a plain movement as it was when no category is given", async () => {
+    const { cashier } = await openTill();
+    await addCashMovement(cashier, {
+      type: "OUT",
+      amountCents: 10_000,
+      reason: "Retiro del dueño",
+    });
+    expect(await testDb.cashMovement.count()).toBe(1);
+    expect(await testDb.financeEntry.count()).toBe(0);
+  });
+
+  it("creates neither the movement nor the entry when the category does not fit", async () => {
+    const { cashier, otherIncome, packaging } = await openTill();
+    // Una categoría de ingreso en una salida.
+    await expect(
+      addCashMovement(cashier, {
+        type: "OUT",
+        amountCents: 1_000,
+        reason: "Salida mal categorizada",
+        financeCategoryId: otherIncome.id,
+      }),
+    ).rejects.toBeInstanceOf(ValidationError);
+    await expect(
+      addCashMovement(cashier, {
+        type: "OUT",
+        amountCents: 1_000,
+        reason: "Salida sin categoría real",
+        financeCategoryId: "no-existe",
+      }),
+    ).rejects.toBeInstanceOf(NotFoundError);
+    await testDb.financeCategory.update({
+      where: { id: packaging.id },
+      data: { archivedAt: new Date() },
+    });
+    await expect(
+      addCashMovement(cashier, {
+        type: "OUT",
+        amountCents: 1_000,
+        reason: "Salida con categoría archivada",
+        financeCategoryId: packaging.id,
+      }),
+    ).rejects.toBeInstanceOf(ValidationError);
+
+    expect(await testDb.cashMovement.count()).toBe(0);
+    expect(await testDb.financeEntry.count()).toBe(0);
+  });
+
+  it("does not take out more cash than the drawer has, and records nothing", async () => {
+    const { cashier, packaging } = await openTill();
+    await expect(
+      addCashMovement(cashier, {
+        type: "OUT",
+        amountCents: 100_001,
+        reason: "Más de lo que hay en caja",
+        financeCategoryId: packaging.id,
+      }),
+    ).rejects.toBeInstanceOf(InsufficientCashError);
+    expect(await testDb.cashMovement.count()).toBe(0);
+    expect(await testDb.financeEntry.count()).toBe(0);
+  });
+
+  it("shows the till expense in the ledger as coming from the drawer", async () => {
+    const { cashier, packaging } = await openTill();
+    await addCashMovement(cashier, {
+      type: "OUT",
+      amountCents: 20_000,
+      reason: "Bolsas para empaque",
+      financeCategoryId: packaging.id,
+    });
+    const range = {
+      from: new Date(Date.now() - 86_400_000),
+      to: new Date(Date.now() + 86_400_000),
+    };
+    const { rows, totals } = await listFinanceEntries({ range });
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      fromDrawer: true,
+      paidWith: "CASH_DRAWER",
+      createdByName: "Nombre cashier",
+    });
+    expect(totals.expenseCents).toBe(20_000);
   });
 });

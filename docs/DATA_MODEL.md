@@ -258,7 +258,7 @@ Finanzas **operativas**, no contabilidad (ver PRD §4.12). Las ventas, devolucio
 
 ### FinanceEntry (libro de gastos e ingresos — inmutable salvo su anulación)
 `type`, `categoryId`, `amountCents` (> 0), `occurredAt` (el día del gasto, UTC; se muestra en `America/Tegucigalpa`), `paidWith enum (CASH_DRAWER, CASH_OTHER, TRANSFER, CARD, OTHER)`, `description`, `supplierId?`, `cashMovementId? @unique` (si salió de la caja), `fixedCostId?` + `period?` (`"2026-11"`, el mes que paga un costo fijo), `clientRequestId @unique` (idempotencia), `createdById`, `voidedAt?`/`voidedById?`/`voidReason?` (las tres juntas o ninguna).
-Reglas: `CASH_DRAWER` exige `cashMovementId` y viceversa; un gasto de caja no se anula desde Finanzas; un costo fijo solo se paga una vez por mes mientras el pago no esté anulado (índice parcial único). Un trigger rechaza `DELETE` y cualquier `UPDATE` que no sea la anulación.
+Reglas: `CASH_DRAWER` exige `cashMovementId` y viceversa (una salida de caja es un gasto y una entrada es un ingreso; `clientRequestId = "cash:<id del movimiento>"`); un gasto de caja no se anula desde Finanzas; un costo fijo solo se paga una vez por mes mientras el pago no esté anulado (índice parcial único). Un trigger rechaza `DELETE` y cualquier `UPDATE` que no sea la anulación.
 
 ### FixedCost (costo fijo mensual)
 `name`, `categoryId` (de gasto), `amountCents` (> 0), `dueDay` (1–28), `startsOn`, `endsOn?`, `archivedAt?`. No genera gastos: el sistema calcula los meses «por pagar» (desde `startsOn` hasta el mes actual, sin `FinanceEntry` vigente para ese `period`).
@@ -281,7 +281,7 @@ Reglas: `CASH_DRAWER` exige `cashMovementId` y viceversa; un gasto de caja no se
 5. `Customer.storeCreditCents = Σ StoreCreditEntry.amountCents`.
 6. `CashSession.expectedCash = opening + Σ Payment CASH + Σ LayawayPayment CASH − Σ Sale.changeCents + Σ CashMovement IN − Σ CashMovement OUT − reembolsos en efectivo`, solo con ventas `COMPLETED` (las anuladas no cuentan). `Payment.amountCents` en efectivo es lo que entregó el cliente (vuelto incluido); el vuelto se resta aparte. Función pura: `src/modules/cash/expected.ts`.
 7. Una venta `VOIDED` revierte exactamente sus movimientos de stock y de pago.
-8. Todo `FinanceEntry` con `paidWith = CASH_DRAWER` está enlazado a un `CashMovement` `OUT` por el mismo monto, y viceversa para los gastos nacidos en la caja. La utilidad neta del periodo = utilidad bruta de los reportes + Σ ingresos vigentes − Σ gastos vigentes (los anulados no cuentan). Función pura: `src/modules/finance/summary.ts`.
+8. Todo `FinanceEntry` con `paidWith = CASH_DRAWER` está enlazado a un `CashMovement` por el mismo monto (`OUT` para un gasto, `IN` para un ingreso), creados en la misma transacción. La utilidad neta del periodo = utilidad bruta de los reportes + Σ ingresos vigentes − Σ gastos vigentes (los anulados no cuentan). Función pura: `src/modules/finance/summary.ts`.
 
 ## 10. Datos de ejemplo (seed)
 

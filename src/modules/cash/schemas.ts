@@ -21,6 +21,8 @@ export const cashMovementSchema = z.object({
   type: z.enum(["IN", "OUT"]),
   amountCents: cents.min(1),
   reason: z.string().trim().min(3).max(200),
+  /** Módulo Finanzas: si viene, la salida es un gasto (o la entrada un ingreso) de esta categoría. */
+  financeCategoryId: z.preprocess(blankToUndefined, z.string().trim().min(1).max(64).optional()),
 });
 
 /** Cantidad de billetes o monedas por denominación (la clave es la denominación en centavos). */

@@ -44,6 +44,11 @@ test("the cashier opens the shift, moves cash, closes with a difference and a ma
   // Una salida de L 100 con motivo, y una que no se puede (más de lo que hay)
   await fillMoney(page, copy.movements.amount, "100");
   await page.getByLabel(copy.movements.reason, { exact: true }).fill("E2E pago de flete");
+  // Con Finanzas en el plan, una salida arranca como gasto y se elige su categoría.
+  await expect(page.getByRole("radio", { name: copy.movements.finance.expense })).toBeChecked();
+  await page
+    .getByLabel(copy.movements.finance.category)
+    .selectOption({ label: "Transporte y envíos" });
   await page.getByRole("button", { name: copy.movements.submit }).click();
   await expect(expected).toContainText("L 400.00");
 
@@ -1281,4 +1286,19 @@ test("acceptance: the home dashboard and the sales report of the same day show t
   await expect(figure(summary.sales)).toHaveText(home.sales);
   await expect(figure(summary.tickets)).toHaveText(home.tickets);
   await expect(figure(summary.average)).toHaveText(home.average);
+});
+
+test("a withdrawal registered as an expense shows up in Finance as coming from the drawer", async ({
+  page,
+}) => {
+  await loginAs(page, "manager");
+  await page.goto("/finanzas/movimientos?rango=today");
+  const row = page.getByRole("row").filter({ hasText: "E2E pago de flete" }).first();
+  await expect(row).toBeVisible();
+  await expect(row).toContainText("Transporte y envíos");
+  await expect(row).toContainText(messages.finance.entries.badges.drawer);
+  await expect(row).toContainText(messages.finance.payments.CASH_DRAWER);
+  await expect(row).toContainText("100.00");
+  // El efectivo ya salió de la caja: no se anula desde Finanzas.
+  await expect(row.getByRole("button", { name: messages.finance.void.action })).toHaveCount(0);
 });

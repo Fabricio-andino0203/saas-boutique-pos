@@ -1446,6 +1446,16 @@ export const messages = {
       listTitle: "Movimientos del turno",
       empty: "Aún no hay entradas ni salidas en este turno.",
       columns: { time: "Hora", type: "Tipo", amount: "Monto", reason: "Motivo", by: "Registró" },
+      /** Solo con el módulo Finanzas: la salida o entrada también se registra allí como gasto o ingreso. */
+      finance: {
+        question: "¿Qué fue?",
+        expense: "Un gasto del negocio",
+        withdrawal: "Un retiro del dueño u otro uso del efectivo (no es un gasto)",
+        income: "Un ingreso que no es una venta (por ejemplo, una devolución de un gasto)",
+        otherIn: "Más cambio u otro efectivo que no es un ingreso",
+        category: "Categoría",
+        hint: "Queda también en Finanzas, con este motivo.",
+      },
     },
     close: {
       title: "Cerrar caja",
