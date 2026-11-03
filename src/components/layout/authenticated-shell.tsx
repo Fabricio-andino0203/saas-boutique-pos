@@ -4,6 +4,7 @@ import {
   ChartColumn,
   Barcode,
   Boxes,
+  CalendarClock,
   CalendarRange,
   ClipboardList,
   Contact,
@@ -217,6 +218,12 @@ const navGroups: readonly NavGroup[] = [
         href: "/finanzas/movimientos",
         label: messages.nav.financeEntries,
         icon: ArrowLeftRight,
+        capability: "finance.view",
+      },
+      {
+        href: "/finanzas/costos-fijos",
+        label: messages.nav.financeFixedCosts,
+        icon: CalendarClock,
         capability: "finance.view",
       },
       {

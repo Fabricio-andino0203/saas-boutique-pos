@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import {
   FinanceDrawerEntryError,
   FinanceEntryVoidedError,
+  FixedCostPaidError,
   ItemInUseError,
   NameTakenError,
   NotFoundError,
@@ -12,9 +13,12 @@ import {
 } from "@/lib/errors";
 import { requireCapability } from "@/lib/permissions";
 import type { Actor } from "@/modules/catalog/service";
+import { formatPeriod, periodOf, periodStart } from "@/modules/finance/periods";
 import {
   categorySchema,
   financeEntrySchema,
+  fixedCostSchema,
+  payFixedCostSchema,
   renameCategorySchema,
   voidEntrySchema,
 } from "@/modules/finance/schemas";
@@ -365,4 +369,270 @@ export async function setFinanceCategoryArchived(
       after: { archived },
     });
   });
+}
+
+// ───────────────────────── Costos fijos ─────────────────────────
+
+const fixedCostSnapshot = (cost: {
+  name: string;
+  categoryId: string;
+  amountCents: number;
+  dueDay: number;
+  startsOn: Date;
+  endsOn: Date | null;
+}): Prisma.InputJsonValue => ({
+  name: cost.name,
+  categoryId: cost.categoryId,
+  amountCents: cost.amountCents,
+  dueDay: cost.dueDay,
+  startsOn: periodOf(cost.startsOn),
+  endsOn: cost.endsOn ? periodOf(cost.endsOn) : null,
+});
+
+async function assertActiveExpenseCategory(tx: Tx, categoryId: string): Promise<void> {
+  const category = await tx.financeCategory.findUnique({ where: { id: categoryId } });
+  if (!category) {
+    throw new NotFoundError("Category not found");
+  }
+  if (category.archivedAt || category.type !== "EXPENSE") {
+    throw new ValidationError("Category is archived or not an expense category");
+  }
+}
+
+async function assertFixedCostNameFree(tx: Tx, name: string, exceptId?: string): Promise<void> {
+  const clash = await tx.fixedCost.findFirst({
+    where: {
+      archivedAt: null,
+      name: { equals: name, mode: "insensitive" },
+      ...(exceptId ? { NOT: { id: exceptId } } : {}),
+    },
+    select: { id: true },
+  });
+  if (clash) {
+    throw new NameTakenError();
+  }
+}
+
+/** Agrega un costo fijo mensual. No genera gastos: cada mes aparece como «por pagar» y se paga con {@link payFixedCost}. */
+export async function createFixedCost(
+  actor: Actor,
+  input: unknown,
+  client: PrismaClient = db,
+): Promise<{ id: string }> {
+  requireCapability(actor, "finance.write");
+  const parsed = fixedCostSchema.safeParse(input);
+  if (!parsed.success) {
+    throw new ValidationError(firstIssue(parsed.error));
+  }
+  const data = parsed.data;
+
+  return client.$transaction(async (tx) => {
+    await assertActiveExpenseCategory(tx, data.categoryId);
+    await assertFixedCostNameFree(tx, data.name);
+    const cost = await tx.fixedCost.create({
+      data: {
+        name: data.name,
+        categoryId: data.categoryId,
+        amountCents: data.amountCents,
+        dueDay: data.dueDay,
+        startsOn: periodStart(data.startsOn),
+        endsOn: data.endsOn ? periodStart(data.endsOn) : null,
+      },
+    });
+    await audit.log(tx, {
+      userId: actor.id,
+      action: "FIXED_COST_CHANGED",
+      entityType: "FixedCost",
+      entityId: cost.id,
+      after: fixedCostSnapshot(cost),
+    });
+    return { id: cost.id };
+  });
+}
+
+/** Cambia un costo fijo. Los pagos que ya se hicieron conservan su monto: el cambio vale para los meses que faltan. */
+export async function updateFixedCost(
+  actor: Actor,
+  fixedCostId: string,
+  input: unknown,
+  client: PrismaClient = db,
+): Promise<void> {
+  requireCapability(actor, "finance.write");
+  const parsed = fixedCostSchema.safeParse(input);
+  if (!parsed.success) {
+    throw new ValidationError(firstIssue(parsed.error));
+  }
+  const data = parsed.data;
+
+  await client.$transaction(async (tx) => {
+    const cost = await tx.fixedCost.findUnique({ where: { id: fixedCostId } });
+    if (!cost) {
+      throw new NotFoundError("Fixed cost not found");
+    }
+    if (cost.archivedAt) {
+      throw new ValidationError("An archived fixed cost cannot be edited");
+    }
+    await assertActiveExpenseCategory(tx, data.categoryId);
+    await assertFixedCostNameFree(tx, data.name, cost.id);
+    const updated = await tx.fixedCost.update({
+      where: { id: cost.id },
+      data: {
+        name: data.name,
+        categoryId: data.categoryId,
+        amountCents: data.amountCents,
+        dueDay: data.dueDay,
+        startsOn: periodStart(data.startsOn),
+        endsOn: data.endsOn ? periodStart(data.endsOn) : null,
+      },
+    });
+    await audit.log(tx, {
+      userId: actor.id,
+      action: "FIXED_COST_CHANGED",
+      entityType: "FixedCost",
+      entityId: cost.id,
+      before: fixedCostSnapshot(cost),
+      after: fixedCostSnapshot(updated),
+    });
+  });
+}
+
+/** Archiva o restaura un costo fijo (los pagos que ya tiene no cambian). */
+export async function setFixedCostArchived(
+  actor: Actor,
+  fixedCostId: string,
+  archived: boolean,
+  client: PrismaClient = db,
+  now: Date = new Date(),
+): Promise<void> {
+  requireCapability(actor, "finance.write");
+
+  await client.$transaction(async (tx) => {
+    const cost = await tx.fixedCost.findUnique({
+      where: { id: fixedCostId },
+      include: { category: { select: { archivedAt: true } } },
+    });
+    if (!cost) {
+      throw new NotFoundError("Fixed cost not found");
+    }
+    if ((cost.archivedAt !== null) === archived) {
+      return;
+    }
+    if (!archived) {
+      if (cost.category.archivedAt) {
+        throw new ValidationError("Its category is archived");
+      }
+      await assertFixedCostNameFree(tx, cost.name, cost.id);
+    }
+    await tx.fixedCost.update({
+      where: { id: cost.id },
+      data: { archivedAt: archived ? now : null },
+    });
+    await audit.log(tx, {
+      userId: actor.id,
+      action: "FIXED_COST_CHANGED",
+      entityType: "FixedCost",
+      entityId: cost.id,
+      before: { archived: cost.archivedAt !== null },
+      after: { archived },
+    });
+  });
+}
+
+/**
+ * Registra el pago de un costo fijo en un mes: un gasto con sus datos llenos (categoría, descripción, mes) que **no se puede
+ * repetir** mientras el pago no esté anulado. El monto parte del habitual pero se puede ajustar. Es idempotente por
+ * `clientRequestId`.
+ */
+export async function payFixedCost(
+  actor: Actor,
+  input: unknown,
+  client: PrismaClient = db,
+  now: Date = new Date(),
+): Promise<{ id: string }> {
+  requireCapability(actor, "finance.write");
+  const parsed = payFixedCostSchema.safeParse(input);
+  if (!parsed.success) {
+    throw new ValidationError(firstIssue(parsed.error));
+  }
+  const data = parsed.data;
+
+  const existing = await client.financeEntry.findUnique({
+    where: { clientRequestId: data.clientRequestId },
+    select: { id: true, createdById: true },
+  });
+  if (existing) {
+    if (existing.createdById !== actor.id) {
+      throw new ValidationError("Request id already used");
+    }
+    return { id: existing.id };
+  }
+
+  const occurredAt = parseLocalDateKey(data.occurredOn);
+  if (!occurredAt || data.occurredOn > localDateKey(now)) {
+    throw new ValidationError("Invalid date");
+  }
+
+  try {
+    return await client.$transaction(async (tx) => {
+      const cost = await tx.fixedCost.findUnique({ where: { id: data.fixedCostId } });
+      if (!cost) {
+        throw new NotFoundError("Fixed cost not found");
+      }
+      if (cost.archivedAt) {
+        throw new ValidationError("An archived fixed cost cannot be paid");
+      }
+      const first = periodOf(cost.startsOn);
+      const last = cost.endsOn ? periodOf(cost.endsOn) : periodOf(now);
+      if (data.period < first || data.period > last || data.period > periodOf(now)) {
+        throw new ValidationError("That month is not payable for this fixed cost");
+      }
+      await assertActiveExpenseCategory(tx, cost.categoryId);
+      const paid = await tx.financeEntry.findFirst({
+        where: { fixedCostId: cost.id, period: data.period, voidedAt: null },
+        select: { id: true },
+      });
+      if (paid) {
+        throw new FixedCostPaidError();
+      }
+      const entry = await tx.financeEntry.create({
+        data: {
+          type: "EXPENSE",
+          categoryId: cost.categoryId,
+          amountCents: data.amountCents,
+          occurredAt,
+          paidWith: data.paidWith,
+          description: `${cost.name} (${formatPeriod(data.period)})`,
+          fixedCostId: cost.id,
+          period: data.period,
+          clientRequestId: data.clientRequestId,
+          createdById: actor.id,
+        },
+      });
+      await audit.log(tx, {
+        userId: actor.id,
+        action: "FINANCE_ENTRY_CREATED",
+        entityType: "FinanceEntry",
+        entityId: entry.id,
+        after: {
+          ...(snapshot(entry) as Record<string, unknown>),
+          fixedCostId: cost.id,
+          period: data.period,
+        },
+      });
+      return { id: entry.id };
+    });
+  } catch (error) {
+    if (isUniqueViolation(error)) {
+      const winner = await client.financeEntry.findUnique({
+        where: { clientRequestId: data.clientRequestId },
+        select: { id: true, createdById: true },
+      });
+      if (winner && winner.createdById === actor.id) {
+        return { id: winner.id };
+      }
+      // Otro pago del mismo mes llegó primero.
+      throw new FixedCostPaidError(undefined, { cause: error });
+    }
+    throw error;
+  }
 }

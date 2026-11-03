@@ -6,11 +6,21 @@ import { requireUserCapability } from "@/lib/auth";
 import {
   createFinanceCategory,
   createFinanceEntry,
+  createFixedCost,
+  payFixedCost,
   renameFinanceCategory,
   setFinanceCategoryArchived,
+  setFixedCostArchived,
+  updateFixedCost,
   voidFinanceEntry,
 } from "@/modules/finance/service";
-import type { CategoryInput, FinanceEntryInput, VoidEntryInput } from "@/modules/finance/schemas";
+import type {
+  CategoryInput,
+  FinanceEntryInput,
+  FixedCostInput,
+  PayFixedCostInput,
+  VoidEntryInput,
+} from "@/modules/finance/schemas";
 
 /** Registra un gasto o un ingreso que no es venta. El servidor revisa el permiso, el plan y los datos. */
 export async function createFinanceEntryAction(
@@ -45,6 +55,43 @@ export async function renameFinanceCategoryAction(
     await renameFinanceCategory(user, String(categoryId), { name });
     return null;
   }, messages.errors);
+}
+
+export async function createFixedCostAction(
+  input: FixedCostInput,
+): Promise<ActionResult<{ id: string }>> {
+  const { user } = await requireUserCapability("finance.write");
+  return toActionResult(() => createFixedCost(user, input), messages.errors);
+}
+
+export async function updateFixedCostAction(
+  fixedCostId: string,
+  input: FixedCostInput,
+): Promise<ActionResult<null>> {
+  const { user } = await requireUserCapability("finance.write");
+  return toActionResult(async () => {
+    await updateFixedCost(user, String(fixedCostId), input);
+    return null;
+  }, messages.errors);
+}
+
+export async function setFixedCostArchivedAction(
+  fixedCostId: string,
+  archived: boolean,
+): Promise<ActionResult<null>> {
+  const { user } = await requireUserCapability("finance.write");
+  return toActionResult(async () => {
+    await setFixedCostArchived(user, String(fixedCostId), Boolean(archived));
+    return null;
+  }, messages.errors);
+}
+
+/** Registra el pago de un costo fijo en un mes. */
+export async function payFixedCostAction(
+  input: PayFixedCostInput,
+): Promise<ActionResult<{ id: string }>> {
+  const { user } = await requireUserCapability("finance.write");
+  return toActionResult(() => payFixedCost(user, input), messages.errors);
 }
 
 export async function setFinanceCategoryArchivedAction(

@@ -129,6 +129,11 @@ async function main(): Promise<void> {
       }),
     );
     await tryDelete(() => client.category.deleteMany({ where: named }));
+    // Costos fijos de prueba: los que ya tienen pagos (el libro no se borra) solo se archivan.
+    await tryDelete(() =>
+      client.fixedCost.deleteMany({ where: { ...named, entries: { none: {} } } }),
+    );
+    await client.fixedCost.updateMany({ where: named, data: { archivedAt: new Date() } });
     // Categorías de Finanzas de prueba: las que ya tienen movimientos (el libro no se borra) solo se archivan.
     await tryDelete(() =>
       client.financeCategory.deleteMany({

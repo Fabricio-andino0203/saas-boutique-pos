@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { parseLocalDateKey } from "@/lib/dates";
+import { PERIOD_PATTERN } from "@/modules/finance/periods";
 
 /** Tope razonable para cualquier monto de Finanzas (L 10,000,000.00): evita desbordes y errores de dedo. */
 export const MAX_FINANCE_CENTS = 1_000_000_000;
@@ -58,3 +59,32 @@ export type CategoryInput = z.input<typeof categorySchema>;
 export const renameCategorySchema = z.object({
   name: z.string().trim().min(2).max(60),
 });
+
+const period = z.string().regex(PERIOD_PATTERN);
+
+/** Un costo fijo mensual: del mes en que empieza (y, si ya terminó, el último), con su día de pago (1–28). */
+export const fixedCostSchema = z
+  .object({
+    name: z.string().trim().min(2).max(80),
+    categoryId: id,
+    amountCents: cents,
+    dueDay: z.number().int().min(1).max(28),
+    startsOn: period,
+    endsOn: z.preprocess(blankToUndefined, period.optional()),
+  })
+  .refine((value) => !value.endsOn || value.endsOn >= value.startsOn, {
+    message: "The end month is before the start month",
+    path: ["endsOn"],
+  });
+export type FixedCostInput = z.input<typeof fixedCostSchema>;
+
+/** El pago de un costo fijo en un mes: el monto parte del habitual pero se puede ajustar (la luz cambia cada mes). */
+export const payFixedCostSchema = z.object({
+  fixedCostId: id,
+  period,
+  amountCents: cents,
+  occurredOn: dateKey,
+  paidWith: z.enum(MANUAL_PAYMENT_METHODS),
+  clientRequestId: requestId,
+});
+export type PayFixedCostInput = z.input<typeof payFixedCostSchema>;

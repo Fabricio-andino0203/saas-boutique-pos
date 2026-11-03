@@ -113,3 +113,74 @@ test("the owner adds, renames and archives a category, and an archived one is no
     page.getByRole("dialog").getByLabel(form.category).locator(`option:text("${renamed}")`),
   ).toHaveCount(0);
 });
+
+test("the owner adds a fixed cost, pays this month, sees it as an expense and gets the month back when the payment is voided", async ({
+  page,
+}) => {
+  test.slow();
+  const fixed = messages.finance.fixed;
+  const name = `E2E Internet ${Date.now()}`;
+
+  await loginAs(page, "owner");
+  await page.getByRole("link", { name: messages.nav.financeFixedCosts, exact: true }).click();
+  await expect(page.getByRole("heading", { level: 1, name: fixed.title })).toBeVisible();
+
+  await page.getByRole("button", { name: fixed.new }).click();
+  const dialog = page.getByRole("dialog");
+  await dialog.getByLabel(fixed.form.name).fill(name);
+  await dialog
+    .getByLabel(fixed.form.category)
+    .selectOption({ label: "Servicios (agua, luz, internet)" });
+  await dialog.getByLabel(fixed.form.amount).fill("900");
+  await dialog.getByLabel(fixed.form.dueDay).fill("1");
+  await dialog.getByRole("button", { name: fixed.form.submit }).click();
+  await expect(page.getByText(messages.toasts.fixedCostCreated)).toBeVisible();
+
+  // Aparece por pagar (vence el día 1: ya venció o vence hoy) y se paga con otro monto.
+  const pending = page.getByRole("region", { name: fixed.pendingTitle });
+  const pendingRow = pending.getByRole("row").filter({ hasText: name });
+  await expect(pendingRow).toBeVisible();
+  await expect(pendingRow).toContainText("900.00");
+  await pendingRow.getByRole("button", { name: fixed.pay }).click();
+  const pay = page.getByRole("dialog");
+  await pay.getByLabel(fixed.payForm.amount).fill("925");
+  await pay.getByRole("button", { name: fixed.payForm.submit }).click();
+  await expect(page.getByText(messages.toasts.fixedCostPaid)).toBeVisible();
+  await expect(pending.getByRole("row").filter({ hasText: name })).toHaveCount(0);
+
+  // El pago es un gasto con su categoría y su mes.
+  await page.goto("/finanzas/movimientos?rango=today");
+  const entry = page.getByRole("row").filter({ hasText: name }).first();
+  await expect(entry).toContainText("Servicios (agua, luz, internet)");
+  await expect(entry).toContainText(messages.finance.entries.badges.fixedCost);
+  await expect(entry).toContainText("925.00");
+
+  // Al anularlo, el mes vuelve a estar por pagar.
+  await entry.getByRole("button", { name: messages.finance.void.action }).click();
+  await page
+    .getByRole("dialog")
+    .getByLabel(messages.finance.void.reason)
+    .fill("E2E Monto equivocado");
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: messages.finance.void.submit })
+    .click();
+  await expect(page.getByText(messages.toasts.financeEntryVoided)).toBeVisible();
+  await page.goto("/finanzas/costos-fijos");
+  await expect(
+    page
+      .getByRole("region", { name: fixed.pendingTitle })
+      .getByRole("row")
+      .filter({ hasText: name }),
+  ).toBeVisible();
+
+  // Archivado deja de pedir pagos.
+  await page.getByRole("button", { name: `${fixed.archive}: ${name}` }).click();
+  await expect(page.getByText(messages.toasts.fixedCostArchived)).toBeVisible();
+  await expect(
+    page
+      .getByRole("region", { name: fixed.pendingTitle })
+      .getByRole("row")
+      .filter({ hasText: name }),
+  ).toHaveCount(0);
+});

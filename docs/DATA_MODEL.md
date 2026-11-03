@@ -261,7 +261,7 @@ Finanzas **operativas**, no contabilidad (ver PRD §4.12). Las ventas, devolucio
 Reglas: `CASH_DRAWER` exige `cashMovementId` y viceversa (una salida de caja es un gasto y una entrada es un ingreso; `clientRequestId = "cash:<id del movimiento>"`); un gasto de caja no se anula desde Finanzas; un costo fijo solo se paga una vez por mes mientras el pago no esté anulado (índice parcial único). Un trigger rechaza `DELETE` y cualquier `UPDATE` que no sea la anulación.
 
 ### FixedCost (costo fijo mensual)
-`name`, `categoryId` (de gasto), `amountCents` (> 0), `dueDay` (1–28), `startsOn`, `endsOn?`, `archivedAt?`. No genera gastos: el sistema calcula los meses «por pagar» (desde `startsOn` hasta el mes actual, sin `FinanceEntry` vigente para ese `period`).
+`name`, `categoryId` (de gasto), `amountCents` (> 0), `dueDay` (1–28), `startsOn`, `endsOn?`, `archivedAt?`. No genera gastos: el sistema calcula los meses «por pagar» (desde el mayor entre `startsOn` y los últimos 6 meses, hasta el mes actual o `endsOn`, sin `FinanceEntry` vigente para ese `period`; `src/modules/finance/periods.ts`). El monto del pago puede ajustarse y queda en el movimiento; cambiar el costo fijo no toca los pagos hechos.
 
 ## 8. Índices recomendados
 

@@ -1,5 +1,7 @@
 import type { Prisma, PrismaClient } from "@/generated/prisma/client";
+import { localDateKey } from "@/lib/dates";
 import { db } from "@/lib/db";
+import { dueDateKey, pendingPeriods, periodOf } from "@/modules/finance/periods";
 import type { FinanceType, PaymentMethod } from "@/modules/finance/schemas";
 
 type Client = Prisma.TransactionClient | PrismaClient;
@@ -143,4 +145,101 @@ export async function listSupplierOptions(client: Client = db): Promise<Supplier
     orderBy: { name: "asc" },
     select: { id: true, name: true },
   });
+}
+
+// ───────────────────────── Costos fijos ─────────────────────────
+
+export type PendingPayment = {
+  fixedCostId: string;
+  name: string;
+  categoryName: string;
+  /** El mes que falta pagar (`2026-11`). */
+  period: string;
+  /** La fecha límite de ese mes (`2026-11-05`). */
+  dueDate: string;
+  /** El monto habitual: el pago puede ajustarlo. */
+  amountCents: number;
+  overdue: boolean;
+};
+
+export type FixedCostRow = {
+  id: string;
+  name: string;
+  categoryId: string;
+  categoryName: string;
+  amountCents: number;
+  dueDay: number;
+  /** Primer y último mes, como `2026-11`. */
+  startsOn: string;
+  endsOn: string | null;
+  archived: boolean;
+  /** Cuántos meses faltan por pagar (los de la ventana que se muestra). */
+  pendingCount: number;
+};
+
+/** Los costos fijos con cuántos meses les faltan por pagar. Los archivados solo si se piden. */
+export async function listFixedCosts(
+  options: { includeArchived?: boolean } = {},
+  now: Date = new Date(),
+  client: Client = db,
+): Promise<{ costs: FixedCostRow[]; pending: PendingPayment[] }> {
+  const rows = await client.fixedCost.findMany({
+    where: options.includeArchived ? {} : { archivedAt: null },
+    orderBy: [{ archivedAt: { sort: "asc", nulls: "first" } }, { dueDay: "asc" }, { name: "asc" }],
+    include: { category: { select: { name: true } } },
+  });
+  const paidRows = await client.financeEntry.findMany({
+    where: {
+      fixedCostId: { in: rows.map((row) => row.id) },
+      voidedAt: null,
+      period: { not: null },
+    },
+    select: { fixedCostId: true, period: true },
+  });
+  const paidBy = new Map<string, Set<string>>();
+  for (const paid of paidRows) {
+    if (paid.fixedCostId && paid.period) {
+      const set = paidBy.get(paid.fixedCostId) ?? new Set<string>();
+      set.add(paid.period);
+      paidBy.set(paid.fixedCostId, set);
+    }
+  }
+
+  const current = periodOf(now);
+  const today = localDateKey(now);
+  const costs: FixedCostRow[] = [];
+  const pending: PendingPayment[] = [];
+  for (const row of rows) {
+    const startsOn = periodOf(row.startsOn);
+    const endsOn = row.endsOn ? periodOf(row.endsOn) : null;
+    const months = row.archivedAt
+      ? []
+      : pendingPeriods({ startsOn, endsOn, paid: paidBy.get(row.id) ?? new Set(), current });
+    costs.push({
+      id: row.id,
+      name: row.name,
+      categoryId: row.categoryId,
+      categoryName: row.category.name,
+      amountCents: row.amountCents,
+      dueDay: row.dueDay,
+      startsOn,
+      endsOn,
+      archived: row.archivedAt !== null,
+      pendingCount: months.length,
+    });
+    for (const period of months) {
+      const dueDate = dueDateKey(period, row.dueDay);
+      pending.push({
+        fixedCostId: row.id,
+        name: row.name,
+        categoryName: row.category.name,
+        period,
+        dueDate,
+        amountCents: row.amountCents,
+        overdue: dueDate < today,
+      });
+    }
+  }
+  pending.sort((a, b) => a.dueDate.localeCompare(b.dueDate) || a.name.localeCompare(b.name));
+  return { costs, pending };
 }
