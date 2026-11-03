@@ -494,7 +494,7 @@ export function PosScreen({
                     "focus-visible:ring-ring/50 min-h-9 rounded-full border px-3.5 text-sm outline-none focus-visible:ring-3",
                     categoryId === category.id
                       ? "border-primary bg-primary text-primary-foreground"
-                      : "hover:bg-muted",
+                      : "hover:bg-accent hover:text-accent-foreground",
                   )}
                 >
                   {category.name}
@@ -536,7 +536,7 @@ export function PosScreen({
                         onClick={() => pickProduct(product)}
                         aria-label={`${product.name}, ${formatMoney(lowest)}`}
                         className={cn(
-                          "hover:border-primary focus-visible:ring-ring/50 bg-card flex h-full w-full flex-col gap-1.5 rounded-lg border p-2.5 text-left outline-none focus-visible:ring-3",
+                          "hover:border-primary/60 focus-visible:ring-ring/50 bg-card flex h-full w-full flex-col gap-1.5 rounded-xl border p-2.5 text-left transition-[border-color,box-shadow,transform] outline-none hover:-translate-y-0.5 hover:shadow-sm focus-visible:ring-3 active:translate-y-0",
                           stock <= 0 && "opacity-60",
                         )}
                       >
@@ -548,7 +548,7 @@ export function PosScreen({
                         ) : (
                           <span
                             aria-hidden="true"
-                            className="bg-muted text-muted-foreground grid h-20 place-items-center rounded-md text-2xl font-semibold"
+                            className="bg-secondary text-secondary-foreground font-heading grid h-20 place-items-center rounded-md text-2xl font-semibold"
                           >
                             {initialsOf(product.name)}
                           </span>

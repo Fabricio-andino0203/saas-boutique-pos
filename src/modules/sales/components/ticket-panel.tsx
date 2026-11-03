@@ -94,132 +94,133 @@ export function TicketPanel({
   const taxLabel = `${config.pricesIncludeTax ? ticket.taxIncluded : ticket.taxAdded} (${formatPercentBps(config.taxRateBps)} %)`;
 
   return (
-    <section
-      aria-labelledby="ticket-title"
-      className="bg-card flex min-h-0 flex-col rounded-lg border lg:h-full"
-    >
-      <header className="flex items-center justify-between gap-2 border-b px-4 py-3">
-        <div className="min-w-0">
-          <h2 id="ticket-title" className="font-semibold">
-            {ticket.title}
-          </h2>
-          <p className="text-muted-foreground text-xs">
-            {summary.units} {ticket.units}
-          </p>
-        </div>
-        <Button type="button" variant="outline" size="sm" onClick={onCustomer}>
-          <UserRound aria-hidden="true" />
-          <span className="max-w-32 truncate">
-            {customer ? customer.name : ticket.customerNone}
-          </span>
-        </Button>
-      </header>
+    <section aria-labelledby="ticket-title" className="flex min-h-0 flex-col lg:h-full">
+      <div className="ticket-top flex min-h-0 flex-1 flex-col">
+        <header className="flex items-center justify-between gap-2 border-b px-4 py-3">
+          <div className="min-w-0">
+            <h2 id="ticket-title" className="font-semibold">
+              {ticket.title}
+            </h2>
+            <p className="text-muted-foreground text-xs">
+              {summary.units} {ticket.units}
+            </p>
+          </div>
+          <Button type="button" variant="outline" size="sm" onClick={onCustomer}>
+            <UserRound aria-hidden="true" />
+            <span className="max-w-32 truncate">
+              {customer ? customer.name : ticket.customerNone}
+            </span>
+          </Button>
+        </header>
 
-      {customer ? (
-        <div className="flex items-center justify-between gap-2 border-b px-4 py-1.5 text-xs">
-          <span className={creditCents > 0 ? "text-success font-medium" : "text-muted-foreground"}>
-            {ticket.credit}: <span className="tabular-nums">{formatMoney(creditCents)}</span>
-          </span>
-          <a
-            href={`/clientes/${customer.id}`}
-            target="_blank"
-            rel="noreferrer"
-            className="text-primary underline underline-offset-4"
-          >
-            {ticket.creditLink}
-          </a>
-        </div>
-      ) : null}
+        {customer ? (
+          <div className="flex items-center justify-between gap-2 border-b px-4 py-1.5 text-xs">
+            <span
+              className={creditCents > 0 ? "text-success font-medium" : "text-muted-foreground"}
+            >
+              {ticket.credit}: <span className="tabular-nums">{formatMoney(creditCents)}</span>
+            </span>
+            <a
+              href={`/clientes/${customer.id}`}
+              target="_blank"
+              rel="noreferrer"
+              className="text-primary underline underline-offset-4"
+            >
+              {ticket.creditLink}
+            </a>
+          </div>
+        ) : null}
 
-      <div className="min-h-40 flex-1 overflow-y-auto">
-        {items.length === 0 ? (
-          <p className="text-muted-foreground p-6 text-center text-sm">{ticket.empty}</p>
-        ) : (
-          <ul className="space-y-2 p-3">
-            {items.map((item, index) => {
-              const line = priced?.lines[index];
-              const selected = item.id === selectedId;
-              return (
-                <li
-                  key={item.id}
-                  className={cn(
-                    "rounded-lg border p-2.5",
-                    selected ? "border-primary bg-primary/5" : "border-border",
-                  )}
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <button
-                      type="button"
-                      aria-pressed={selected}
-                      onClick={() => onSelect(item.id)}
-                      className="min-w-0 flex-1 text-left"
-                    >
-                      <span className="block truncate font-medium">{item.productName}</span>
-                      {item.variantLabel ? (
-                        <span className="text-muted-foreground block truncate text-xs">
-                          {item.variantLabel}
-                        </span>
-                      ) : null}
-                    </button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon-sm"
-                      aria-label={`${ticket.remove}: ${item.productName} ${item.variantLabel}`.trim()}
-                      onClick={() => onRemove(item.id)}
-                    >
-                      <X aria-hidden="true" />
-                    </Button>
-                  </div>
-                  <div className="mt-2 flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-1">
+        <div className="min-h-40 flex-1 overflow-y-auto">
+          {items.length === 0 ? (
+            <p className="text-muted-foreground p-6 text-center text-sm">{ticket.empty}</p>
+          ) : (
+            <ul className="space-y-2 p-3">
+              {items.map((item, index) => {
+                const line = priced?.lines[index];
+                const selected = item.id === selectedId;
+                return (
+                  <li
+                    key={item.id}
+                    className={cn(
+                      "rounded-lg border p-2.5",
+                      selected ? "border-primary bg-primary/5" : "border-border",
+                    )}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <button
+                        type="button"
+                        aria-pressed={selected}
+                        onClick={() => onSelect(item.id)}
+                        className="min-w-0 flex-1 text-left"
+                      >
+                        <span className="block truncate font-medium">{item.productName}</span>
+                        {item.variantLabel ? (
+                          <span className="text-muted-foreground block truncate text-xs">
+                            {item.variantLabel}
+                          </span>
+                        ) : null}
+                      </button>
                       <Button
                         type="button"
-                        variant="outline"
-                        className="size-11"
-                        aria-label={`${ticket.decrease}: ${item.productName}`}
-                        onClick={() => onQuantity(item.id, item.quantity - 1)}
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label={`${ticket.remove}: ${item.productName} ${item.variantLabel}`.trim()}
+                        onClick={() => onRemove(item.id)}
                       >
-                        <Minus aria-hidden="true" />
-                      </Button>
-                      <QuantityField
-                        item={item}
-                        onChange={(quantity) => onQuantity(item.id, quantity)}
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="size-11"
-                        aria-label={`${ticket.increase}: ${item.productName}`}
-                        onClick={() => onQuantity(item.id, item.quantity + 1)}
-                      >
-                        <Plus aria-hidden="true" />
+                        <X aria-hidden="true" />
                       </Button>
                     </div>
-                    <div className="text-right">
-                      <p className="font-semibold tabular-nums">
-                        {line
-                          ? formatMoney(line.lineTotalCents)
-                          : formatMoney(item.unitPriceCents * item.quantity)}
-                      </p>
-                      <p className="text-muted-foreground text-xs tabular-nums">
-                        {item.quantity} × {formatMoney(item.unitPriceCents)}
-                      </p>
-                      {line && line.ownDiscountCents > 0 ? (
-                        <p className="text-success text-xs tabular-nums">
-                          {ticket.lineDiscount} −{formatMoney(line.ownDiscountCents)}
+                    <div className="mt-2 flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="size-11"
+                          aria-label={`${ticket.decrease}: ${item.productName}`}
+                          onClick={() => onQuantity(item.id, item.quantity - 1)}
+                        >
+                          <Minus aria-hidden="true" />
+                        </Button>
+                        <QuantityField
+                          item={item}
+                          onChange={(quantity) => onQuantity(item.id, quantity)}
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="size-11"
+                          aria-label={`${ticket.increase}: ${item.productName}`}
+                          onClick={() => onQuantity(item.id, item.quantity + 1)}
+                        >
+                          <Plus aria-hidden="true" />
+                        </Button>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-semibold tabular-nums">
+                          {line
+                            ? formatMoney(line.lineTotalCents)
+                            : formatMoney(item.unitPriceCents * item.quantity)}
                         </p>
-                      ) : null}
+                        <p className="text-muted-foreground text-xs tabular-nums">
+                          {item.quantity} × {formatMoney(item.unitPriceCents)}
+                        </p>
+                        {line && line.ownDiscountCents > 0 ? (
+                          <p className="text-success text-xs tabular-nums">
+                            {ticket.lineDiscount} −{formatMoney(line.ownDiscountCents)}
+                          </p>
+                        ) : null}
+                      </div>
                     </div>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        )}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
       </div>
 
-      <footer className="space-y-2 border-t p-3">
+      <footer className="ticket-bottom space-y-2 p-3 pt-5">
         {summary.invalidDiscount ? <Notice tone="error">{ticket.invalidDiscount}</Notice> : null}
         <dl className="space-y-0.5 text-sm">
           <div className="flex justify-between">
