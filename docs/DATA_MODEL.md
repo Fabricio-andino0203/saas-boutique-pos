@@ -249,6 +249,20 @@ Al saldar: el apartado se vuelve una venta a los precios guardados; los abonos y
 `customerId`, `amountCents` (+ abona, − consume), `reason enum (RETURN, LAYAWAY_CANCEL, MANUAL, USED_IN_SALE, SALE_VOID)`, `refType`, `refId`, `note?` (el motivo de un ajuste manual), `userId`, `createdAt`.
 `Customer.storeCreditCents` = Σ del libro (se mantiene en la misma transacción, con la fila del cliente bloqueada: dos cobros no gastan el mismo saldo). Todo cambio pasa por `applyStoreCredit` (`src/modules/credit/service.ts`) y el saldo nunca queda negativo. Origen de cada movimiento: `RETURN` (devolución o sobrante de un cambio, `refType ReturnDoc`), `USED_IN_SALE` (pago con crédito, `refType Sale`), `SALE_VOID` (anular una venta pagada con crédito lo devuelve), `MANUAL` (ajuste de un gerente con motivo, `refType Adjustment`) y `LAYAWAY_CANCEL` (apartado cancelado o vencido).
 
+## 7b. Finanzas (módulo `finance`)
+
+Finanzas **operativas**, no contabilidad (ver PRD §4.12). Las ventas, devoluciones y costos de lo vendido ya viven en `Sale`, `ReturnDoc` y `SaleItem`: aquí solo entra lo que **no** es una venta.
+
+### FinanceCategory
+`type enum (EXPENSE, INCOME)`, `name` (único por tipo), `sortOrder`, `archivedAt?`. Se siembra al crear el negocio y se archiva, no se borra.
+
+### FinanceEntry (libro de gastos e ingresos — inmutable salvo su anulación)
+`type`, `categoryId`, `amountCents` (> 0), `occurredAt` (el día del gasto, UTC; se muestra en `America/Tegucigalpa`), `paidWith enum (CASH_DRAWER, CASH_OTHER, TRANSFER, CARD, OTHER)`, `description`, `supplierId?`, `cashMovementId? @unique` (si salió de la caja), `fixedCostId?` + `period?` (`"2026-11"`, el mes que paga un costo fijo), `clientRequestId @unique` (idempotencia), `createdById`, `voidedAt?`/`voidedById?`/`voidReason?` (las tres juntas o ninguna).
+Reglas: `CASH_DRAWER` exige `cashMovementId` y viceversa; un gasto de caja no se anula desde Finanzas; un costo fijo solo se paga una vez por mes mientras el pago no esté anulado (índice parcial único). Un trigger rechaza `DELETE` y cualquier `UPDATE` que no sea la anulación.
+
+### FixedCost (costo fijo mensual)
+`name`, `categoryId` (de gasto), `amountCents` (> 0), `dueDay` (1–28), `startsOn`, `endsOn?`, `archivedAt?`. No genera gastos: el sistema calcula los meses «por pagar» (desde `startsOn` hasta el mes actual, sin `FinanceEntry` vigente para ese `period`).
+
 ## 8. Índices recomendados
 
 - `Variant(barcode)`, `Variant(sku)` únicos; índice trigram (`pg_trgm`) en `Product.name` + `Variant.sku` para búsqueda tolerante.
@@ -256,6 +270,7 @@ Al saldar: el apartado se vuelve una venta a los precios guardados; los abonos y
 - `Sale(createdAt)`, `Sale(sellerId, createdAt)`, `Sale(cashSessionId)`, `Sale(customerId)`.
 - `SaleItem(variantId)`, `Payment(saleId)`, `Payment(cashSessionId, method)`.
 - `AuditLog(entityType, entityId)`, `AuditLog(userId, createdAt)`.
+- `FinanceEntry(occurredAt)`, `FinanceEntry(type, categoryId)`, `FinanceCategory(type, archivedAt)`.
 
 ## 9. Invariantes globales (deben tener test)
 
@@ -266,6 +281,7 @@ Al saldar: el apartado se vuelve una venta a los precios guardados; los abonos y
 5. `Customer.storeCreditCents = Σ StoreCreditEntry.amountCents`.
 6. `CashSession.expectedCash = opening + Σ Payment CASH + Σ LayawayPayment CASH − Σ Sale.changeCents + Σ CashMovement IN − Σ CashMovement OUT − reembolsos en efectivo`, solo con ventas `COMPLETED` (las anuladas no cuentan). `Payment.amountCents` en efectivo es lo que entregó el cliente (vuelto incluido); el vuelto se resta aparte. Función pura: `src/modules/cash/expected.ts`.
 7. Una venta `VOIDED` revierte exactamente sus movimientos de stock y de pago.
+8. Todo `FinanceEntry` con `paidWith = CASH_DRAWER` está enlazado a un `CashMovement` `OUT` por el mismo monto, y viceversa para los gastos nacidos en la caja. La utilidad neta del periodo = utilidad bruta de los reportes + Σ ingresos vigentes − Σ gastos vigentes (los anulados no cuentan). Función pura: `src/modules/finance/summary.ts`.
 
 ## 10. Datos de ejemplo (seed)
 
@@ -282,5 +298,6 @@ Lo que Prisma no puede expresar vive en la segunda migración (`constraints`):
 - **Índices parciales únicos:** una caja abierta por usuario y por terminal (`CashSession`, `status = 'OPEN'`) y un rango fiscal activo por tipo y terminal (`FiscalRange`).
 - **CHECK de montos y cantidades:** importes no negativos, cantidades positivas, `reserved >= 0`, `nextNumber` dentro del rango fiscal, descuento no mayor que el subtotal. No hay CHECK de `onHand >= 0` (ver §4).
 - **Tablas de solo inserción:** triggers `prevent_row_mutation` que rechazan `UPDATE` y `DELETE` en `AuditLog`, `StockMovement` y `StoreCreditEntry`.
+- **Finanzas:** `CHECK` de monto positivo, de anulación completa o ausente y de `CASH_DRAWER` ⇔ `cashMovementId`; índice parcial único `FinanceEntry(fixedCostId, period)` donde `voidedAt IS NULL`; trigger `FinanceEntry_guard` (no `DELETE`; `UPDATE` solo para anular).
 - **Búsqueda tolerante a errores:** índices `gin` trigram sobre `Product.name` y `Variant.sku`. La consulta del listado compara con `unaccent(lower(...))` (no usa esos índices; basta a escala de boutique) y combina coincidencia exacta de código o barras, "contiene" y similitud de trigramas.
 - **Secuencias de códigos:** `product_code_seq` (códigos `P00001`…) y `barcode_serial_seq` (serie de los EAN-13 internos). Pueden dejar huecos; solo garantizan unicidad (la numeración sin saltos es la de facturas).

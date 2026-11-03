@@ -1,5 +1,6 @@
 import type { PrismaClient } from "../../src/generated/prisma/client";
 import { hashSecret } from "../../src/lib/password";
+import { DEFAULT_FINANCE_CATEGORIES } from "../../src/modules/finance/defaults";
 
 /** Credenciales de demostración: solo para desarrollo. Rotar antes de producción (§20.1). */
 export const DEMO_USERS = [
@@ -126,6 +127,14 @@ export async function seedBase(client: PrismaClient): Promise<void> {
       create: { slug: category.slug, name: category.name, parentId, sortOrder: index },
     });
     categoryIds.set(category.slug, saved.id);
+  }
+
+  for (const [index, category] of DEFAULT_FINANCE_CATEGORIES.entries()) {
+    await client.financeCategory.upsert({
+      where: { type_name: { type: category.type, name: category.name } },
+      update: {},
+      create: { type: category.type, name: category.name, sortOrder: index },
+    });
   }
 
   if ((await client.businessProfile.count()) === 0) {

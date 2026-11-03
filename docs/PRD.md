@@ -14,7 +14,7 @@ Un sistema web que permita a una boutique de ropa **vender rápido, saber exacta
 
 ### No-objetivos (por ahora)
 
-Contabilidad completa, nómina, e-commerce público, integración con marketplaces, app móvil nativa.
+Contabilidad completa (partida doble, libro diario), nómina, e-commerce público, integración con marketplaces, app móvil nativa. Las **finanzas operativas** del negocio (gastos, otros ingresos, costos fijos y utilidad neta) sí se hacen, como módulo de plan (§4.12).
 
 ## 2. Usuarios y roles
 
@@ -52,6 +52,10 @@ Contabilidad completa, nómina, e-commerce público, integración con marketplac
 | Aprobar y aplicar un conteo físico | ✓ | ✓ | – | – (cuenta, no aprueba) |
 | Ver reportes y el dashboard de ventas (el cajero, solo sus ventas y sin costos) | ✓ | ✓ | ✓ | – |
 | Reportes financieros (utilidad, márgenes, valoración, cierres de todos) | ✓ | ✓ | – | – |
+| Ver Finanzas (resumen, movimientos y costos fijos; módulo de plan) | ✓ | ✓ | – | – |
+| Registrar gastos, otros ingresos, costos fijos y categorías de Finanzas | ✓ | ✓ | – | – |
+| Anular un movimiento de Finanzas (con motivo) | ✓ | ✓ | – | – |
+| Sacar efectivo de la caja como gasto, con categoría (módulo Finanzas) | ✓ | ✓ | ✓ | – |
 | Usuarios y configuración | ✓ | – | – | – |
 
 > Los permisos se definen como una lista de "capacidades" en `src/lib/permissions.ts` y los roles son conjuntos de capacidades. Así se pueden ajustar sin tocar la lógica.
@@ -66,13 +70,17 @@ Autenticación y roles · catálogo con variantes · inventario con kardex · co
 
 Primer arranque seguro, seguridad, observabilidad, paquete Docker + HTTPS, respaldos cifrados con restauración ensayada y 50 cobros simultáneos sin descuadres (ver `docs/ROADMAP.md`).
 
+### Finanzas operativas (módulo de plan, 2026-11)
+
+Gastos y otros ingresos con categorías, gastos pagados desde la caja, costos fijos mensuales y estado de resultados con utilidad neta (§4.12).
+
 ### Después (Fase 7 y más allá)
 
 Multi-sucursal con transferencias · modo sin conexión (PWA) · programa de lealtad/puntos · tarjetas de regalo · promociones automáticas (2x1, por temporada) · facturación electrónica (si aplica) · integración con WhatsApp para recibos · e-commerce.
 
 ### Fuera de alcance explícito
 
-Contabilidad, planillas, CRM de marketing, integración bancaria. **Claude Code no debe construir nada de esto sin que se cambie este documento.**
+Contabilidad de partida doble, planillas y nómina, CRM de marketing, integración bancaria, comprobantes adjuntos de gastos, presupuestos y cuentas por pagar con avisos. **Claude Code no debe construir nada de esto sin que se cambie este documento.**
 
 ## 4. Requisitos funcionales
 
@@ -113,7 +121,7 @@ Contabilidad, planillas, CRM de marketing, integración bancaria. **Claude Code 
 ### 4.4 Caja (CASH)
 
 - **RF-CASH-1** **Apertura de caja** con monto inicial (fondo).
-- **RF-CASH-2** Movimientos de efectivo manuales: entradas (ingreso) y salidas (gasto, retiro) con motivo.
+- **RF-CASH-2** Movimientos de efectivo manuales: entradas (ingreso) y salidas (gasto, retiro) con motivo. Si el plan incluye Finanzas, la salida pregunta «¿Qué fue?»: **gasto** (con categoría; crea el gasto enlazado en la misma transacción), **retiro del dueño** u **otra salida** (RF-FIN-4).
 - **RF-CASH-3** **Cierre de caja con arqueo:** el cajero cuenta el efectivo (por denominaciones, opcional), el sistema compara contra lo esperado y muestra la diferencia; el gerente aprueba.
 - **RF-CASH-4** Resumen del turno: ventas por método de pago, devoluciones, entradas/salidas, esperado vs contado.
 - **RF-CASH-5** No se puede vender sin una caja abierta.
@@ -183,6 +191,21 @@ Contabilidad, planillas, CRM de marketing, integración bancaria. **Claude Code 
 - **RF-CFG-5** Límite de descuento por rol, política de devoluciones, vencimiento de apartados.
 - **RF-CFG-6** Formato de ticket y de etiqueta.
 - **RF-CFG-7** Permitir o no stock negativo.
+
+### 4.12 Finanzas operativas (FIN) — módulo de plan `finance`
+
+Para el dueño que quiere saber cuánto se ganó de verdad, no solo cuánto se vendió. **No es contabilidad**: no hay partida doble, libro diario, planillas, conciliación bancaria ni declaración de impuestos. Está disponible solo en los planes que incluyen el módulo; sin él no hay menú ni pantallas ni acciones (`FEATURE_NOT_INCLUDED`).
+
+- **RF-FIN-1** **Libro de movimientos:** gastos e ingresos que **no son ventas** (las ventas ya están en el sistema y no se registran dos veces). Cada movimiento lleva fecha, tipo, categoría, monto en centavos, forma de pago (efectivo de la caja, efectivo fuera de caja, transferencia, tarjeta, otro), descripción y proveedor opcional.
+- **RF-FIN-2** **Categorías** de gasto y de ingreso, editables y archivables (no se borran). Vienen sembradas: gastos (Alquiler, Servicios, Sueldos y comisiones, Publicidad, Transporte y envíos, Empaques, Mantenimiento, Impuestos y permisos, Otros gastos) e ingresos (Aporte del dueño, Otros ingresos).
+- **RF-FIN-3** **Inmutable:** un movimiento no se edita ni se borra; se **anula** con motivo y usuario y se corrige creando otro. La base de datos lo impide (solo pueden cambiar los campos de anulación). Cada alta lleva un identificador de reintento: reintentar no duplica.
+- **RF-FIN-4** **Gastos desde la caja:** la salida de efectivo del turno ofrece **gasto**, **retiro del dueño** u **otra salida**. Un gasto crea el movimiento de caja y el movimiento de Finanzas enlazado en la misma transacción, así el arqueo y las finanzas no se contradicen. El retiro del dueño y las otras salidas no cuentan como gasto. Un gasto pagado de la caja **no se anula** desde Finanzas (el efectivo ya salió): se corrige con una entrada de efectivo con motivo.
+- **RF-FIN-5** **Costos fijos mensuales** (alquiler, internet, sueldos…): plantillas con categoría, monto y día de pago. Cada mes aparecen como **por pagar**; registrar el pago crea el gasto con los datos llenos y **no se puede pagar dos veces el mismo mes** (si se anula ese pago, se puede volver a registrar). No generan gastos solos: solo cuenta lo que se pagó.
+- **RF-FIN-6** **Resumen y utilidad neta** de un periodo (los mismos periodos y rangos de los reportes): ventas netas sin ISV − costo de lo vendido = **utilidad bruta**; + otros ingresos − gastos por categoría = **utilidad neta** y margen neto; más lo que falta pagar de costos fijos. Las ventas y los costos salen de las mismas consultas de los reportes, así que cada cifra se reconcilia con ellos.
+- **RF-FIN-7** Lista de **ingresos y egresos** con filtros (tipo, categoría, forma de pago, rango, anulados) y totales.
+- **RF-FIN-8** **Exportar** el resumen y los movimientos a Excel y CSV con los mismos permisos de la pantalla.
+- **RF-FIN-9** **Permisos:** Propietario y Gerente ven, registran, anulan y administran categorías y costos fijos (capacidades `finance.view`, `finance.write`, `finance.void`). El cajero no entra a Finanzas; solo saca efectivo como gasto desde su caja (`cash.open`).
+- **RF-FIN-10** **Auditoría** de todo lo que mueve dinero: alta y anulación de movimientos, cambios de categorías y de costos fijos.
 
 ## 5. Flujos clave (resumen)
 
