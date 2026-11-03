@@ -7,9 +7,9 @@ Todo lo que necesitas para vender. Si algo no sale como aquí, pídele ayuda al 
 1. Entra con tu **usuario y contraseña**.
 2. Ve a **Vender**. Si no hay caja abierta, ahí mismo te pide abrirla: cuenta el efectivo con el que empiezas (el *fondo inicial*), escríbelo y pulsa **Abrir caja**. Si empiezas sin efectivo, escribe 0. **Si ayer quedó efectivo en el cajón, el fondo ya aparece puesto**: cuéntalo; si hay otra cantidad, cámbiala y explica por qué.
 
-| Entrar | Abrir caja |
-| :---: | :---: |
-| ![Pantalla de entrada](img/01-entrar.jpg) | ![Abrir caja con el fondo inicial](img/02-abrir-caja.jpg) |
+| Entrar | Abrir caja | Con el fondo del día anterior |
+| :---: | :---: | :---: |
+| ![Pantalla de entrada](img/01-entrar.jpg) | ![Abrir caja con el fondo inicial](img/02-abrir-caja.jpg) | ![Abrir caja con el fondo que dejó el último cierre](img/10-fondo-heredado.jpg) |
 
 ## 2. Vender (lo de todos los días)
 
@@ -49,9 +49,9 @@ Todo lo que necesitas para vender. Si algo no sale como aquí, pídele ayuda al 
 4. **¿Cuánto retiras?** Escribe lo que sacas del cajón para llevarlo (o para la caja de finanzas); lo que no retires **se queda en el cajón y mañana la caja abre con ese saldo**. Abajo ves cuánto queda. «Retirar todo» y «No retirar nada» te ahorran escribir.
 5. Confirma el cierre y entrega el efectivo que retiraste y el resumen al gerente.
 
-| Tu turno | Cerrar caja |
+| Tu turno (botón **Caja**) | Cerrar caja con el retiro |
 | :---: | :---: |
-| ![Resumen del turno](img/08-tu-turno.jpg) | ![Formulario de cierre](img/09-cerrar-caja.jpg) |
+| ![Panel Caja con el resumen del turno](img/08-tu-turno.jpg) | ![Cerrar caja: contar, retirar y ver cuánto queda para mañana](img/09-cerrar-caja.jpg) |
 
 **Entradas y salidas de efectivo:** si pones o sacas dinero del cajón y no es una venta (pagar a un proveedor, dar cambio), regístralo en el botón **Caja** de Vender, pestaña **Entradas y salidas**, con el motivo. Si no, el cierre no va a cuadrar.
 
