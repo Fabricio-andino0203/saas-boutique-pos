@@ -1961,6 +1961,8 @@ export const messages = {
       cash: "Caja actual",
       cashClosed: "Cerrada",
       cashExpected: "Efectivo esperado",
+      cashOpen: "Abierta",
+      cashClosedHint: "Abre la caja para empezar a vender.",
       byHour: "Ventas por hora",
       top: "Lo más vendido hoy",
       units: "prendas",

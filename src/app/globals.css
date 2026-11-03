@@ -171,6 +171,47 @@
   .money {
     @apply text-right tabular-nums;
   }
+  /*
+   * Boleto (TicketCard): dos mitades con muescas en las esquinas que se tocan. La línea punteada va en el borde superior de la
+   * mitad de abajo. Las muescas son transparentes: se ve lo que haya detrás de la tarjeta.
+   */
+  .ticket-top,
+  .ticket-bottom {
+    --notch: 8px;
+    position: relative;
+    background: var(--card);
+    color: var(--card-foreground);
+    border: 1px solid var(--divider);
+  }
+  .ticket-top {
+    border-bottom: 0;
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    -webkit-mask:
+      radial-gradient(var(--notch) at 0 100%, #0000 97%, #000) left / 51% 100% no-repeat,
+      radial-gradient(var(--notch) at 100% 100%, #0000 97%, #000) right / 51% 100% no-repeat;
+    mask:
+      radial-gradient(var(--notch) at 0 100%, #0000 97%, #000) left / 51% 100% no-repeat,
+      radial-gradient(var(--notch) at 100% 100%, #0000 97%, #000) right / 51% 100% no-repeat;
+  }
+  .ticket-bottom {
+    border-top: 0;
+    border-radius: 0 0 var(--radius-xl) var(--radius-xl);
+    -webkit-mask:
+      radial-gradient(var(--notch) at 0 0, #0000 97%, #000) left / 51% 100% no-repeat,
+      radial-gradient(var(--notch) at 100% 0, #0000 97%, #000) right / 51% 100% no-repeat;
+    mask:
+      radial-gradient(var(--notch) at 0 0, #0000 97%, #000) left / 51% 100% no-repeat,
+      radial-gradient(var(--notch) at 100% 0, #0000 97%, #000) right / 51% 100% no-repeat;
+  }
+  .ticket-bottom::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 14px;
+    left: 14px;
+    border-top: 1.5px dashed color-mix(in srgb, var(--muted-foreground) 55%, transparent);
+    pointer-events: none;
+  }
   /* Entrada escalonada de un grupo (la usa el inicio una sola vez, al cargar): cada hijo sube un poco después del anterior. */
   .stagger > * {
     animation: rise 360ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
