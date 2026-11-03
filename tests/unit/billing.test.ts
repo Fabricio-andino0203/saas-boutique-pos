@@ -177,6 +177,10 @@ describe("the module catalog", () => {
     expect(featureForPath("/inventario/etiquetas/plantilla")).toBe("labels");
     expect(featureForPath("/configuracion/cai")).toBe("fiscal");
     expect(featureForPath("/clientes/nuevo")).toBe("customers");
+    expect(featureForPath("/finanzas")).toBe("finance");
+    expect(featureForPath("/finanzas/movimientos")).toBe("finance");
+    expect(featureForPath("/finanzas/costos-fijos")).toBe("finance");
+    expect(featureForPath("/api/finanzas/resumen/exportar")).toBe("finance");
     // El núcleo siempre está.
     for (const core of [
       "/",
@@ -198,6 +202,7 @@ describe("the module catalog", () => {
   it("does not match a lookalike prefix", () => {
     expect(featureForPath("/reportesx")).toBeUndefined();
     expect(featureForPath("/apartadosecreto")).toBeUndefined();
+    expect(featureForPath("/finanzasx")).toBeUndefined();
     expect(featureForPath("/inventario/conteos-viejos")).toBeUndefined();
   });
 

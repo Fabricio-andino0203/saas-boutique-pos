@@ -27,12 +27,21 @@ export function StatCard({ label, value, hint, tone = "default" }: StatCardProps
 }
 
 /** Una cifra del resumen sin caja alrededor: se separan entre sí con una línea fina (el inicio del día). */
-export function StatFigure({ label, value, hint, tone = "default" }: StatCardProps) {
+export function StatFigure({
+  label,
+  value,
+  hint,
+  tone = "default",
+  divided = true,
+}: StatCardProps & { divided?: boolean }) {
   return (
     <div
       role="group"
       aria-label={label}
-      className="border-divider space-y-1 lg:border-l lg:pl-5 lg:first:border-l-0 lg:first:pl-0"
+      className={cn(
+        "border-divider space-y-1",
+        divided && "lg:border-l lg:pl-5 lg:first:border-l-0 lg:first:pl-0",
+      )}
     >
       <p className="text-muted-foreground text-sm">{label}</p>
       <p

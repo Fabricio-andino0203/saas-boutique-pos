@@ -15,6 +15,7 @@ import { formatMoney } from "@/lib/format";
 import { hasCapability } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 import { EntryFilters } from "@/modules/finance/components/entry-filters";
+import { FinanceExportLinks } from "@/modules/finance/components/finance-export-links";
 import { NewEntryButton } from "@/modules/finance/components/new-entry-button";
 import { VoidEntryButton } from "@/modules/finance/components/void-entry-button";
 import {
@@ -106,6 +107,16 @@ export default async function FinanceEntriesPage({
           category: categoryId ?? "",
           payment: paidWith ?? "",
           voided: includeVoided,
+        }}
+      />
+
+      <FinanceExportLinks
+        kind="movimientos"
+        params={{
+          ...(range.preset
+            ? { rango: range.preset }
+            : { desde: range.fromKey, hasta: range.toKey }),
+          ...kept,
         }}
       />
 

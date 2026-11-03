@@ -3,6 +3,9 @@ import { localDateKey } from "@/lib/dates";
 import { db } from "@/lib/db";
 import { dueDateKey, pendingPeriods, periodOf } from "@/modules/finance/periods";
 import type { FinanceType, PaymentMethod } from "@/modules/finance/schemas";
+import { computeFinanceSummary, type FinanceSummary } from "@/modules/finance/summary";
+import { getSalesSummary } from "@/modules/reports/queries";
+import type { ReportRange } from "@/modules/reports/ranges";
 
 type Client = Prisma.TransactionClient | PrismaClient;
 
@@ -43,6 +46,8 @@ export type EntryFilters = {
   categoryId?: string;
   paidWith?: PaymentMethod;
   includeVoided?: boolean;
+  /** Cuántas filas traer como máximo (por omisión {@link ENTRY_LIST_LIMIT}; la exportación pide todas). */
+  limit?: number;
 };
 
 export type EntryRow = {
@@ -89,11 +94,12 @@ export async function listFinanceEntries(
   client: Client = db,
 ): Promise<{ rows: EntryRow[]; totals: EntryTotals; truncated: boolean }> {
   const where = whereOf(filters);
+  const limit = filters.limit ?? ENTRY_LIST_LIMIT;
   const [found, sums] = await Promise.all([
     client.financeEntry.findMany({
       where,
       orderBy: [{ occurredAt: "desc" }, { createdAt: "desc" }],
-      take: ENTRY_LIST_LIMIT + 1,
+      take: limit + 1,
       include: {
         category: { select: { name: true } },
         supplier: { select: { name: true } },
@@ -109,7 +115,7 @@ export async function listFinanceEntries(
     }),
   ]);
 
-  const rows = found.slice(0, ENTRY_LIST_LIMIT).map((row): EntryRow => ({
+  const rows = found.slice(0, limit).map((row): EntryRow => ({
     id: row.id,
     type: row.type,
     occurredAt: row.occurredAt,
@@ -132,7 +138,7 @@ export async function listFinanceEntries(
   return {
     rows,
     totals: { expenseCents: total("EXPENSE"), incomeCents: total("INCOME") },
-    truncated: found.length > ENTRY_LIST_LIMIT,
+    truncated: found.length > limit,
   };
 }
 
@@ -242,4 +248,48 @@ export async function listFixedCosts(
   }
   pending.sort((a, b) => a.dueDate.localeCompare(b.dueDate) || a.name.localeCompare(b.name));
   return { costs, pending };
+}
+
+// ───────────────────────── Resumen del periodo ─────────────────────────
+
+/**
+ * El estado de resultados de un periodo: las ventas netas y su costo salen de `getSalesSummary` (las mismas consultas de los
+ * reportes, sobre todas las ventas); los gastos y otros ingresos, de los movimientos vigentes de Finanzas. La cuenta la hace
+ * {@link computeFinanceSummary}.
+ */
+export async function getFinanceSummary(
+  range: ReportRange,
+  client: PrismaClient = db,
+): Promise<FinanceSummary> {
+  const [sales, groups] = await Promise.all([
+    getSalesSummary(range, {}, true, client),
+    client.financeEntry.groupBy({
+      by: ["type", "categoryId"],
+      where: { occurredAt: { gte: range.from, lte: range.to }, voidedAt: null },
+      _sum: { amountCents: true },
+    }),
+  ]);
+  const names = new Map(
+    (
+      await client.financeCategory.findMany({
+        where: { id: { in: groups.map((group) => group.categoryId) } },
+        select: { id: true, name: true },
+      })
+    ).map((category) => [category.id, category.name]),
+  );
+  const lines = (type: FinanceType) =>
+    groups
+      .filter((group) => group.type === type)
+      .map((group) => ({
+        categoryId: group.categoryId,
+        name: names.get(group.categoryId) ?? group.categoryId,
+        totalCents: group._sum.amountCents ?? 0,
+      }));
+
+  return computeFinanceSummary({
+    revenueCents: sales.financial?.revenueCents ?? 0,
+    costOfSalesCents: sales.financial?.costCents ?? 0,
+    income: lines("INCOME"),
+    expenses: lines("EXPENSE"),
+  });
 }

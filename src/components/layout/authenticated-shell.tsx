@@ -14,6 +14,7 @@ import {
   LogOut,
   PackageCheck,
   Palette,
+  PiggyBank,
   ReceiptText,
   Ruler,
   Bookmark,
@@ -214,6 +215,12 @@ const navGroups: readonly NavGroup[] = [
   {
     label: messages.nav.groups.finance,
     items: [
+      {
+        href: "/finanzas",
+        label: messages.nav.financeSummary,
+        icon: PiggyBank,
+        capability: "finance.view",
+      },
       {
         href: "/finanzas/movimientos",
         label: messages.nav.financeEntries,

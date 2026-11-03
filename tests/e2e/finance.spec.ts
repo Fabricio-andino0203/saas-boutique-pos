@@ -184,3 +184,56 @@ test("the owner adds a fixed cost, pays this month, sees it as an expense and ge
       .filter({ hasText: name }),
   ).toHaveCount(0);
 });
+
+test("the summary shows the income statement with the expense categories, and the exports follow the permissions", async ({
+  page,
+}) => {
+  test.slow();
+  const summary = messages.finance.summary;
+
+  await loginAs(page, "manager");
+  await page.getByRole("link", { name: messages.nav.financeSummary, exact: true }).click();
+  await expect(page.getByRole("heading", { level: 1, name: summary.title })).toBeVisible();
+  await expect(page.getByRole("link", { name: messages.nav.financeSummary })).toHaveAttribute(
+    "aria-current",
+    "page",
+  );
+  await expect(page.getByRole("group", { name: summary.netProfit })).toBeVisible();
+
+  // Un gasto de hoy aparece en su categoría dentro del estado de resultados.
+  await page.goto("/finanzas/movimientos");
+  await page.getByRole("button", { name: entries.newExpense }).click();
+  const dialog = page.getByRole("dialog");
+  await dialog.getByLabel(form.amount).fill("321");
+  await dialog.getByLabel(form.category).selectOption({ label: "Empaques" });
+  await dialog.getByLabel(form.details).fill(`E2E Bolsas ${Date.now()}`);
+  await dialog.getByRole("button", { name: form.submit }).click();
+  await expect(page.getByText(messages.toasts.financeEntryCreated)).toBeVisible();
+
+  await page.goto("/finanzas?rango=today");
+  const statement = page.getByRole("region", { name: summary.statementTitle });
+  for (const label of [summary.lines.revenue, summary.lines.gross, summary.lines.net]) {
+    await expect(statement.getByRole("row").filter({ hasText: label }).first()).toBeVisible();
+  }
+  await expect(statement.getByRole("row").filter({ hasText: "Empaques" })).toBeVisible();
+
+  // El archivo del resumen sale con los mismos conceptos; sin permiso responde como si no existiera.
+  const csv = await page.request.get("/api/finanzas/resumen/exportar?formato=csv&rango=today");
+  expect(csv.status()).toBe(200);
+  expect(csv.headers()["content-type"]).toContain("text/csv");
+  const body = await csv.text();
+  expect(body).toContain(summary.lines.net);
+  expect(body).toContain(summary.lines.expenses);
+  const movements = await page.request.get(
+    "/api/finanzas/movimientos/exportar?formato=csv&rango=today",
+  );
+  expect(movements.status()).toBe(200);
+  expect(await movements.text()).toContain("Empaques");
+  expect((await page.request.get("/api/finanzas/otro/exportar")).status()).toBe(404);
+});
+
+test("the cashier gets nothing from the Finance exports", async ({ page }) => {
+  await loginAs(page, "cashier");
+  const response = await page.request.get("/api/finanzas/resumen/exportar?formato=csv");
+  expect(response.status()).toBe(404);
+});

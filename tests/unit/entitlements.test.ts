@@ -58,6 +58,12 @@ describe("the plan catalog", () => {
     }
   });
 
+  it("ties every Finance capability to the finance module, so a plan without it cannot use any of them", () => {
+    for (const capability of ["finance.view", "finance.write", "finance.void"]) {
+      expect(CAPABILITY_FEATURE[capability], capability).toBe("finance");
+    }
+  });
+
   it("gives every module at least one screen, and no screen belongs to two modules", () => {
     const seen = new Map<string, string>();
     for (const feature of PLAN_FEATURES) {

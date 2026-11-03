@@ -59,6 +59,12 @@ export function formatPeriod(period: string): string {
   return periodLabel.format(new Date(Date.UTC(year, month - 1, 1)));
 }
 
+/** El mes en palabras y con mayúscula inicial, para títulos y tablas: `Noviembre de 2026`. */
+export function formatPeriodTitle(period: string): string {
+  const label = formatPeriod(period);
+  return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
 /** La fecha límite de pago de un mes, `2026-11-05`. */
 export function dueDateKey(period: string, dueDay: number): string {
   return `${period}-${String(dueDay).padStart(2, "0")}`;

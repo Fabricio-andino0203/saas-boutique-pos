@@ -18,7 +18,7 @@ import { cn } from "@/lib/utils";
 import { ArchiveFixedCostButton } from "@/modules/finance/components/archive-fixed-cost-button";
 import { FixedCostDialog } from "@/modules/finance/components/fixed-cost-dialog";
 import { PayFixedCostButton } from "@/modules/finance/components/pay-fixed-cost-button";
-import { formatPeriod } from "@/modules/finance/periods";
+import { formatPeriodTitle } from "@/modules/finance/periods";
 import { listFinanceCategories, listFixedCosts } from "@/modules/finance/queries";
 
 const copy = messages.finance.fixed;
@@ -83,7 +83,7 @@ export default async function FixedCostsPage({
                 {pending.map((row) => (
                   <TableRow key={`${row.fixedCostId}-${row.period}`}>
                     <TableCell className="font-medium">{row.name}</TableCell>
-                    <TableCell className="capitalize">{formatPeriod(row.period)}</TableCell>
+                    <TableCell>{formatPeriodTitle(row.period)}</TableCell>
                     <TableCell className="tabular-nums">
                       {showDate(row.dueDate)}
                       {row.overdue ? (
@@ -161,12 +161,11 @@ export default async function FixedCostsPage({
                       {copy.dayOfMonth} {cost.dueDay}
                     </TableCell>
                     <TableCell className="whitespace-normal">
-                      {copy.since} <span className="capitalize">{formatPeriod(cost.startsOn)}</span>
+                      {copy.since} {formatPeriodTitle(cost.startsOn)}
                       {cost.endsOn ? (
                         <>
                           {" "}
-                          {copy.until}{" "}
-                          <span className="capitalize">{formatPeriod(cost.endsOn)}</span>
+                          {copy.until} {formatPeriodTitle(cost.endsOn)}
                         </>
                       ) : null}
                     </TableCell>
