@@ -261,6 +261,9 @@ Finanzas **operativas**, no contabilidad (ver PRD §4.12). Las ventas, devolucio
 `type`, `categoryId`, `amountCents` (> 0), `occurredAt` (el día del gasto, UTC; se muestra en `America/Tegucigalpa`), `paidWith enum (CASH_DRAWER, CASH_OTHER, TRANSFER, CARD, OTHER)`, `description`, `supplierId?`, `cashMovementId? @unique` (si salió de la caja), `fixedCostId?` + `period?` (`"2026-11"`, el mes que paga un costo fijo), `clientRequestId @unique` (idempotencia), `createdById`, `voidedAt?`/`voidedById?`/`voidReason?` (las tres juntas o ninguna).
 Reglas: `CASH_DRAWER` exige `cashMovementId` y viceversa (una salida de caja es un gasto y una entrada es un ingreso; `clientRequestId = "cash:<id del movimiento>"`); un gasto de caja no se anula desde Finanzas; un costo fijo solo se paga una vez por mes mientras el pago no esté anulado (índice parcial único). Un trigger rechaza `DELETE` y cualquier `UPDATE` que no sea la anulación.
 
+### FinanceBoxWithdrawal (retiro de la caja de finanzas — inmutable salvo su anulación)
+`amountCents` (> 0), `occurredAt` (el día, UTC), `reason` (≥ 3 caracteres), `clientRequestId` (único: idempotencia), `createdById`, `createdAt`, `voidedAt?`, `voidedById?`, `voidReason?` (los tres de la anulación van juntos o ninguno). Es el efectivo que sale de la caja de finanzas (RF-FIN-12); no es un gasto. Un trigger impide `DELETE` y todo `UPDATE` que no sea la anulación (una sola vez). El servicio serializa los retiros con un candado de transacción y rechaza uno mayor que el saldo.
+
 ### FixedCost (costo fijo mensual)
 `name`, `categoryId` (de gasto), `amountCents` (> 0), `dueDay` (1–28), `startsOn`, `endsOn?`, `archivedAt?`. No genera gastos: el sistema calcula los meses «por pagar» (desde el mayor entre `startsOn` y los últimos 6 meses, hasta el mes actual o `endsOn`, sin `FinanceEntry` vigente para ese `period`; `src/modules/finance/periods.ts`). El monto del pago puede ajustarse y queda en el movimiento; cambiar el costo fijo no toca los pagos hechos.
 
@@ -271,7 +274,7 @@ Reglas: `CASH_DRAWER` exige `cashMovementId` y viceversa (una salida de caja es 
 - `Sale(createdAt)`, `Sale(sellerId, createdAt)`, `Sale(cashSessionId)`, `Sale(customerId)`.
 - `SaleItem(variantId)`, `Payment(saleId)`, `Payment(cashSessionId, method)`.
 - `AuditLog(entityType, entityId)`, `AuditLog(userId, createdAt)`.
-- `FinanceEntry(occurredAt)`, `FinanceEntry(type, categoryId)`, `FinanceCategory(type, archivedAt)`.
+- `FinanceEntry(occurredAt)`, `FinanceEntry(type, categoryId)`, `FinanceCategory(type, archivedAt)`, `FinanceBoxWithdrawal(occurredAt)`.
 
 ## 9. Invariantes globales (deben tener test)
 
@@ -284,7 +287,7 @@ Reglas: `CASH_DRAWER` exige `cashMovementId` y viceversa (una salida de caja es 
 7. Una venta `VOIDED` revierte exactamente sus movimientos de stock y de pago.
 8. Todo `FinanceEntry` con `paidWith = CASH_DRAWER` está enlazado a un `CashMovement` por el mismo monto (`OUT` para un gasto, `IN` para un ingreso), creados en la misma transacción. La utilidad neta del periodo = utilidad bruta de los reportes + Σ ingresos vigentes − Σ gastos vigentes (los anulados no cuentan). Función pura: `src/modules/finance/summary.ts`.
 
-9. El saldo de la **caja de finanzas** = Σ `CashSession.withdrawnCents` + Σ ingresos vigentes con `paidWith = CASH_OTHER` − Σ gastos vigentes con `paidWith = CASH_OTHER`. No hay tabla propia: se calcula de esas dos fuentes, así no puede desfasarse. Lo retirado en un cierre no es ingreso ni gasto y no entra en la utilidad neta. Función pura: `src/modules/finance/box.ts`.
+9. El saldo de la **caja de finanzas** = Σ `CashSession.withdrawnCents` + Σ ingresos vigentes con `paidWith = CASH_OTHER` − Σ gastos vigentes con `paidWith = CASH_OTHER` − Σ `FinanceBoxWithdrawal` vigentes. No hay tabla propia: se calcula de esas dos fuentes, así no puede desfasarse. Lo retirado en un cierre no es ingreso ni gasto y no entra en la utilidad neta. Función pura: `src/modules/finance/box.ts`.
 
 ## 10. Datos de ejemplo (seed)
 
@@ -301,6 +304,6 @@ Lo que Prisma no puede expresar vive en la segunda migración (`constraints`):
 - **Índices parciales únicos:** una caja abierta por usuario y por terminal (`CashSession`, `status = 'OPEN'`) y un rango fiscal activo por tipo y terminal (`FiscalRange`).
 - **CHECK de montos y cantidades:** importes no negativos, cantidades positivas, `reserved >= 0`, `nextNumber` dentro del rango fiscal, descuento no mayor que el subtotal. No hay CHECK de `onHand >= 0` (ver §4).
 - **Tablas de solo inserción:** triggers `prevent_row_mutation` que rechazan `UPDATE` y `DELETE` en `AuditLog`, `StockMovement` y `StoreCreditEntry`.
-- **Finanzas:** `CHECK` de monto positivo, de anulación completa o ausente y de `CASH_DRAWER` ⇔ `cashMovementId`; índice parcial único `FinanceEntry(fixedCostId, period)` donde `voidedAt IS NULL`; trigger `FinanceEntry_guard` (no `DELETE`; `UPDATE` solo para anular).
+- **Finanzas:** `CHECK` de monto positivo, de anulación completa o ausente y de `CASH_DRAWER` ⇔ `cashMovementId`; índice parcial único `FinanceEntry(fixedCostId, period)` donde `voidedAt IS NULL`; trigger `FinanceEntry_guard` (no `DELETE`; `UPDATE` solo para anular). `FinanceBoxWithdrawal`: `CHECK` de monto positivo y de anulación completa o ausente, y el mismo tipo de trigger (`FinanceBoxWithdrawal_guard`).
 - **Búsqueda tolerante a errores:** índices `gin` trigram sobre `Product.name` y `Variant.sku`. La consulta del listado compara con `unaccent(lower(...))` (no usa esos índices; basta a escala de boutique) y combina coincidencia exacta de código o barras, "contiene" y similitud de trigramas.
 - **Secuencias de códigos:** `product_code_seq` (códigos `P00001`…) y `barcode_serial_seq` (serie de los EAN-13 internos). Pueden dejar huecos; solo garantizan unicidad (la numeración sin saltos es la de facturas).

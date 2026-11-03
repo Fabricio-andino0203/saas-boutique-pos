@@ -166,28 +166,30 @@ model User {
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
 
-  sessions             Session[]
-  salesMade            Sale[]             @relation("SaleSeller")
-  salesVoided          Sale[]             @relation("SaleVoidedBy")
-  cashSessions         CashSession[]      @relation("CashSessionUser")
-  cashSessionsApproved CashSession[]      @relation("CashSessionApprover")
-  cashMovements        CashMovement[]
-  financeEntries       FinanceEntry[]     @relation("FinanceEntryCreator")
-  financeEntriesVoided FinanceEntry[]     @relation("FinanceEntryVoider")
-  stockMovements       StockMovement[]
-  stockCountsStarted   StockCount[]       @relation("StockCountStarter")
-  stockCountsApproved  StockCount[]       @relation("StockCountApprover")
-  purchaseOrders       PurchaseOrder[]
-  goodsReceipts        GoodsReceipt[]
-  priceChanges         PriceHistory[]
-  returnsProcessed     ReturnDoc[]        @relation("ReturnProcessor")
-  returnsAuthorized    ReturnDoc[]        @relation("ReturnAuthorizer")
-  layawaysCreated      Layaway[]          @relation("LayawayCreator")
-  layawaysCancelled    Layaway[]          @relation("LayawayCanceller")
-  layawayPayments      LayawayPayment[]
-  storeCreditEntries   StoreCreditEntry[]
-  parkedSales          ParkedSale[]
-  auditLogs            AuditLog[]
+  sessions                    Session[]
+  salesMade                   Sale[]                 @relation("SaleSeller")
+  salesVoided                 Sale[]                 @relation("SaleVoidedBy")
+  cashSessions                CashSession[]          @relation("CashSessionUser")
+  cashSessionsApproved        CashSession[]          @relation("CashSessionApprover")
+  cashMovements               CashMovement[]
+  financeEntries              FinanceEntry[]         @relation("FinanceEntryCreator")
+  financeEntriesVoided        FinanceEntry[]         @relation("FinanceEntryVoider")
+  financeBoxWithdrawals       FinanceBoxWithdrawal[] @relation("FinanceBoxWithdrawalCreator")
+  financeBoxWithdrawalsVoided FinanceBoxWithdrawal[] @relation("FinanceBoxWithdrawalVoider")
+  stockMovements              StockMovement[]
+  stockCountsStarted          StockCount[]           @relation("StockCountStarter")
+  stockCountsApproved         StockCount[]           @relation("StockCountApprover")
+  purchaseOrders              PurchaseOrder[]
+  goodsReceipts               GoodsReceipt[]
+  priceChanges                PriceHistory[]
+  returnsProcessed            ReturnDoc[]            @relation("ReturnProcessor")
+  returnsAuthorized           ReturnDoc[]            @relation("ReturnAuthorizer")
+  layawaysCreated             Layaway[]              @relation("LayawayCreator")
+  layawaysCancelled           Layaway[]              @relation("LayawayCanceller")
+  layawayPayments             LayawayPayment[]
+  storeCreditEntries          StoreCreditEntry[]
+  parkedSales                 ParkedSale[]
+  auditLogs                   AuditLog[]
 }
 
 /// Sesiones en BD (revocables). Forma compatible con el adaptador de Auth.js.
@@ -801,6 +803,27 @@ model FinanceEntry {
   @@index([occurredAt])
   @@index([type, categoryId])
   @@index([fixedCostId])
+}
+
+/// Efectivo que sale de la caja de finanzas (lo que se lleva el dueño o se deposita en el banco). No es un gasto. Inmutable salvo su anulación.
+model FinanceBoxWithdrawal {
+  id              String    @id @default(cuid())
+  amountCents     Int
+  /// El día del retiro (UTC); se muestra en America/Tegucigalpa.
+  occurredAt      DateTime
+  reason          String
+  /// Idempotencia: reintentar el alta con el mismo valor no duplica el retiro.
+  clientRequestId String    @unique
+  createdById     String
+  createdAt       DateTime  @default(now())
+  voidedAt        DateTime?
+  voidedById      String?
+  voidReason      String?
+
+  createdBy User  @relation("FinanceBoxWithdrawalCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  voidedBy  User? @relation("FinanceBoxWithdrawalVoider", fields: [voidedById], references: [id], onDelete: Restrict)
+
+  @@index([occurredAt])
 }
 
 /// Costo fijo mensual (alquiler, internet, sueldos…). No genera gastos: el sistema calcula los meses por pagar.
