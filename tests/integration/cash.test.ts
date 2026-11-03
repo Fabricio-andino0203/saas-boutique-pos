@@ -416,6 +416,8 @@ describe("closing a shift", () => {
       expectedCents: 85000,
       countedCents: 85000,
       differenceCents: 0,
+      withdrawnCents: 0,
+      leftInDrawerCents: 85000,
       denominations,
     });
     expect((await getCashSessionDetail(id))?.denominations).toEqual(denominations);
@@ -504,7 +506,12 @@ describe("approveCashClose", () => {
       CashSessionStateError,
     );
 
-    const open = await openCashSession(w.cashier2, { openingFloatCents: 0 }, testDb);
+    // El cierre anterior dejó L 10.00 en el cajón: abrir con otro fondo pide el comentario.
+    const open = await openCashSession(
+      w.cashier2,
+      { openingFloatCents: 0, openingNotes: "Abro sin fondo" },
+      testDb,
+    );
     await expect(approveCashClose(w.manager, open.id, testDb)).rejects.toBeInstanceOf(
       CashSessionStateError,
     );
@@ -536,6 +543,7 @@ describe("cash queries", () => {
       terminalId: w.terminal.id,
       terminalName: "Caja 1",
       openBy: null,
+      inherited: null,
     });
 
     await openCashSession(w.cashier, { openingFloatCents: 2500 }, testDb);
@@ -551,6 +559,7 @@ describe("cash queries", () => {
       terminalId: w.terminal.id,
       terminalName: "Caja 1",
       openBy: "cashier",
+      inherited: null,
     });
   });
 

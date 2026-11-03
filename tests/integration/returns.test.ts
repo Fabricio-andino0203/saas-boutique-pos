@@ -721,7 +721,12 @@ describe("processReturn: refusals", () => {
     });
     const [item] = await itemsOf(sale.id);
     await submitCashClose(w.cashier, { countedCashCents: 61500 }, testDb);
-    const next = await openCashSession(w.cashier, { openingFloatCents: 20000 }, testDb);
+    // El cierre anterior dejó L 615.00 en el cajón: abrir con otro fondo pide el comentario.
+    const next = await openCashSession(
+      w.cashier,
+      { openingFloatCents: 20000, openingNotes: "Fondo de la prueba" },
+      testDb,
+    );
     const result = await giveBack(w.cashier, sale.id, [{ saleItemId: item!.id, quantity: 1 }]);
     const doc = await testDb.returnDoc.findUniqueOrThrow({ where: { id: result.id } });
     expect(doc.cashSessionId).toBe(next.id);

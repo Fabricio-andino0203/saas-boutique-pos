@@ -15,7 +15,11 @@ const cents = z.number().int().min(0).max(MAX_CASH_CENTS);
 const blankToUndefined = (value: unknown) =>
   typeof value === "string" && value.trim() === "" ? undefined : value;
 
-export const openCashSchema = z.object({ openingFloatCents: cents });
+export const openCashSchema = z.object({
+  openingFloatCents: cents,
+  /** Por qué el fondo no es el que dejó el cierre anterior; el servicio decide cuándo es obligatorio. */
+  openingNotes: z.preprocess(blankToUndefined, z.string().trim().min(3).max(300).optional()),
+});
 
 export const cashMovementSchema = z.object({
   type: z.enum(["IN", "OUT"]),
@@ -42,12 +46,21 @@ const allowedDenominations: readonly string[] = DENOMINATIONS_CENTS.map(String);
 export const closeCashSchema = z
   .object({
     countedCashCents: cents,
+    /** Lo que se retira del cajón al cerrar; lo contado menos esto se queda para el día siguiente. */
+    withdrawnCents: cents.default(0),
     denominations: z
       .record(z.string(), z.number().int().min(0).max(MAX_DENOMINATION_UNITS))
       .optional(),
     notes: z.preprocess(blankToUndefined, z.string().trim().min(3).max(500).optional()),
   })
   .superRefine((value, context) => {
+    if (value.withdrawnCents > value.countedCashCents) {
+      context.addIssue({
+        code: "custom",
+        path: ["withdrawnCents"],
+        message: "The withdrawal is more than the counted cash",
+      });
+    }
     if (!value.denominations) {
       return;
     }

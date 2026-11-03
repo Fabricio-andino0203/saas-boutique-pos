@@ -262,7 +262,13 @@ describe("invariantes de ventas, caja e inventario tras 200 operaciones aleatori
           testDb,
         );
         await approveCashClose(manager, shiftId, testDb);
-        shiftId = (await openCashSession(cashier, { openingFloatCents: int(0, 80000) }, testDb)).id;
+        shiftId = (
+          await openCashSession(
+            cashier,
+            { openingFloatCents: int(0, 80000), openingNotes: "Fondo de la prueba" },
+            testDb,
+          )
+        ).id;
         outcome.closes += 1;
       } else if (roll < 0.88) {
         // Ajuste de inventario: entran prendas

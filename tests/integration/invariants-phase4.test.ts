@@ -583,7 +583,13 @@ describe("invariantes de la Fase 4 tras 200 operaciones aleatorias", () => {
           testDb,
         );
         await approveCashClose(manager, shiftId, testDb);
-        shiftId = (await openCashSession(cashier, { openingFloatCents: int(0, 90000) }, testDb)).id;
+        shiftId = (
+          await openCashSession(
+            cashier,
+            { openingFloatCents: int(0, 90000), openingNotes: "Fondo de la prueba" },
+            testDb,
+          )
+        ).id;
         outcome.closes += 1;
       } else if (roll < 0.9) {
         await testDb.$transaction((tx) =>

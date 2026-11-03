@@ -27,6 +27,29 @@ export const messages = {
   },
   /** Finanzas operativas (PRD §4.12): gastos, otros ingresos, costos fijos y utilidad. No es contabilidad. */
   finance: {
+    box: {
+      title: "Caja de finanzas",
+      description:
+        "El efectivo del negocio que está fuera del cajón: lo que se retira al cerrar la caja, más y menos lo que se recibe o se paga en efectivo fuera de caja.",
+      balance: "Saldo de la caja de finanzas",
+      figures: {
+        deposits: "Retirado en cierres",
+        income: "Ingresos en efectivo",
+        expenses: "Gastos en efectivo",
+      },
+      review:
+        "El saldo es negativo: hay gastos pagados en efectivo fuera de caja que no vienen de un retiro. Revísalos.",
+      reviewLink: "Ver esos gastos",
+      note: "Lo que se retira al cerrar la caja no es un ingreso ni un gasto: es el mismo dinero que pasa del cajón a esta caja, por eso no cambia la utilidad.",
+      depositsTitle: "Retiros de los cierres de caja",
+      depositsEmpty: "Aún no se ha retirado efectivo al cerrar la caja.",
+      depositsEmptyHint: "Cuando un cierre retire efectivo, aparecerá aquí.",
+      truncated: "Se muestran los 50 más recientes. El saldo incluye todos.",
+      columns: { date: "Cierre", terminal: "Terminal", closedBy: "Cerró", amount: "Retirado" },
+      viewClosing: "Ver cierre",
+      summaryLink: "Ver la caja de finanzas",
+      summaryHint: "Efectivo del negocio fuera del cajón.",
+    },
     entries: {
       title: "Movimientos",
       description: "Gastos e ingresos que no son ventas. Las ventas ya están en el sistema.",
@@ -269,6 +292,7 @@ export const messages = {
     financeSummary: "Resumen",
     financeEntries: "Movimientos",
     financeFixedCosts: "Costos fijos",
+    financeBox: "Caja de finanzas",
     financeCategories: "Categorías de Finanzas",
     groups: {
       finance: "Finanzas",
@@ -438,6 +462,7 @@ export const messages = {
       COST_CHANGED: "Cambio de costo",
       CASH_SESSION_CLOSED: "Cierre de caja",
       CASH_SESSION_APPROVED: "Cierre de caja aprobado",
+      CASH_FLOAT_ADJUSTED: "Fondo de apertura distinto del heredado",
       PERMISSION_CHANGED: "Cambio de permisos",
       USER_CREATED: "Usuario creado",
       USER_DEACTIVATED: "Usuario desactivado",
@@ -1553,6 +1578,14 @@ export const messages = {
       submit: "Abrir caja",
       submitting: "Abriendo…",
       invalidFloat: "Escribe el fondo inicial; puede ser L 0.00.",
+      inherited: "Fondo que dejó el último cierre",
+      inheritedBy: "Lo dejó",
+      inheritedHint: "Ya está puesto como fondo. Cámbialo solo si al contar hay otro monto.",
+      changedNotes: "¿Por qué el fondo es distinto?",
+      changedNotesHint: "Obligatorio: no es el fondo que dejó el último cierre. Queda anotado.",
+      invalidNotes: "El comentario es muy corto: escribe al menos 3 letras.",
+      notesRequired:
+        "El fondo no es el que dejó el cierre anterior: explica por qué con un comentario.",
       busyBy: "ya está abierta por",
       busyHint: "Pídele que cierre su turno para poder abrir la tuya.",
       opened: "Caja abierta. ¡A vender!",
@@ -1628,6 +1661,17 @@ export const messages = {
       submit: "Cerrar caja",
       submitting: "Cerrando…",
       invalidCount: "Escribe cuánto efectivo contaste; puede ser L 0.00.",
+      invalidWithdrawal: "No puedes retirar más efectivo del que contaste.",
+      withdrawTitle: "Retiro del cajón",
+      withdrawAmount: "¿Cuánto retiras?",
+      withdrawHintFinance:
+        "Va directo a la caja de finanzas. Lo que no retires se queda en el cajón para abrir mañana.",
+      withdrawHintPlain:
+        "Queda anotado en el cierre. Lo que no retires se queda en el cajón para abrir mañana.",
+      withdrawAll: "Retirar todo",
+      withdrawNone: "No retirar nada",
+      leftInDrawer: "Queda en la caja para mañana",
+      tooMuch: "No puedes retirar más de lo que contaste.",
       closed: "Caja cerrada. Un gerente debe aprobar el cierre.",
     },
     list: {
@@ -1662,6 +1706,10 @@ export const messages = {
       noNotes: "Sin comentario.",
       summary: "Resumen del turno",
       float: "Fondo inicial",
+      inheritedFloat: "Fondo que dejó el cierre anterior",
+      openingNotes: "Por qué el fondo fue distinto",
+      withdrawn: "Retirado al cerrar",
+      leftInDrawer: "Quedó en la caja",
       cashPayments: "Cobros en efectivo",
       change: "Vuelto entregado",
       movementsIn: "Entradas",
@@ -1679,6 +1727,22 @@ export const messages = {
       denominationsTitle: "Conteo por billetes y monedas",
       print: "Imprimir resumen",
       back: "Volver",
+    },
+    panel: {
+      title: "Caja",
+      description: "Tu turno, las entradas y salidas de efectivo y el cierre, sin salir de Vender.",
+      tabs: {
+        label: "Opciones de la caja",
+        shift: "Turno",
+        movements: "Entradas y salidas",
+        close: "Cerrar caja",
+      },
+      loading: "Cargando tu caja…",
+      failed: "No se pudo cargar la caja. Inténtalo de nuevo.",
+      retry: "Reintentar",
+      notYours: "La caja de esta terminal la abrió otra persona.",
+      notYoursHint: "Para usar estas opciones entra con esa cuenta, o pídele que cierre su turno.",
+      closings: "Ver los cierres de caja",
     },
     approve: {
       action: "Aprobar cierre",
@@ -1784,6 +1848,7 @@ export const messages = {
       parked: "En espera",
       park: "Poner en espera",
       help: "Atajos",
+      cash: "Caja",
     },
     discount: {
       title: "Descuento",

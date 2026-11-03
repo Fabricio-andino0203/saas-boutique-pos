@@ -1,7 +1,12 @@
 import type { CashMovementType, CashSessionStatus, PaymentMethod } from "@/generated/prisma/enums";
 import { db } from "@/lib/db";
 import { expectedCashCents, type CashTotals } from "@/modules/cash/expected";
-import { getDefaultTerminal, loadCashTotals } from "@/modules/cash/service";
+import {
+  getDefaultTerminal,
+  getInheritedFloat,
+  loadCashTotals,
+  type InheritedFloat,
+} from "@/modules/cash/service";
 
 const PAGE_SIZE = 20;
 
@@ -14,9 +19,12 @@ export type CashSessionRow = {
   openedAt: Date;
   closedAt: Date | null;
   openingFloatCents: number;
+  inheritedFloatCents: number | null;
   expectedCashCents: number | null;
   countedCashCents: number | null;
   differenceCents: number | null;
+  /** Lo que se retiró al cerrar; null en los turnos anteriores a esta función. */
+  withdrawnCents: number | null;
 };
 
 const rowSelect = {
@@ -26,9 +34,11 @@ const rowSelect = {
   openedAt: true,
   closedAt: true,
   openingFloatCents: true,
+  inheritedFloatCents: true,
   expectedCashCents: true,
   countedCashCents: true,
   differenceCents: true,
+  withdrawnCents: true,
   terminal: { select: { name: true } },
   user: { select: { name: true } },
 } as const;
@@ -40,9 +50,11 @@ type RowRecord = {
   openedAt: Date;
   closedAt: Date | null;
   openingFloatCents: number;
+  inheritedFloatCents: number | null;
   expectedCashCents: number | null;
   countedCashCents: number | null;
   differenceCents: number | null;
+  withdrawnCents: number | null;
   terminal: { name: string };
   user: { name: string };
 };
@@ -66,13 +78,23 @@ export async function getTerminalStatus(): Promise<{
   terminalId: string;
   terminalName: string;
   openBy: string | null;
+  /** El fondo que dejó el último cierre y se ofrece al abrir; null si no hay uno con retiro declarado. */
+  inherited: InheritedFloat | null;
 }> {
   const terminal = await getDefaultTerminal(db);
-  const open = await db.cashSession.findFirst({
-    where: { terminalId: terminal.id, status: "OPEN" },
-    select: { user: { select: { name: true } } },
-  });
-  return { terminalId: terminal.id, terminalName: terminal.name, openBy: open?.user.name ?? null };
+  const [open, inherited] = await Promise.all([
+    db.cashSession.findFirst({
+      where: { terminalId: terminal.id, status: "OPEN" },
+      select: { user: { select: { name: true } } },
+    }),
+    getInheritedFloat(db, terminal.id),
+  ]);
+  return {
+    terminalId: terminal.id,
+    terminalName: terminal.name,
+    openBy: open?.user.name ?? null,
+    inherited,
+  };
 }
 
 export type CashSessionList = {
@@ -123,7 +145,11 @@ export type CashMovementRow = {
 export type CashPaymentSummary = { method: PaymentMethod; amountCents: number; count: number };
 
 export type CashSessionDetail = {
-  session: CashSessionRow & { notes: string | null; approvedByName: string | null };
+  session: CashSessionRow & {
+    notes: string | null;
+    openingNotes: string | null;
+    approvedByName: string | null;
+  };
   totals: CashTotals;
   /** En un turno abierto se calcula al momento; en uno cerrado es lo que quedó guardado al cerrar. */
   expectedCents: number;
@@ -151,12 +177,17 @@ function readDenominations(after: unknown): Record<string, number> | null {
 export async function getCashSessionDetail(id: string): Promise<CashSessionDetail | null> {
   const record = await db.cashSession.findUnique({
     where: { id },
-    select: { ...rowSelect, notes: true, approvedBy: { select: { name: true } } },
+    select: {
+      ...rowSelect,
+      notes: true,
+      openingNotes: true,
+      approvedBy: { select: { name: true } },
+    },
   });
   if (!record) {
     return null;
   }
-  const { notes, approvedBy, ...rowRecord } = record;
+  const { notes, openingNotes, approvedBy, ...rowRecord } = record;
 
   const [totals, movements, payments, sales, voided, closing] = await Promise.all([
     loadCashTotals(db, id),
@@ -192,7 +223,12 @@ export async function getCashSessionDetail(id: string): Promise<CashSessionDetai
   ]);
 
   return {
-    session: { ...toRow(rowRecord), notes, approvedByName: approvedBy?.name ?? null },
+    session: {
+      ...toRow(rowRecord),
+      notes,
+      openingNotes,
+      approvedByName: approvedBy?.name ?? null,
+    },
     totals,
     expectedCents: record.expectedCashCents ?? expectedCashCents(totals),
     movements: movements.map(({ user, ...movement }) => ({ ...movement, userName: user.name })),

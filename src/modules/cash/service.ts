@@ -46,6 +46,44 @@ export async function getDefaultTerminal(
   return terminal;
 }
 
+export type InheritedFloat = {
+  /** Lo que quedó en el cajón: lo contado menos lo retirado al cerrar. */
+  cents: number;
+  fromSessionId: string;
+  closedAt: Date;
+  closedByName: string;
+};
+
+/**
+ * El fondo que ofrece el último cierre de la terminal (PRD RF-CASH-8): lo contado menos lo retirado. Es lo contado, no lo
+ * esperado, así una diferencia del arqueo no se arrastra. Un cierre sin retiro declarado (anterior a esta función) no hereda.
+ */
+export async function getInheritedFloat(
+  client: Client,
+  terminalId: string,
+): Promise<InheritedFloat | null> {
+  const last = await client.cashSession.findFirst({
+    where: { terminalId, status: { in: ["CLOSED_PENDING_APPROVAL", "CLOSED"] } },
+    orderBy: [{ closedAt: "desc" }, { createdAt: "desc" }],
+    select: {
+      id: true,
+      closedAt: true,
+      countedCashCents: true,
+      withdrawnCents: true,
+      user: { select: { name: true } },
+    },
+  });
+  if (!last || !last.closedAt || last.countedCashCents === null || last.withdrawnCents === null) {
+    return null;
+  }
+  return {
+    cents: last.countedCashCents - last.withdrawnCents,
+    fromSessionId: last.id,
+    closedAt: last.closedAt,
+    closedByName: last.user.name,
+  };
+}
+
 /** Suma lo que entró y salió del cajón en un turno. Solo cuentan las ventas completadas. */
 export async function loadCashTotals(client: Client, cashSessionId: string): Promise<CashTotals> {
   const session = await client.cashSession.findUnique({
@@ -105,6 +143,7 @@ async function lockOwnOpenSession(tx: Tx, userId: string): Promise<{ id: string 
 /**
  * Abre el turno con un fondo inicial. Una sola caja abierta por usuario y por terminal: la terminal
  * se bloquea mientras se decide, y los índices parciales de la base cubren cualquier otra carrera.
+ * Si el último cierre dejó un fondo mayor que cero y se abre con otro monto, el comentario es obligatorio y queda en la auditoría.
  */
 export async function openCashSession(
   actor: Actor,
@@ -126,13 +165,34 @@ export async function openCashSession(
       if (open > 0) {
         throw new CashSessionOpenError();
       }
+      const inherited = await getInheritedFloat(tx, terminal.id);
+      const { openingFloatCents, openingNotes } = parsed.data;
+      const differs = inherited !== null && openingFloatCents !== inherited.cents;
+      if (differs && inherited.cents > 0 && !openingNotes) {
+        throw new ValidationError(
+          "A comment is required when the float differs from the inherited one",
+        );
+      }
       const session = await tx.cashSession.create({
         data: {
           terminalId: terminal.id,
           userId: actor.id,
-          openingFloatCents: parsed.data.openingFloatCents,
+          openingFloatCents,
+          inheritedFloatCents: inherited?.cents ?? null,
+          openingNotes: differs ? (openingNotes ?? null) : null,
         },
       });
+      if (differs) {
+        await audit.log(tx, {
+          userId: actor.id,
+          action: "CASH_FLOAT_ADJUSTED",
+          entityType: "CashSession",
+          entityId: session.id,
+          before: { inheritedFloatCents: inherited.cents },
+          after: { openingFloatCents },
+          reason: openingNotes,
+        });
+      }
       return { id: session.id };
     });
   } catch (error) {
@@ -212,8 +272,8 @@ export async function previewCashClose(
 }
 
 /**
- * Cierra el turno del usuario con su arqueo: guarda lo esperado, lo contado y la diferencia, y lo deja
- * pendiente de aprobación. Si hay diferencia, el comentario es obligatorio.
+ * Cierra el turno del usuario con su arqueo: guarda lo esperado, lo contado, la diferencia y lo que se retira del cajón
+ * (lo demás se queda para el día siguiente), y lo deja pendiente de aprobación. Si hay diferencia, el comentario es obligatorio.
  */
 export async function submitCashClose(
   actor: Actor,
@@ -241,6 +301,7 @@ export async function submitCashClose(
         expectedCashCents: expectedCents,
         countedCashCents: data.countedCashCents,
         differenceCents,
+        withdrawnCents: data.withdrawnCents,
         notes: data.notes ?? null,
       },
     });
@@ -253,6 +314,8 @@ export async function submitCashClose(
         expectedCents,
         countedCents: data.countedCashCents,
         differenceCents,
+        withdrawnCents: data.withdrawnCents,
+        leftInDrawerCents: data.countedCashCents - data.withdrawnCents,
         ...(data.denominations && sumDenominations(data.denominations) > 0
           ? { denominations: data.denominations }
           : {}),
