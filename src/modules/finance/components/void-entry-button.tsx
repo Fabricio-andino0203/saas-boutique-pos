@@ -16,12 +16,25 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { messages } from "@/config/messages.es";
-import { voidFinanceEntryAction } from "@/modules/finance/actions";
+import { voidBoxWithdrawalAction, voidFinanceEntryAction } from "@/modules/finance/actions";
 
 const copy = messages.finance.void;
 
-/** «Anular» con su motivo. El movimiento no se borra: queda anulado y deja de sumar. */
-export function VoidEntryButton({ entryId, summary }: { entryId: string; summary: string }) {
+type VoidKind = "entry" | "withdrawal";
+
+/**
+ * «Anular» con su motivo. El movimiento (o el retiro de la caja de finanzas, con `kind="withdrawal"`) no se borra: queda
+ * anulado y deja de sumar.
+ */
+export function VoidEntryButton({
+  entryId,
+  summary,
+  kind = "entry",
+}: {
+  entryId: string;
+  summary: string;
+  kind?: VoidKind;
+}) {
   const [open, setOpen] = useState(false);
   return (
     <>
@@ -37,7 +50,12 @@ export function VoidEntryButton({ entryId, summary }: { entryId: string; summary
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
           {open ? (
-            <VoidForm entryId={entryId} summary={summary} onClose={() => setOpen(false)} />
+            <VoidForm
+              entryId={entryId}
+              summary={summary}
+              kind={kind}
+              onClose={() => setOpen(false)}
+            />
           ) : null}
         </DialogContent>
       </Dialog>
@@ -48,10 +66,12 @@ export function VoidEntryButton({ entryId, summary }: { entryId: string; summary
 function VoidForm({
   entryId,
   summary,
+  kind,
   onClose,
 }: {
   entryId: string;
   summary: string;
+  kind: VoidKind;
   onClose: () => void;
 }) {
   const router = useRouter();
@@ -62,7 +82,10 @@ function VoidForm({
   function submit() {
     setError(null);
     startTransition(async () => {
-      const result = await voidFinanceEntryAction({ entryId, reason });
+      const result =
+        kind === "withdrawal"
+          ? await voidBoxWithdrawalAction({ withdrawalId: entryId, reason })
+          : await voidFinanceEntryAction({ entryId, reason });
       if (result.ok) {
         onClose();
         toast.success(messages.toasts.financeEntryVoided);

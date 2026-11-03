@@ -47,6 +47,7 @@ export const APP_ERROR_CODES = [
   "FINANCE_ENTRY_VOIDED",
   "FINANCE_DRAWER_ENTRY",
   "FIXED_COST_PAID",
+  "INSUFFICIENT_FINANCE_BOX",
 ] as const;
 
 export type ErrorCode = (typeof APP_ERROR_CODES)[number];
@@ -385,6 +386,16 @@ export class FinanceDrawerEntryError extends AppError {
     options?: AppErrorOptions,
   ) {
     super("FINANCE_DRAWER_ENTRY", 409, message, options);
+  }
+}
+
+/** Se quiso retirar de la caja de finanzas más de lo que hay. */
+export class FinanceBoxInsufficientError extends AppError {
+  constructor(
+    message = "The finance cash box does not have that much cash",
+    options?: AppErrorOptions,
+  ) {
+    super("INSUFFICIENT_FINANCE_BOX", 409, message, options);
   }
 }
 

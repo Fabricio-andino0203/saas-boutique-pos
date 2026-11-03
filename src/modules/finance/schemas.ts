@@ -50,6 +50,21 @@ export const voidEntrySchema = z.object({
 });
 export type VoidEntryInput = z.input<typeof voidEntrySchema>;
 
+/** Un retiro de la caja de finanzas. La fecha es el día local; no puede ser futura. */
+export const boxWithdrawalSchema = z.object({
+  amountCents: cents,
+  occurredOn: dateKey,
+  reason: z.string().trim().min(3).max(200),
+  clientRequestId: requestId,
+});
+export type BoxWithdrawalInput = z.input<typeof boxWithdrawalSchema>;
+
+export const voidBoxWithdrawalSchema = z.object({
+  withdrawalId: id,
+  reason: z.string().trim().min(3).max(200),
+});
+export type VoidBoxWithdrawalInput = z.input<typeof voidBoxWithdrawalSchema>;
+
 export const categorySchema = z.object({
   type: z.enum(FINANCE_ENTRY_TYPES),
   name: z.string().trim().min(2).max(60),

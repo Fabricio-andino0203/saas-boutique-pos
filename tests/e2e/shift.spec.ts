@@ -224,6 +224,31 @@ test("closing withdraws cash to the finance box and the rest stays in the drawer
   const deposits = owner.getByRole("region", { name: messages.finance.box.depositsTitle });
   await expect(deposits).toContainText("L 700.00");
   await expect(deposits).toContainText("L 50.00");
+
+  // El dueño retira L 100 de la caja de finanzas (queda en su lista) y después lo anula con un motivo
+  const withdraw = messages.finance.box.withdraw;
+  await owner.getByRole("button", { name: withdraw.action }).click();
+  const withdrawDialog = owner.getByRole("dialog", { name: withdraw.title });
+  await expect(withdrawDialog).toBeVisible();
+  await fillMoney(owner, withdraw.amount, "100");
+  await withdrawDialog
+    .getByLabel(withdraw.reason, { exact: true })
+    .fill("E2E se lo llevó la dueña");
+  await withdrawDialog.getByRole("button", { name: withdraw.submit, exact: true }).click();
+  const withdrawals = owner.getByRole("region", { name: withdraw.listTitle });
+  await expect(withdrawals).toContainText("E2E se lo llevó la dueña");
+  await expect(withdrawals).toContainText("L 100.00");
+
+  await owner
+    .getByRole("button", { name: new RegExp(`^${messages.finance.void.action}: E2E se lo llevó`) })
+    .click();
+  const voidDialog = owner.getByRole("dialog", { name: messages.finance.void.title });
+  await voidDialog
+    .getByLabel(messages.finance.void.reason, { exact: true })
+    .fill("E2E monto de prueba");
+  await voidDialog.getByRole("button", { name: messages.finance.void.submit, exact: true }).click();
+  await expect(withdrawals).toContainText(withdraw.voided);
+  await expect(withdrawals).toContainText("E2E monto de prueba");
   await ownerContext.close();
 });
 

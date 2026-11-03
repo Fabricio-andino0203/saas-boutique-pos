@@ -4,7 +4,7 @@ import { localDateKey } from "@/lib/dates";
 import { db } from "@/lib/db";
 import type { Role } from "@/lib/permissions";
 import { openCashSession, submitCashClose } from "@/modules/cash/service";
-import { BOX_DEPOSIT_LIMIT, getFinanceBox, getFinanceSummary } from "@/modules/finance/queries";
+import { BOX_LIST_LIMIT, getFinanceBox, getFinanceSummary } from "@/modules/finance/queries";
 import { createFinanceEntry, voidFinanceEntry } from "@/modules/finance/service";
 import { rangeForPreset } from "@/modules/reports/ranges";
 
@@ -147,7 +147,7 @@ describe("getFinanceBox", () => {
   it("keeps the full balance when only the most recent deposits are listed", async () => {
     const w = await world();
     const terminal = await testDb.terminal.findFirstOrThrow();
-    for (let index = 0; index < BOX_DEPOSIT_LIMIT + 3; index += 1) {
+    for (let index = 0; index < BOX_LIST_LIMIT + 3; index += 1) {
       await testDb.cashSession.create({
         data: {
           terminalId: terminal.id,
@@ -163,9 +163,9 @@ describe("getFinanceBox", () => {
       });
     }
     const box = await getFinanceBox();
-    expect(box.deposits).toHaveLength(BOX_DEPOSIT_LIMIT);
-    expect(box.depositCount).toBe(BOX_DEPOSIT_LIMIT + 3);
-    expect(box.balanceCents).toBe((BOX_DEPOSIT_LIMIT + 3) * 1_000);
+    expect(box.deposits).toHaveLength(BOX_LIST_LIMIT);
+    expect(box.depositCount).toBe(BOX_LIST_LIMIT + 3);
+    expect(box.balanceCents).toBe((BOX_LIST_LIMIT + 3) * 1_000);
   });
 
   it("does not turn a withdrawal into income or expense: the net profit does not move", async () => {

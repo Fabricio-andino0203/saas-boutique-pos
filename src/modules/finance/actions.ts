@@ -4,6 +4,7 @@ import { messages } from "@/config/messages.es";
 import { toActionResult, type ActionResult } from "@/lib/action-result";
 import { requireUserCapability } from "@/lib/auth";
 import {
+  createBoxWithdrawal,
   createFinanceCategory,
   createFinanceEntry,
   createFixedCost,
@@ -12,13 +13,16 @@ import {
   setFinanceCategoryArchived,
   setFixedCostArchived,
   updateFixedCost,
+  voidBoxWithdrawal,
   voidFinanceEntry,
 } from "@/modules/finance/service";
 import type {
+  BoxWithdrawalInput,
   CategoryInput,
   FinanceEntryInput,
   FixedCostInput,
   PayFixedCostInput,
+  VoidBoxWithdrawalInput,
   VoidEntryInput,
 } from "@/modules/finance/schemas";
 
@@ -35,6 +39,25 @@ export async function voidFinanceEntryAction(input: VoidEntryInput): Promise<Act
   const { user } = await requireUserCapability("finance.void");
   return toActionResult(async () => {
     await voidFinanceEntry(user, input);
+    return null;
+  }, messages.errors);
+}
+
+/** Retira efectivo de la caja de finanzas (lo que se lleva el dueño o se deposita en el banco). */
+export async function createBoxWithdrawalAction(
+  input: BoxWithdrawalInput,
+): Promise<ActionResult<{ id: string }>> {
+  const { user } = await requireUserCapability("finance.write");
+  return toActionResult(() => createBoxWithdrawal(user, input), messages.errors);
+}
+
+/** Anula un retiro de la caja de finanzas con su motivo (no se borra). */
+export async function voidBoxWithdrawalAction(
+  input: VoidBoxWithdrawalInput,
+): Promise<ActionResult<null>> {
+  const { user } = await requireUserCapability("finance.void");
+  return toActionResult(async () => {
+    await voidBoxWithdrawal(user, input);
     return null;
   }, messages.errors);
 }

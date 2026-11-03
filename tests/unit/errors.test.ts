@@ -21,6 +21,7 @@ import {
   LayawayStateError,
   PhoneTakenError,
   ActiveRangeExistsError,
+  FinanceBoxInsufficientError,
   FinanceDrawerEntryError,
   FinanceEntryVoidedError,
   FixedCostPaidError,
@@ -108,6 +109,11 @@ const table = [
   { create: () => new FinanceEntryVoidedError(), code: "FINANCE_ENTRY_VOIDED", status: 409 },
   { create: () => new FinanceDrawerEntryError(), code: "FINANCE_DRAWER_ENTRY", status: 409 },
   { create: () => new FixedCostPaidError(), code: "FIXED_COST_PAID", status: 409 },
+  {
+    create: () => new FinanceBoxInsufficientError(),
+    code: "INSUFFICIENT_FINANCE_BOX",
+    status: 409,
+  },
 ] as const;
 
 describe("AppError subclasses", () => {

@@ -3,6 +3,7 @@ import { audit } from "@/lib/audit";
 import { localDateKey, parseLocalDateKey } from "@/lib/dates";
 import { db } from "@/lib/db";
 import {
+  FinanceBoxInsufficientError,
   FinanceDrawerEntryError,
   FinanceEntryVoidedError,
   FixedCostPaidError,
@@ -14,12 +15,15 @@ import {
 import { requireCapability } from "@/lib/permissions";
 import type { Actor } from "@/modules/catalog/service";
 import { formatPeriod, periodOf, periodStart } from "@/modules/finance/periods";
+import { getBoxTotals } from "@/modules/finance/queries";
 import {
+  boxWithdrawalSchema,
   categorySchema,
   financeEntrySchema,
   fixedCostSchema,
   payFixedCostSchema,
   renameCategorySchema,
+  voidBoxWithdrawalSchema,
   voidEntrySchema,
 } from "@/modules/finance/schemas";
 
@@ -240,6 +244,142 @@ export async function voidFinanceEntry(
       entityType: "FinanceEntry",
       entityId: entryId,
       before: snapshot(entry),
+      reason,
+    });
+  });
+}
+
+// ───────────────────────── Retiros de la caja de finanzas ─────────────────────────
+
+/**
+ * Registra el efectivo que sale de la caja de finanzas (PRD RF-FIN-12): lo que se lleva el dueño o se deposita en el banco.
+ * No es un gasto. Los retiros se serializan con un candado de transacción para que dos a la vez no se pasen del saldo, y es
+ * idempotente: reintentar con el mismo `clientRequestId` devuelve el retiro que ya se guardó.
+ */
+export async function createBoxWithdrawal(
+  actor: Actor,
+  input: unknown,
+  client: PrismaClient = db,
+  now: Date = new Date(),
+): Promise<{ id: string }> {
+  requireCapability(actor, "finance.write");
+  const parsed = boxWithdrawalSchema.safeParse(input);
+  if (!parsed.success) {
+    throw new ValidationError(firstIssue(parsed.error));
+  }
+  const data = parsed.data;
+  const occurredAt = parseLocalDateKey(data.occurredOn);
+  if (!occurredAt || data.occurredOn > localDateKey(now)) {
+    throw new ValidationError("Invalid date");
+  }
+
+  const sameRequest = async (tx: Tx | PrismaClient): Promise<{ id: string } | null> => {
+    const existing = await tx.financeBoxWithdrawal.findUnique({
+      where: { clientRequestId: data.clientRequestId },
+      select: { id: true, createdById: true },
+    });
+    if (!existing) {
+      return null;
+    }
+    if (existing.createdById !== actor.id) {
+      throw new ValidationError("Request id already used");
+    }
+    return { id: existing.id };
+  };
+
+  const repeated = await sameRequest(client);
+  if (repeated) {
+    return repeated;
+  }
+  try {
+    return await client.$transaction(async (tx) => {
+      await tx.$queryRaw`
+        SELECT 1 AS "locked" FROM (SELECT pg_advisory_xact_lock(hashtext(${"finance-box"}))) AS "lock"
+      `;
+      // Con el candado tomado: si el mismo envío ya ganó, ese es el resultado; si no, el saldo es el de verdad.
+      const winner = await sameRequest(tx);
+      if (winner) {
+        return winner;
+      }
+      const box = await getBoxTotals(tx);
+      if (data.amountCents > box.balanceCents) {
+        throw new FinanceBoxInsufficientError();
+      }
+      const withdrawal = await tx.financeBoxWithdrawal.create({
+        data: {
+          amountCents: data.amountCents,
+          occurredAt,
+          reason: data.reason,
+          clientRequestId: data.clientRequestId,
+          createdById: actor.id,
+        },
+      });
+      await audit.log(tx, {
+        userId: actor.id,
+        action: "FINANCE_BOX_WITHDRAWAL_CREATED",
+        entityType: "FinanceBoxWithdrawal",
+        entityId: withdrawal.id,
+        after: {
+          amountCents: withdrawal.amountCents,
+          occurredAt: withdrawal.occurredAt.toISOString(),
+          reason: withdrawal.reason,
+          balanceBeforeCents: box.balanceCents,
+        },
+      });
+      return { id: withdrawal.id };
+    });
+  } catch (error) {
+    // Dos envíos iguales a la vez que no pasaron por el candado: gana el primero.
+    if (isUniqueViolation(error)) {
+      const winner = await sameRequest(client);
+      if (winner) {
+        return winner;
+      }
+    }
+    throw error;
+  }
+}
+
+/** Anula un retiro (con motivo): no se borra ni se edita, y el saldo lo recupera. */
+export async function voidBoxWithdrawal(
+  actor: Actor,
+  input: unknown,
+  client: PrismaClient = db,
+  now: Date = new Date(),
+): Promise<void> {
+  requireCapability(actor, "finance.void");
+  const parsed = voidBoxWithdrawalSchema.safeParse(input);
+  if (!parsed.success) {
+    throw new ValidationError(firstIssue(parsed.error));
+  }
+  const { withdrawalId, reason } = parsed.data;
+
+  await client.$transaction(async (tx) => {
+    const withdrawal = await tx.financeBoxWithdrawal.findUnique({ where: { id: withdrawalId } });
+    if (!withdrawal) {
+      throw new NotFoundError("Withdrawal not found");
+    }
+    if (withdrawal.voidedAt) {
+      throw new FinanceEntryVoidedError();
+    }
+    // `voidedAt: null` en el filtro: si otra anulación llegó primero, esta no pisa nada.
+    const result = await tx.financeBoxWithdrawal.updateMany({
+      where: { id: withdrawalId, voidedAt: null },
+      data: { voidedAt: now, voidedById: actor.id, voidReason: reason },
+    });
+    if (result.count === 0) {
+      throw new FinanceEntryVoidedError();
+    }
+    await audit.log(tx, {
+      userId: actor.id,
+      action: "FINANCE_BOX_WITHDRAWAL_VOIDED",
+      entityType: "FinanceBoxWithdrawal",
+      entityId: withdrawalId,
+      before: {
+        amountCents: withdrawal.amountCents,
+        occurredAt: withdrawal.occurredAt.toISOString(),
+        reason: withdrawal.reason,
+      },
       reason,
     });
   });

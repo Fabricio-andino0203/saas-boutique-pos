@@ -306,35 +306,68 @@ export type BoxDeposit = {
   amountCents: number;
 };
 
-export type FinanceBoxView = FinanceBox & {
-  /** Los retiros de los cierres, del más reciente al más antiguo (hasta {@link BOX_DEPOSIT_LIMIT}). */
-  deposits: BoxDeposit[];
-  depositCount: number;
+export type BoxWithdrawalRow = {
+  id: string;
+  occurredAt: Date;
+  amountCents: number;
+  reason: string;
+  createdByName: string;
+  voidedAt: Date | null;
+  voidReason: string | null;
 };
 
-export const BOX_DEPOSIT_LIMIT = 50;
+export type FinanceBoxView = FinanceBox & {
+  /** Los retiros de los cierres, del más reciente al más antiguo (hasta {@link BOX_LIST_LIMIT}). */
+  deposits: BoxDeposit[];
+  depositCount: number;
+  /** Los retiros del dueño de la caja de finanzas, también los anulados (marcados), del más reciente al más antiguo. */
+  withdrawals: BoxWithdrawalRow[];
+  withdrawalCount: number;
+};
+
+export const BOX_LIST_LIMIT = 50;
 
 /**
- * La caja de finanzas (PRD RF-FIN-11). No tiene tabla: el saldo sale de lo retirado en los cierres de caja y de los
- * movimientos vigentes pagados en «efectivo fuera de caja». La cuenta la hace {@link computeFinanceBox}.
+ * Las cifras de la caja de finanzas (PRD RF-FIN-11 y RF-FIN-12). No tiene tabla: el saldo sale de lo retirado en los cierres de
+ * caja, de los movimientos vigentes pagados en «efectivo fuera de caja» y de los retiros vigentes. Las consultas van en
+ * secuencia porque también se usa dentro de una transacción (una sola conexión no atiende consultas a la vez). La cuenta la
+ * hace {@link computeFinanceBox}.
  */
+export async function getBoxTotals(client: Client = db): Promise<FinanceBox> {
+  const deposited = await client.cashSession.aggregate({
+    where: { withdrawnCents: { gt: 0 } },
+    _sum: { withdrawnCents: true },
+  });
+  const entries = await client.financeEntry.groupBy({
+    by: ["type"],
+    where: { paidWith: "CASH_OTHER", voidedAt: null },
+    _sum: { amountCents: true },
+  });
+  const withdrawn = await client.financeBoxWithdrawal.aggregate({
+    where: { voidedAt: null },
+    _sum: { amountCents: true },
+  });
+  const total = (type: FinanceType): number =>
+    entries.find((group) => group.type === type)?._sum.amountCents ?? 0;
+
+  return computeFinanceBox({
+    depositsCents: deposited._sum.withdrawnCents ?? 0,
+    cashIncomeCents: total("INCOME"),
+    cashExpenseCents: total("EXPENSE"),
+    withdrawalsCents: withdrawn._sum.amountCents ?? 0,
+  });
+}
+
+/** La caja de finanzas con sus dos listas: los retiros de los cierres y los retiros del dueño. */
 export async function getFinanceBox(client: PrismaClient = db): Promise<FinanceBoxView> {
-  const withdrawn = { withdrawnCents: { gt: 0 } };
-  const [deposited, entries, rows] = await Promise.all([
-    client.cashSession.aggregate({
-      where: withdrawn,
-      _sum: { withdrawnCents: true },
-      _count: { _all: true },
-    }),
-    client.financeEntry.groupBy({
-      by: ["type"],
-      where: { paidWith: "CASH_OTHER", voidedAt: null },
-      _sum: { amountCents: true },
-    }),
+  const withdrawnInClosings = { withdrawnCents: { gt: 0 } };
+  const [totals, depositCount, deposits, withdrawalCount, withdrawals] = await Promise.all([
+    getBoxTotals(client),
+    client.cashSession.count({ where: withdrawnInClosings }),
     client.cashSession.findMany({
-      where: withdrawn,
+      where: withdrawnInClosings,
       orderBy: [{ closedAt: "desc" }, { createdAt: "desc" }],
-      take: BOX_DEPOSIT_LIMIT,
+      take: BOX_LIST_LIMIT,
       select: {
         id: true,
         closedAt: true,
@@ -343,18 +376,26 @@ export async function getFinanceBox(client: PrismaClient = db): Promise<FinanceB
         user: { select: { name: true } },
       },
     }),
+    client.financeBoxWithdrawal.count(),
+    client.financeBoxWithdrawal.findMany({
+      orderBy: [{ occurredAt: "desc" }, { createdAt: "desc" }],
+      take: BOX_LIST_LIMIT,
+      select: {
+        id: true,
+        occurredAt: true,
+        amountCents: true,
+        reason: true,
+        voidedAt: true,
+        voidReason: true,
+        createdBy: { select: { name: true } },
+      },
+    }),
   ]);
-  const total = (type: FinanceType): number =>
-    entries.find((group) => group.type === type)?._sum.amountCents ?? 0;
 
   return {
-    ...computeFinanceBox({
-      depositsCents: deposited._sum.withdrawnCents ?? 0,
-      cashIncomeCents: total("INCOME"),
-      cashExpenseCents: total("EXPENSE"),
-    }),
-    depositCount: deposited._count._all,
-    deposits: rows.flatMap((row) =>
+    ...totals,
+    depositCount,
+    deposits: deposits.flatMap((row) =>
       row.closedAt && row.withdrawnCents !== null
         ? [
             {
@@ -367,5 +408,10 @@ export async function getFinanceBox(client: PrismaClient = db): Promise<FinanceB
           ]
         : [],
     ),
+    withdrawalCount,
+    withdrawals: withdrawals.map(({ createdBy, ...row }) => ({
+      ...row,
+      createdByName: createdBy.name,
+    })),
   };
 }

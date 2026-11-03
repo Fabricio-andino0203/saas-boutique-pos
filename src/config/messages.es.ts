@@ -15,6 +15,7 @@ export const messages = {
     onboardingDone: "Todo listo para empezar a vender",
     financeEntryCreated: "Movimiento registrado",
     financeEntryVoided: "Movimiento anulado",
+    financeBoxWithdrawn: "Retiro registrado",
     financeCategoryCreated: "Categoría agregada",
     financeCategoryRenamed: "Categoría renombrada",
     financeCategoryArchived: "Categoría archivada",
@@ -36,6 +37,26 @@ export const messages = {
         deposits: "Retirado en cierres",
         income: "Ingresos en efectivo",
         expenses: "Gastos en efectivo",
+        withdrawals: "Retirado de la caja",
+      },
+      withdraw: {
+        action: "Retirar de la caja",
+        title: "Retirar de la caja de finanzas",
+        description:
+          "Registra el efectivo que sale de la caja de finanzas: lo que se lleva el dueño o se deposita en el banco. No es un gasto.",
+        balance: "Saldo disponible",
+        date: "Fecha",
+        amount: "Monto",
+        reason: "¿Para qué es?",
+        reasonHint: "Por ejemplo: se lo llevó la dueña, o depósito al banco.",
+        submit: "Retirar",
+        submitting: "Retirando…",
+        listTitle: "Retiros de la caja de finanzas",
+        empty: "Todavía no hay retiros de la caja de finanzas.",
+        columns: { date: "Fecha", reason: "Motivo", by: "Registró", amount: "Monto" },
+        voided: "Anulado",
+        voidedBecause: "Motivo de la anulación",
+        truncated: "Se muestran los 50 más recientes. El saldo incluye todos.",
       },
       review:
         "El saldo es negativo: hay gastos pagados en efectivo fuera de caja que no vienen de un retiro. Revísalos.",
@@ -479,6 +500,8 @@ export const messages = {
       GOODS_RECEIVED: "Mercadería recibida",
       FINANCE_ENTRY_CREATED: "Movimiento de Finanzas registrado",
       FINANCE_ENTRY_VOIDED: "Movimiento de Finanzas anulado",
+      FINANCE_BOX_WITHDRAWAL_CREATED: "Retiro de la caja de finanzas",
+      FINANCE_BOX_WITHDRAWAL_VOIDED: "Retiro de la caja de finanzas anulado",
       FINANCE_CATEGORY_CHANGED: "Categoría de Finanzas modificada",
       FIXED_COST_CHANGED: "Costo fijo modificado",
     },
@@ -2858,6 +2881,8 @@ export const messages = {
     FINANCE_DRAWER_ENTRY:
       "Este gasto salió de la caja y no se anula desde Finanzas. Corrígelo con una entrada de efectivo en la caja, con su motivo.",
     FIXED_COST_PAID: "Ese costo fijo ya tiene un pago registrado en ese mes.",
+    INSUFFICIENT_FINANCE_BOX:
+      "No hay tanto efectivo en la caja de finanzas. Revisa el saldo e inténtalo con un monto menor.",
     INSUFFICIENT_CASH:
       "No hay tanto efectivo en la caja. Revisa el monto: el efectivo esperado no puede quedar en negativo.",
     FISCAL_RANGE_EXHAUSTED: "El rango de facturas se agotó o ya venció. Solicita uno nuevo al SAR.",
