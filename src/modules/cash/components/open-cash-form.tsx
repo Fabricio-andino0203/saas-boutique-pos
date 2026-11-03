@@ -24,23 +24,25 @@ export type InheritedFloatView = {
 };
 
 /**
- * Abre el turno. Si el último cierre de la terminal dejó efectivo en el cajón, ese fondo ya aparece puesto; cambiarlo (cuando
- * lo heredado era mayor que cero) pide explicar por qué.
+ * Abre el turno. Si el último cierre de la terminal dejó efectivo en el cajón, ese fondo ya aparece puesto; cambiarlo
+ * pide explicar por qué. Si no dejó nada, el campo empieza vacío, como siempre.
  */
 export function OpenCashForm({
   terminalName,
-  inherited = null,
+  inherited: inheritedFloat = null,
 }: {
   terminalName: string;
   inherited?: InheritedFloatView | null;
 }) {
   const router = useRouter();
+  // Si el último cierre no dejó nada, no hay fondo que ofrecer.
+  const inherited = inheritedFloat && inheritedFloat.cents > 0 ? inheritedFloat : null;
   const [floatCents, setFloatCents] = useState<number | null>(inherited?.cents ?? null);
   const [notes, setNotes] = useState("");
   const [state, setState] = useState<CashActionState>(undefined);
   const [pending, startTransition] = useTransition();
 
-  const differs = inherited !== null && inherited.cents > 0 && floatCents !== inherited.cents;
+  const differs = inherited !== null && floatCents !== inherited.cents;
   const notesReady = !differs || notes.trim().length >= 3;
 
   function submit() {
