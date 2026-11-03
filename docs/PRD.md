@@ -123,10 +123,13 @@ Contabilidad de partida doble, planillas y nómina, CRM de marketing, integraci�
 
 - **RF-CASH-1** **Apertura de caja** con monto inicial (fondo).
 - **RF-CASH-2** Movimientos de efectivo manuales: entradas (ingreso) y salidas (gasto, retiro) con motivo. Si el plan incluye Finanzas, la salida pregunta «¿Qué fue?»: **gasto** (con categoría; crea el gasto enlazado en la misma transacción), **retiro del dueño** u **otra salida** (RF-FIN-4).
-- **RF-CASH-3** **Cierre de caja con arqueo:** el cajero cuenta el efectivo (por denominaciones, opcional), el sistema compara contra lo esperado y muestra la diferencia; el gerente aprueba.
+- **RF-CASH-3** **Cierre de caja con arqueo:** el cajero cuenta el efectivo (por denominaciones, opcional), el sistema compara contra lo esperado y muestra la diferencia; indica cuánto retira (RF-CASH-7); el gerente aprueba.
 - **RF-CASH-4** Resumen del turno: ventas por método de pago, devoluciones, entradas/salidas, esperado vs contado.
 - **RF-CASH-5** No se puede vender sin una caja abierta.
 - **RF-CASH-6** Un cajero tiene como máximo una caja abierta a la vez; cada caja pertenece a un "terminal".
+- **RF-CASH-7** **Retiro al cerrar y fondo para el día siguiente:** al cerrar, después de contar, se indica cuánto se **retira**; el resto (lo contado menos lo retirado) **se queda en el cajón**. El retiro no puede superar lo contado, no es un gasto ni cambia el esperado (se decide con el efectivo ya contado) y queda guardado en el cierre y en la auditoría. En los planes con Finanzas, lo retirado entra a la **caja de finanzas** (RF-FIN-11); sin el módulo solo queda anotado en el cierre.
+- **RF-CASH-8** **Apertura con el fondo heredado:** la caja de una terminal se abre ofreciendo el fondo que dejó el último cierre (lo contado menos lo retirado). Se puede cambiar el monto; si había un fondo heredado mayor que cero y se abre con otro, el comentario es obligatorio y la auditoría guarda lo heredado y lo contado. Un cierre anterior sin retiro declarado (anterior a esta función) no hereda nada. El fondo heredado es contado, no esperado: una diferencia del arqueo no se arrastra al día siguiente.
+- **RF-CASH-9** **La caja se opera desde Vender:** abrir la caja, ver el turno, registrar entradas y salidas y cerrar son opciones del propio punto de venta (un panel «Caja»); `/caja` lleva a Vender. El historial de cierres y su aprobación siguen en «Cierres de caja».
 
 ### 4.5 Punto de venta (POS)
 
@@ -207,6 +210,7 @@ Para el dueño que quiere saber cuánto se ganó de verdad, no solo cuánto se v
 - **RF-FIN-8** **Exportar** el resumen y los movimientos a Excel y CSV con los mismos permisos de la pantalla.
 - **RF-FIN-9** **Permisos:** Propietario y Gerente ven, registran, anulan y administran categorías y costos fijos (capacidades `finance.view`, `finance.write`, `finance.void`). El cajero no entra a Finanzas; solo saca efectivo como gasto desde su caja (`cash.open`).
 - **RF-FIN-10** **Auditoría** de todo lo que mueve dinero: alta y anulación de movimientos, cambios de categorías y de costos fijos.
+- **RF-FIN-11** **Caja de finanzas:** el efectivo del negocio que está fuera del cajón. Su saldo = lo retirado en los cierres de caja (RF-CASH-7) + los ingresos pagados en «efectivo fuera de caja» − los gastos pagados en «efectivo fuera de caja» (los anulados no cuentan). Los depósitos de los cierres **no son ingreso ni gasto** (es el mismo dinero cambiando de lugar) y no mueven la utilidad neta. Si el saldo sale negativo (por ejemplo, gastos en efectivo anteriores a esta función) se muestra como «por revisar», no se oculta. Se ve en el resumen de Finanzas y en su propia pantalla, con el historial de depósitos; solo Propietario y Gerente (`finance.view`).
 
 ## 5. Flujos clave (resumen)
 

@@ -696,20 +696,26 @@ model Customer {
 /// Turno de caja. Máximo una sesión OPEN por usuario y por terminal
 /// (índices parciales en la migración `constraints`).
 model CashSession {
-  id                String            @id @default(cuid())
-  terminalId        String
-  userId            String
-  status            CashSessionStatus @default(OPEN)
-  openedAt          DateTime          @default(now())
-  openingFloatCents Int
-  closedAt          DateTime?
-  expectedCashCents Int?
-  countedCashCents  Int?
-  differenceCents   Int?
-  approvedById      String?
-  notes             String?
-  createdAt         DateTime          @default(now())
-  updatedAt         DateTime          @updatedAt
+  id                  String            @id @default(cuid())
+  terminalId          String
+  userId              String
+  status              CashSessionStatus @default(OPEN)
+  openedAt            DateTime          @default(now())
+  openingFloatCents   Int
+  /// El fondo que ofrecía el cierre anterior de la terminal (lo contado menos lo retirado); null si no había uno con retiro declarado.
+  inheritedFloatCents Int?
+  /// Por qué se abrió con un fondo distinto del heredado.
+  openingNotes        String?
+  closedAt            DateTime?
+  expectedCashCents   Int?
+  countedCashCents    Int?
+  differenceCents     Int?
+  /// Lo que se retiró del cajón al cerrar (0 si nada; null en los turnos anteriores a esta función). Lo que queda es el fondo del día siguiente.
+  withdrawnCents      Int?
+  approvedById        String?
+  notes               String?
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
 
   terminal        Terminal         @relation(fields: [terminalId], references: [id])
   user            User             @relation("CashSessionUser", fields: [userId], references: [id])

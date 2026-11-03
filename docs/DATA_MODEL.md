@@ -190,7 +190,8 @@ Al confirmar: crea `StockMovement PURCHASE_IN`, actualiza `StockLevel`, recalcul
 `name`, `phone? @unique(nullable)` (único también entre archivados; la ficha completa la crean y editan `customer.write`, y la archiva `customer.archive`, con `AuditLog` en cada cambio), `email?`, `taxId?`, `notes?`, `preferredSizes?` (texto libre), `storeCreditCents` (**derivado/cacheado** del libro `StoreCreditEntry`), `archivedAt?`.
 
 ### CashSession (turno de caja)
-`terminalId`, `userId`, `openedAt`, `openingFloatCents`, `closedAt?`, `expectedCashCents?`, `countedCashCents?`, `differenceCents?`, `status enum (OPEN, CLOSED_PENDING_APPROVAL, CLOSED)`, `approvedById?`, `notes?`.
+`terminalId`, `userId`, `openedAt`, `openingFloatCents`, `inheritedFloatCents?`, `openingNotes?`, `closedAt?`, `expectedCashCents?`, `countedCashCents?`, `differenceCents?`, `withdrawnCents?`, `status enum (OPEN, CLOSED_PENDING_APPROVAL, CLOSED)`, `approvedById?`, `notes?`.
+`withdrawnCents` es lo que se retiró al cerrar (0 si no se retiró nada; `NULL` en los turnos anteriores a esta función): CHECK `0 ≤ withdrawnCents ≤ countedCashCents`. Lo que **se queda en el cajón** es `countedCashCents − withdrawnCents` y es el fondo que se ofrece al abrir la siguiente caja de esa terminal; un cierre con `withdrawnCents NULL` no hereda nada. `inheritedFloatCents` es lo que se ofreció al abrir (`NULL` si no había cierre anterior con retiro declarado) y `openingNotes` explica por qué se abrió con otro monto (obligatorio si lo heredado era mayor que cero y el fondo fue distinto).
 Restricción: máximo una sesión `OPEN` por usuario y por terminal (índice parcial).
 Ciclo: `OPEN` → (el cajero cierra con arqueo: guarda `expectedCashCents`, `countedCashCents`, `differenceCents`; si la diferencia no es 0, `notes` es obligatorio) `CLOSED_PENDING_APPROVAL` → (gerente o propietario aprueba: `approvedById`) `CLOSED`. El desglose por billetes y monedas, si se usó, queda en el `after` del `AuditLog` `CASH_SESSION_CLOSED`. Mientras está `OPEN`, lo esperado se calcula al momento; al cerrar se congela.
 
@@ -282,6 +283,8 @@ Reglas: `CASH_DRAWER` exige `cashMovementId` y viceversa (una salida de caja es 
 6. `CashSession.expectedCash = opening + Σ Payment CASH + Σ LayawayPayment CASH − Σ Sale.changeCents + Σ CashMovement IN − Σ CashMovement OUT − reembolsos en efectivo`, solo con ventas `COMPLETED` (las anuladas no cuentan). `Payment.amountCents` en efectivo es lo que entregó el cliente (vuelto incluido); el vuelto se resta aparte. Función pura: `src/modules/cash/expected.ts`.
 7. Una venta `VOIDED` revierte exactamente sus movimientos de stock y de pago.
 8. Todo `FinanceEntry` con `paidWith = CASH_DRAWER` está enlazado a un `CashMovement` por el mismo monto (`OUT` para un gasto, `IN` para un ingreso), creados en la misma transacción. La utilidad neta del periodo = utilidad bruta de los reportes + Σ ingresos vigentes − Σ gastos vigentes (los anulados no cuentan). Función pura: `src/modules/finance/summary.ts`.
+
+9. El saldo de la **caja de finanzas** = Σ `CashSession.withdrawnCents` + Σ ingresos vigentes con `paidWith = CASH_OTHER` − Σ gastos vigentes con `paidWith = CASH_OTHER`. No hay tabla propia: se calcula de esas dos fuentes, así no puede desfasarse. Lo retirado en un cierre no es ingreso ni gasto y no entra en la utilidad neta. Función pura: `src/modules/finance/box.ts`.
 
 ## 10. Datos de ejemplo (seed)
 
