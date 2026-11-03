@@ -32,21 +32,17 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { BrandLogo } from "@/components/layout/brand-mark";
-import { NavPending } from "@/components/layout/nav-pending";
+import { SidebarNav, type NavEntry } from "@/components/layout/sidebar-nav";
 import { SubscriptionBanner } from "@/components/layout/subscription-banner";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
+import { UserAvatar } from "@/components/layout/user-avatar";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import {
   Sidebar,
   SidebarContent,
-  SidebarGroup,
-  SidebarGroupLabel,
   SidebarHeader,
   SidebarInset,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
@@ -62,6 +58,13 @@ type NavItem = { href: string; label: string; icon: LucideIcon; capability?: Cap
 type NavGroup = { label: string; items: readonly NavItem[] };
 
 const homeItem: NavItem = { href: "/", label: messages.nav.home, icon: House };
+
+/** El menú es un componente de cliente (marca la pantalla actual): los iconos viajan ya dibujados, no como funciones. */
+const toEntry = (item: NavItem): NavEntry => ({
+  href: item.href,
+  label: item.label,
+  icon: <item.icon />,
+});
 const navGroups: readonly NavGroup[] = [
   {
     label: messages.nav.groups.sales,
@@ -251,33 +254,15 @@ export async function AuthenticatedShell({ children }: { children: ReactNode }) 
           <BrandLogo />
         </SidebarHeader>
         <SidebarContent>
-          <SidebarGroup>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton render={<Link href={homeItem.href} />}>
-                  <homeItem.icon />
-                  <span>{homeItem.label}</span>
-                  <NavPending />
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroup>
-          {visibleGroups.map((group) => (
-            <SidebarGroup key={group.label}>
-              <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
-              <SidebarMenu>
-                {group.items.map((item) => (
-                  <SidebarMenuItem key={item.href}>
-                    <SidebarMenuButton render={<Link href={item.href} />}>
-                      <item.icon />
-                      <span>{item.label}</span>
-                      <NavPending />
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroup>
-          ))}
+          <SidebarNav
+            sections={[
+              { items: [toEntry(homeItem)] },
+              ...visibleGroups.map((group) => ({
+                label: group.label,
+                items: group.items.map(toEntry),
+              })),
+            ]}
+          />
         </SidebarContent>
       </Sidebar>
       <SidebarInset className="min-w-0">
@@ -287,9 +272,18 @@ export async function AuthenticatedShell({ children }: { children: ReactNode }) 
           <Separator orientation="vertical" className="h-5" />
           <div className="ml-auto flex items-center gap-3 text-sm">
             <ThemeToggle />
-            <Link href="/cuenta" aria-label={messages.nav.account} className="hover:underline">
-              <span className="font-medium">{user.name}</span>
-              <span className="text-muted-foreground"> · {messages.auth.roles[user.role]}</span>
+            <Link
+              href="/cuenta"
+              aria-label={messages.nav.account}
+              className="hover:bg-accent flex items-center gap-2.5 rounded-lg py-1 pr-2.5 pl-1 transition-colors"
+            >
+              <UserAvatar name={user.name} />
+              <span className="hidden flex-col leading-tight sm:flex">
+                <span className="font-medium">{user.name}</span>
+                <span className="text-muted-foreground text-xs">
+                  {messages.auth.roles[user.role]}
+                </span>
+              </span>
             </Link>
             <form action={logoutAction}>
               <Button type="submit" variant="outline" size="sm">

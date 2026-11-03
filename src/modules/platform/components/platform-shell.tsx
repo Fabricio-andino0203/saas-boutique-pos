@@ -11,18 +11,15 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { BrandLogo } from "@/components/layout/brand-mark";
-import { NavPending } from "@/components/layout/nav-pending";
+import { SidebarNav } from "@/components/layout/sidebar-nav";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
+import { UserAvatar } from "@/components/layout/user-avatar";
 import { Separator } from "@/components/ui/separator";
 import {
   Sidebar,
   SidebarContent,
-  SidebarGroup,
   SidebarHeader,
   SidebarInset,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
@@ -59,19 +56,17 @@ export async function PlatformShell({ children }: { children: ReactNode }) {
           <BrandLogo caption={platformMessages.app.caption} />
         </SidebarHeader>
         <SidebarContent>
-          <SidebarGroup>
-            <SidebarMenu>
-              {navItems.map((item) => (
-                <SidebarMenuItem key={item.href}>
-                  <SidebarMenuButton render={<Link href={item.href} />}>
-                    <item.icon />
-                    <span>{item.label}</span>
-                    <NavPending />
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroup>
+          <SidebarNav
+            sections={[
+              {
+                items: navItems.map((item) => ({
+                  href: item.href,
+                  label: item.label,
+                  icon: <item.icon />,
+                })),
+              },
+            ]}
+          />
         </SidebarContent>
       </Sidebar>
       <SidebarInset className="min-w-0">
@@ -80,9 +75,16 @@ export async function PlatformShell({ children }: { children: ReactNode }) {
           <Separator orientation="vertical" className="h-5" />
           <div className="ml-auto flex items-center gap-3 text-sm">
             <ThemeToggle />
-            <Link href="/cuenta" aria-label={copy.account} className="hover:underline">
-              <span className="font-medium">{user.name}</span>
-              <span className="text-muted-foreground"> · @{user.username}</span>
+            <Link
+              href="/cuenta"
+              aria-label={copy.account}
+              className="hover:bg-accent flex items-center gap-2.5 rounded-lg py-1 pr-2.5 pl-1 transition-colors"
+            >
+              <UserAvatar name={user.name} />
+              <span className="hidden flex-col leading-tight sm:flex">
+                <span className="font-medium">{user.name}</span>
+                <span className="text-muted-foreground text-xs">@{user.username}</span>
+              </span>
             </Link>
             <LogoutButton label={copy.logout} />
           </div>
