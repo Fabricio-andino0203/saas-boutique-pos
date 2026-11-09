@@ -99,7 +99,6 @@ export default function ComponentGalleryPage() {
           caption={gallery.table.empty}
           empty={{
             title: messages.states.empty.title,
-            description: messages.states.empty.description,
             action: <Button variant="outline">{gallery.table.emptyAction}</Button>,
           }}
         />

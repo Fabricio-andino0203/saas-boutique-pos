@@ -13,10 +13,7 @@ export default async function ImportProductsPage() {
       <Link href="/productos" className="text-muted-foreground text-sm hover:underline">
         {messages.products.import.back}
       </Link>
-      <PageHeader
-        title={messages.products.import.title}
-        description={messages.products.import.description}
-      />
+      <PageHeader title={messages.products.import.title} />
       <ImportPanel />
     </div>
   );

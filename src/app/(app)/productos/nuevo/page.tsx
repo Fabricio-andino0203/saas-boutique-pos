@@ -16,10 +16,7 @@ export default async function NewProductPage() {
       <Link href="/productos" className="text-muted-foreground text-sm hover:underline">
         {messages.products.back}
       </Link>
-      <PageHeader
-        title={messages.products.wizard.title}
-        description={messages.products.wizard.description}
-      />
+      <PageHeader title={messages.products.wizard.title} />
       <ProductWizard options={options} canViewCost={hasCapability(user.role, "product.viewCost")} />
     </div>
   );

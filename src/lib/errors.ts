@@ -48,6 +48,7 @@ export const APP_ERROR_CODES = [
   "FINANCE_DRAWER_ENTRY",
   "FIXED_COST_PAID",
   "INSUFFICIENT_FINANCE_BOX",
+  "CASH_FLOAT_LOCKED",
 ] as const;
 
 export type ErrorCode = (typeof APP_ERROR_CODES)[number];
@@ -127,6 +128,16 @@ export class CashSessionStateError extends AppError {
 export class InsufficientCashError extends AppError {
   constructor(message = "Not enough cash in the drawer", options?: AppErrorOptions) {
     super("INSUFFICIENT_CASH", 409, message, options);
+  }
+}
+
+/** Se quiso abrir la caja con un fondo distinto del saldo anterior, que no se puede cambiar. */
+export class CashFloatLockedError extends AppError {
+  constructor(
+    message = "The opening float must be the balance the last closing left",
+    options?: AppErrorOptions,
+  ) {
+    super("CASH_FLOAT_LOCKED", 409, message, options);
   }
 }
 

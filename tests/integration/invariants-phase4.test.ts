@@ -574,19 +574,25 @@ describe("invariantes de la Fase 4 tras 200 operaciones aleatorias", () => {
       } else if (roll < 0.87) {
         const expected = await cashAvailable();
         const difference = pick([0, 0, -500, 300]);
+        const counted = Math.max(0, expected + difference);
+        // A veces se retira todo, a veces nada y a veces una parte: lo que queda es el saldo anterior del turno siguiente
+        const withdrawn = pick([0, counted, int(0, counted)]);
         await submitCashClose(
           cashier,
           {
-            countedCashCents: Math.max(0, expected + difference),
+            countedCashCents: counted,
+            withdrawnCents: withdrawn,
             ...(expected + difference !== expected ? { notes: "Diferencia de prueba" } : {}),
           },
           testDb,
         );
         await approveCashClose(manager, shiftId, testDb);
+        // El saldo anterior no se puede cambiar; si no quedó nada, el fondo es libre
+        const left = counted - withdrawn;
         shiftId = (
           await openCashSession(
             cashier,
-            { openingFloatCents: int(0, 90000), openingNotes: "Fondo de la prueba" },
+            { openingFloatCents: left > 0 ? left : int(0, 90000) },
             testDb,
           )
         ).id;

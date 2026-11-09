@@ -71,7 +71,6 @@ export default async function PurchasesPage({
     <div className="space-y-6">
       <PageHeader
         title={copy.title}
-        description={copy.description}
         actions={
           <>
             <Link href="/compras/recepciones" className={buttonVariants({ variant: "outline" })}>

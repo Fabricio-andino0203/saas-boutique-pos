@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Notice } from "@/components/shared/notice";
 import { messages } from "@/config/messages.es";
 import { formatMoney } from "@/lib/format";
+import { mulCents } from "@/lib/money";
 import { cn } from "@/lib/utils";
 import { previewCashCloseAction, submitCashCloseAction } from "@/modules/cash/actions";
 import {
@@ -21,7 +22,7 @@ const copy = messages.cash.close;
 
 type Preview = { expectedCents: number; differenceCents: number };
 
-/** Lo que el cajero escribió en el desglose, como cantidades enteras (lo vacío o inválido es cero). */
+/** Lo que el cajero escribió en el conteo, como cantidades enteras (lo vacío o inválido es cero). */
 function toCounts(quantities: Record<string, string>): DenominationCounts {
   const counts: DenominationCounts = {};
   for (const denomination of DENOMINATIONS_CENTS) {
@@ -32,14 +33,13 @@ function toCounts(quantities: Record<string, string>): DenominationCounts {
 }
 
 /**
- * Cierre en dos pasos: primero se cuenta el efectivo y se ve la diferencia con lo esperado; después se
- * indica cuánto se retira del cajón (el resto queda para abrir mañana), se comenta (obligatorio si no cuadra) y se cierra. El
- * servidor vuelve a calcular todo al cerrar. Con `financeBox` el retiro va a la caja de finanzas.
+ * El corte de caja en dos pasos: primero se cuentan los billetes y monedas (siempre así; el total se calcula solo) y se ve
+ * la diferencia con lo esperado; después se indica cuánto se retira del cajón (el resto queda para abrir mañana), se
+ * comenta (obligatorio si no cuadra) y se cierra. El servidor vuelve a calcular todo al cerrar. Con `financeBox` el retiro va
+ * a la caja de finanzas.
  */
 export function CloseCashForm({ financeBox = false }: { financeBox?: boolean }) {
   const router = useRouter();
-  const [byDenomination, setByDenomination] = useState(false);
-  const [totalCents, setTotalCents] = useState<number | null>(null);
   const [quantities, setQuantities] = useState<Record<string, string>>({});
   const [preview, setPreview] = useState<Preview | null>(null);
   const [withdrawCents, setWithdrawCents] = useState<number | null>(null);
@@ -48,21 +48,16 @@ export function CloseCashForm({ financeBox = false }: { financeBox?: boolean }) 
   const [pending, startTransition] = useTransition();
 
   const counts = toCounts(quantities);
-  const countedCents = byDenomination ? sumDenominations(counts) : totalCents;
+  const countedCents = sumDenominations(counts);
   const difference = preview?.differenceCents ?? 0;
   const needsNotes = preview !== null && difference !== 0;
   const notesReady = !needsNotes || notes.trim().length >= 3;
-  const counted = countedCents ?? 0;
   const withdrawn = withdrawCents ?? 0;
-  const withdrawTooMuch = withdrawn > counted;
-  const leftInDrawer = counted - withdrawn;
+  const withdrawTooMuch = withdrawn > countedCents;
+  const leftInDrawer = countedCents - withdrawn;
 
   function check() {
     setError(null);
-    if (countedCents === null) {
-      setError(copy.invalidCount);
-      return;
-    }
     startTransition(async () => {
       const result = await previewCashCloseAction(countedCents);
       if ("error" in result) {
@@ -77,9 +72,9 @@ export function CloseCashForm({ financeBox = false }: { financeBox?: boolean }) 
     setError(null);
     startTransition(async () => {
       const result = await submitCashCloseAction({
-        countedCashCents: countedCents ?? Number.NaN,
+        countedCashCents: countedCents,
         withdrawnCents: withdrawn,
-        denominations: byDenomination ? counts : undefined,
+        denominations: counts,
         notes,
       });
       if ("id" in result) {
@@ -91,70 +86,40 @@ export function CloseCashForm({ financeBox = false }: { financeBox?: boolean }) 
   }
 
   return (
-    <section aria-labelledby="close-cash-title" className="bg-card space-y-4 rounded-lg border p-4">
-      <div className="space-y-1">
-        <h2 id="close-cash-title" className="text-lg font-medium">
-          {copy.title}
-        </h2>
-        <p className="text-muted-foreground text-sm">{copy.description}</p>
-      </div>
-
-      <label className="flex items-center gap-2 text-sm">
-        <input
-          type="checkbox"
-          checked={byDenomination}
-          disabled={preview !== null}
-          onChange={(event) => setByDenomination(event.target.checked)}
-          className="accent-primary size-4"
-        />
-        {copy.byDenomination}
-      </label>
-
-      {byDenomination ? (
-        <div className="space-y-3">
-          <p className="text-muted-foreground text-sm">{copy.denominationsHint}</p>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            {DENOMINATIONS_CENTS.map((denomination) => (
-              <FormField
-                key={denomination}
-                label={`${copy.denomination} ${formatMoney(denomination)}`}
-                htmlFor={`denomination-${denomination}`}
-              >
-                <input
-                  id={`denomination-${denomination}`}
-                  inputMode="numeric"
-                  autoComplete="off"
-                  disabled={preview !== null}
-                  value={quantities[denomination] ?? ""}
-                  onChange={(event) =>
-                    setQuantities((current) => ({
-                      ...current,
-                      [denomination]: event.target.value.replace(/\D/g, "").slice(0, 6),
-                    }))
-                  }
-                  className="border-input bg-background focus-visible:border-ring focus-visible:ring-ring/50 h-8 w-full min-w-0 rounded-lg border px-2.5 py-1 text-right text-base tabular-nums outline-none focus-visible:ring-3 disabled:opacity-50 md:text-sm"
-                />
-              </FormField>
-            ))}
-          </div>
-          <p className="text-sm">
-            {copy.denominationsTotal}:{" "}
-            <span className="font-semibold tabular-nums">{formatMoney(countedCents ?? 0)}</span>
-          </p>
-        </div>
-      ) : (
-        <div className="max-w-xs">
-          <FormField label={copy.counted} htmlFor="counted-cash">
-            <MoneyInput
-              id="counted-cash"
-              valueCents={totalCents}
-              onValueChange={setTotalCents}
+    <section aria-label={copy.title} className="space-y-4">
+      <ul className="divide-y rounded-lg border">
+        {DENOMINATIONS_CENTS.map((denomination) => (
+          <li
+            key={denomination}
+            className="grid grid-cols-[5.5rem_6rem_1fr] items-center gap-3 px-3 py-1.5"
+          >
+            <label htmlFor={`denomination-${denomination}`} className="text-sm tabular-nums">
+              {formatMoney(denomination)}
+            </label>
+            <input
+              id={`denomination-${denomination}`}
+              inputMode="numeric"
+              autoComplete="off"
               disabled={preview !== null}
-              placeholder="L 0.00"
+              value={quantities[denomination] ?? ""}
+              onChange={(event) =>
+                setQuantities((current) => ({
+                  ...current,
+                  [denomination]: event.target.value.replace(/\D/g, "").slice(0, 6),
+                }))
+              }
+              className="border-input bg-background focus-visible:border-ring focus-visible:ring-ring/50 h-11 w-full min-w-0 rounded-lg border px-2.5 py-1 text-right text-base tabular-nums outline-none focus-visible:ring-3 disabled:opacity-50"
             />
-          </FormField>
-        </div>
-      )}
+            <span className="text-muted-foreground text-right text-sm tabular-nums">
+              {formatMoney(mulCents(denomination, counts[denomination] ?? 0))}
+            </span>
+          </li>
+        ))}
+        <li className="flex items-center justify-between gap-3 px-3 py-2 font-medium">
+          <span>{copy.denominationsTotal}</span>
+          <span className="text-lg font-semibold tabular-nums">{formatMoney(countedCents)}</span>
+        </li>
+      </ul>
 
       {preview === null ? (
         <Button type="button" loading={pending} onClick={check}>
@@ -162,11 +127,11 @@ export function CloseCashForm({ financeBox = false }: { financeBox?: boolean }) 
         </Button>
       ) : (
         <div className="space-y-4">
-          <dl className="grid max-w-md grid-cols-[1fr_auto] gap-x-6 gap-y-1 text-sm">
+          <dl className="grid grid-cols-[1fr_auto] gap-x-6 gap-y-1 text-sm">
             <dt>{copy.expected}</dt>
             <dd className="text-right tabular-nums">{formatMoney(preview.expectedCents)}</dd>
             <dt>{copy.countedLabel}</dt>
-            <dd className="text-right tabular-nums">{formatMoney(countedCents ?? 0)}</dd>
+            <dd className="text-right tabular-nums">{formatMoney(countedCents)}</dd>
             <dt className="font-medium">{copy.difference}</dt>
             <dd
               className={cn(
@@ -209,7 +174,7 @@ export function CloseCashForm({ financeBox = false }: { financeBox?: boolean }) 
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => setWithdrawCents(counted)}
+                onClick={() => setWithdrawCents(countedCents)}
               >
                 {copy.withdrawAll}
               </Button>
@@ -234,11 +199,11 @@ export function CloseCashForm({ financeBox = false }: { financeBox?: boolean }) 
           <FormField
             label={copy.notes}
             htmlFor="close-notes"
-            hint={needsNotes ? copy.notesHintRequired : copy.notesHintOptional}
+            hint={needsNotes ? copy.notesHintRequired : undefined}
           >
             <textarea
               id="close-notes"
-              rows={3}
+              rows={2}
               maxLength={500}
               value={notes}
               onChange={(event) => setNotes(event.target.value)}

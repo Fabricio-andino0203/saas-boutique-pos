@@ -17,7 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Notice } from "@/components/shared/notice";
 import { SuccessCheck } from "@/components/shared/success-check";
 import { messages } from "@/config/messages.es";
-import { formatMoney } from "@/lib/format";
+import { formatMoney, pluralize } from "@/lib/format";
 import { sumCents } from "@/lib/money";
 import { cn } from "@/lib/utils";
 import { processExchangeAction } from "@/modules/returns/actions";
@@ -269,7 +269,8 @@ function ChargeForm({
         <DialogTitle>{exchange ? exchangeCopy.banner : copy.title}</DialogTitle>
         <DialogDescription>
           {exchange ? `${exchange.saleNumber} · ` : ""}
-          {summary.units} {messages.pos.ticket.units}
+          {summary.units}{" "}
+          {pluralize(summary.units, messages.pos.ticket.unit, messages.pos.ticket.units)}
           {customer ? ` · ${customer.name}` : ""}
         </DialogDescription>
       </DialogHeader>
@@ -469,7 +470,7 @@ function ChargeForm({
                 />
                 <span>
                   <span className="font-medium">{messages.returns.methods[option]}</span>
-                  <span className="text-muted-foreground block text-xs">{hint}</span>
+                  <span className="text-muted-foreground block text-sm">{hint}</span>
                 </span>
               </label>
             );

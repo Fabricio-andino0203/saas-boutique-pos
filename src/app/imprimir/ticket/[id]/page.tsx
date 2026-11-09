@@ -18,7 +18,7 @@ export default async function PrintTicketPage({
 }) {
   await requirePageCapability("sale.create");
   const { id } = await params;
-  const doc = await getSaleDocument(id);
+  const doc = await getSaleDocument(id, { logo: true });
   if (!doc) {
     notFound();
   }

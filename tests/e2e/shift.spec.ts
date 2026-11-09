@@ -3,7 +3,14 @@ import { expect, test, type Browser, type Page } from "@playwright/test";
 import { messages } from "../../src/config/messages.es";
 
 import { createInvoiceRange, deactivateInvoiceRange } from "./helpers/billing";
-import { closeLeftoverCash, fillMoney, openCashPanel, openShift } from "./helpers/cash";
+import {
+  cashAction,
+  closeLeftoverCash,
+  countCash,
+  fillMoney,
+  openCashPanel,
+  openShift,
+} from "./helpers/cash";
 import { loginAs } from "./helpers/login";
 import { addStock, createSimpleProduct } from "./helpers/products";
 
@@ -37,39 +44,40 @@ test("the cashier opens the shift, moves cash, closes with a difference and a ma
 
   // Abrir con fondo de L 500 (Vender ofrece abrir la caja) y entrar a las opciones de caja de Vender
   await openShift(page, "500");
-  const panel = await openCashPanel(page, "movements");
+  const panel = await openCashPanel(page, "expense");
   const expected = panel.getByRole("group", { name: copy.current.expected });
   await expect(expected).toContainText("L 500.00");
 
-  // Una salida de L 100 con motivo, y una que no se puede (más de lo que hay)
+  // Un gasto de L 100 con motivo y categoría (Finanzas está en el plan), y una salida que no se puede (más de lo que hay)
   await fillMoney(page, copy.movements.amount, "100");
-  await page.getByLabel(copy.movements.reason, { exact: true }).fill("E2E pago de flete");
-  // Con Finanzas en el plan, una salida arranca como gasto y se elige su categoría.
-  await expect(page.getByRole("radio", { name: copy.movements.finance.expense })).toBeChecked();
+  await panel.getByLabel(copy.movements.reason, { exact: true }).fill("E2E pago de flete");
   await panel
     .getByLabel(copy.movements.finance.category, { exact: true })
     .selectOption({ label: "Transporte y envíos" });
-  await page.getByRole("button", { name: copy.movements.submit }).click();
+  await panel.getByRole("button", { name: copy.movements.submit }).click();
   await expect(expected).toContainText("L 400.00");
 
+  await cashAction(panel, "out");
   await fillMoney(page, copy.movements.amount, "9999");
-  await page.getByLabel(copy.movements.reason, { exact: true }).fill("E2E demasiado");
-  await page.getByRole("button", { name: copy.movements.submit }).click();
+  await panel.getByLabel(copy.movements.reason, { exact: true }).fill("E2E demasiado");
+  await panel.getByRole("button", { name: copy.movements.submit }).click();
   await expect(page.getByText(messages.errors.INSUFFICIENT_CASH)).toBeVisible();
   await expect(expected).toContainText("L 400.00");
 
   // Una entrada de L 50
-  await page.getByRole("radio", { name: copy.movements.IN }).check();
+  await cashAction(panel, "in");
   await fillMoney(page, copy.movements.amount, "50");
-  await page.getByLabel(copy.movements.reason, { exact: true }).fill("E2E cambio del banco");
-  await page.getByRole("button", { name: copy.movements.submit }).click();
+  await panel.getByLabel(copy.movements.reason, { exact: true }).fill("E2E cambio del banco");
+  await panel.getByRole("button", { name: copy.movements.submit }).click();
   await expect(expected).toContainText("L 450.00");
 
   // Cerrar contando L 449: falta L 1 y el comentario es obligatorio
-  await panel.getByRole("tab", { name: copy.panel.tabs.close }).click();
-  await fillMoney(page, copy.close.counted, "449");
-  await page.getByRole("button", { name: copy.close.check }).click();
+  await cashAction(panel, "close");
+  await countCash(panel, 44900);
+  await panel.getByRole("button", { name: copy.close.check }).click();
   await expect(page.getByText(`${copy.close.short} L 1.00`)).toBeVisible();
+  // Retira todo para no dejar saldo anterior a las demás pruebas
+  await panel.getByRole("button", { name: copy.close.withdrawAll }).click();
   const closeButton = page.getByRole("button", { name: copy.close.submit, exact: true });
   await expect(closeButton).toBeDisabled();
   await page.getByLabel(copy.close.notes).fill("E2E faltó un billete de un lempira");
@@ -119,26 +127,27 @@ test("the cashier counts bills and coins and closes a shift that balances", asyn
   await loginAs(page, "cashier");
   await closeLeftoverCash(page);
   await openShift(page, "0");
-  const panel = await openCashPanel(page, "movements");
+  const panel = await openCashPanel(page, "in");
   const expected = panel.getByRole("group", { name: copy.current.expected });
   await expect(expected).toContainText("L 0.00");
 
-  await page.getByRole("radio", { name: copy.movements.IN }).check();
   await fillMoney(page, copy.movements.amount, "700");
-  await page.getByLabel(copy.movements.reason, { exact: true }).fill("E2E cambio inicial");
-  await page.getByRole("button", { name: copy.movements.submit }).click();
+  await panel.getByLabel(copy.movements.reason, { exact: true }).fill("E2E cambio inicial");
+  await panel.getByRole("button", { name: copy.movements.submit }).click();
   await expect(expected).toContainText("L 700.00");
 
-  // L 500 + L 200 por denominaciones: el total sale solo
-  await panel.getByRole("tab", { name: copy.panel.tabs.close }).click();
-  await page.getByRole("checkbox", { name: copy.close.byDenomination }).check();
-  await page.getByLabel(`${copy.close.denomination} L 500.00`, { exact: true }).fill("1");
-  await page.getByLabel(`${copy.close.denomination} L 200.00`, { exact: true }).fill("1");
-  await expect(page.getByText(copy.close.denominationsTotal)).toContainText("L 700.00");
+  // L 500 + L 200 por billetes y monedas: el total sale solo
+  await cashAction(panel, "close");
+  await panel.getByLabel("L 500.00", { exact: true }).fill("1");
+  await panel.getByLabel("L 200.00", { exact: true }).fill("1");
+  await expect(
+    panel.getByRole("listitem").filter({ hasText: copy.close.denominationsTotal }),
+  ).toContainText("L 700.00");
   await page.getByRole("button", { name: copy.close.check }).click();
   await expect(page.getByText(copy.close.matches)).toBeVisible();
 
-  // Cuadra: no hace falta comentario
+  // Cuadra: no hace falta comentario. Retira todo para no dejar saldo anterior a las demás pruebas.
+  await panel.getByRole("button", { name: copy.close.withdrawAll }).click();
   const closeButton = page.getByRole("button", { name: copy.close.submit, exact: true });
   await expect(closeButton).toBeEnabled();
   await closeButton.click();
@@ -160,16 +169,17 @@ test("closing withdraws cash to the finance box and the rest stays in the drawer
   await openShift(page, "500");
 
   // Entran L 300 más: en el cajón debe haber L 800
-  const panel = await openCashPanel(page, "movements");
-  await page.getByRole("radio", { name: copy.movements.IN }).check();
+  const panel = await openCashPanel(page, "in");
   await fillMoney(page, copy.movements.amount, "300");
-  await page.getByLabel(copy.movements.reason, { exact: true }).fill("E2E aporte antes del retiro");
-  await page.getByRole("button", { name: copy.movements.submit }).click();
+  await panel
+    .getByLabel(copy.movements.reason, { exact: true })
+    .fill("E2E aporte antes del retiro");
+  await panel.getByRole("button", { name: copy.movements.submit }).click();
   await expect(panel.getByRole("group", { name: copy.current.expected })).toContainText("L 800.00");
 
   // Contó L 800 y retira L 700: no se puede retirar más de lo contado, y quedan L 100 para mañana
-  await panel.getByRole("tab", { name: copy.panel.tabs.close }).click();
-  await fillMoney(page, copy.close.counted, "800");
+  await cashAction(panel, "close");
+  await countCash(panel, 80000);
   await page.getByRole("button", { name: copy.close.check }).click();
   await expect(page.getByText(copy.close.matches)).toBeVisible();
   const closeButton = page.getByRole("button", { name: copy.close.submit, exact: true });
@@ -187,25 +197,31 @@ test("closing withdraws cash to the finance box and the rest stays in the drawer
   await expect(summary).toContainText(copy.detail.leftInDrawer);
   await expect(summary).toContainText("L 100.00");
 
-  // La siguiente caja ofrece los L 100 que quedaron; cambiarlos pide explicar por qué
+  // La siguiente caja abre con los L 100 que quedaron: el saldo anterior se ve, no se escribe y no se puede cambiar
   await page.goto("/vender");
-  await expect(page.getByText(copy.open.inherited)).toBeVisible();
-  await expect(page.getByLabel(copy.open.float, { exact: true })).toHaveValue("L 100.00");
-  await fillMoney(page, copy.open.float, "50");
-  const openButton = page.getByRole("button", { name: copy.open.submit });
-  await expect(page.getByLabel(copy.open.changedNotes)).toBeVisible();
-  await expect(openButton).toBeDisabled();
-  await page.getByLabel(copy.open.changedNotes).fill("E2E se llevaron L 50 al banco");
-  await expect(openButton).toBeEnabled();
-  await openButton.click();
+  const previous = page.getByRole("region", { name: copy.open.title });
+  await expect(previous).toContainText(copy.open.previous);
+  await expect(previous).toContainText("L 100.00");
+  await expect(page.getByLabel(copy.open.float, { exact: true })).toHaveCount(0);
+  await page.getByRole("button", { name: copy.open.submit }).click();
   await expect(
     page.getByRole("button", { name: messages.pos.actions.cash, exact: true }),
   ).toBeVisible();
 
-  // Cierra retirando todo: la terminal queda sin fondo heredado para las demás pruebas
-  const second = await openCashPanel(page, "close");
+  // Si el cajón tiene otra cantidad, se corrige con una salida y su motivo (queda en el turno)
+  const second = await openCashPanel(page, "out");
+  await expect(second.getByRole("group", { name: copy.current.expected })).toContainText(
+    "L 100.00",
+  );
+  await fillMoney(page, copy.movements.amount, "50");
+  await second.getByLabel(copy.movements.reason, { exact: true }).fill("E2E se llevaron L 50");
+  await second.getByRole("button", { name: copy.movements.submit }).click();
   await expect(second.getByRole("group", { name: copy.current.expected })).toContainText("L 50.00");
-  await fillMoney(page, copy.close.counted, "50");
+  await expect(second).toContainText("E2E se llevaron L 50");
+
+  // Cierra retirando todo: la terminal queda sin saldo anterior para las demás pruebas
+  await cashAction(second, "close");
+  await countCash(second, 5000);
   await page.getByRole("button", { name: copy.close.check }).click();
   await expect(page.getByText(copy.close.matches)).toBeVisible();
   await page.getByRole("button", { name: copy.close.withdrawAll }).click();
@@ -435,8 +451,75 @@ test("the cashier charges in cash, sees the change and prints the ticket", async
   await expect(sheet.getByText("L 500.00").first()).toBeVisible();
   await expect(sheet.getByText("L 380.00").first()).toBeVisible();
   await expect(sheet).not.toContainText(messages.salesDoc.cai);
+  // El orden del comprobante: título y número, fecha, hora, quién atendió, columnas, total y forma de pago
+  await expect(sheet).toContainText(messages.salesDoc.voucher);
+  await expect(sheet).toContainText(`${messages.salesDoc.numberShort} ${ticketNumber}`);
+  for (const label of [
+    messages.salesDoc.date,
+    messages.salesDoc.time,
+    messages.salesDoc.attendedBy,
+    messages.salesDoc.customer,
+    messages.salesDoc.columns.quantity,
+    messages.salesDoc.columns.description,
+    messages.salesDoc.columns.price,
+    messages.salesDoc.columns.total,
+    messages.salesDoc.payments,
+    messages.salesDoc.change,
+  ]) {
+    await expect(sheet).toContainText(label);
+  }
+  await expect(sheet).toContainText(messages.cash.methods.CASH);
 
   await closeLeftoverCash(page);
+});
+
+test("the cashier cancels a sale with a reason, from the ticket and from the cash panel, and it stays on record", async ({
+  page,
+  browser,
+}) => {
+  test.slow();
+  const name = `E2E Cancelar ${Date.now()}`;
+  const baseURL = test.info().project.use.baseURL as string;
+  await createStockedProduct(browser, baseURL, name, "90", "L 90.00", "5");
+
+  await openCashAndSell(page);
+
+  // Sin prendas en el ticket no hay venta que cancelar
+  const idle = await openCashPanel(page);
+  await expect(idle.getByRole("button", { name: copy.panel.actions.cancelSale })).toBeDisabled();
+  await page.keyboard.press("Escape");
+  await expect(idle).toBeHidden();
+
+  // Desde el ticket: pide el motivo y no se cancela sin él
+  await addToTicket(page, name, "L 90.00");
+  await page.getByRole("button", { name: pos.ticket.clear }).click();
+  const dialog = page.getByRole("dialog", { name: pos.cancel.title });
+  const confirm = dialog.getByRole("button", { name: pos.cancel.confirm });
+  await expect(confirm).toBeDisabled();
+  await dialog.getByLabel(pos.cancel.reason, { exact: true }).fill("ab");
+  await expect(confirm).toBeDisabled();
+  await dialog.getByLabel(pos.cancel.reason, { exact: true }).fill("E2E el cliente se arrepintió");
+  await confirm.click();
+  await expect(page.getByText(pos.ticket.empty)).toBeVisible();
+
+  // Desde el panel de Caja: lo mismo
+  await addToTicket(page, name, "L 90.00");
+  const panel = await openCashPanel(page);
+  await panel.getByRole("button", { name: copy.panel.actions.cancelSale }).click();
+  const again = page.getByRole("dialog", { name: pos.cancel.title });
+  await again.getByLabel(pos.cancel.reason, { exact: true }).fill("E2E se fue sin comprar");
+  await again.getByRole("button", { name: pos.cancel.confirm }).click();
+  await expect(page.getByText(pos.ticket.empty)).toBeVisible();
+  await closeLeftoverCash(page);
+
+  // Las dos quedaron en la auditoría, con quién y por qué
+  const ownerContext = await browser.newContext({ baseURL });
+  const owner = await ownerContext.newPage();
+  await loginAs(owner, "owner");
+  await owner.goto("/auditoria?action=TICKET_CANCELLED");
+  await expect(owner.getByText("E2E el cliente se arrepintió").first()).toBeVisible();
+  await expect(owner.getByText("E2E se fue sin comprar").first()).toBeVisible();
+  await ownerContext.close();
 });
 
 test("the cashier splits the payment, a manager approves the discount and an invoice with CAI comes out", async ({
@@ -715,9 +798,11 @@ test("acceptance: scan three garments, 10 % off, split payment, ticket, and the 
   await expect(closing.getByRole("group", { name: messages.cash.current.expected })).toContainText(
     "L 900.00",
   );
-  await fillMoney(page, messages.cash.close.counted, "900");
+  await countCash(closing, 90000);
   await page.getByRole("button", { name: messages.cash.close.check }).click();
   await expect(page.getByText(messages.cash.close.matches)).toBeVisible();
+  // Retira todo: el turno cierra en cero y no queda saldo anterior para la prueba siguiente
+  await closing.getByRole("button", { name: messages.cash.close.withdrawAll }).click();
   const closeButton = page.getByRole("button", { name: messages.cash.close.submit, exact: true });
   await expect(closeButton).toBeEnabled();
   await closeButton.click();

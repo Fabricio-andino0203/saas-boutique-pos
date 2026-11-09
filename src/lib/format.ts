@@ -53,6 +53,11 @@ export function parsePercentBps(text: string): number | null {
   return bps !== 0 && (sign === "-" || sign === "−") ? -bps : bps;
 }
 
+/** La palabra en singular o plural según la cantidad: 1 → "prenda", 0 o 2 → "prendas". */
+export function pluralize(count: number, one: string, many: string): string {
+  return count === 1 ? one : many;
+}
+
 /** Puntos base a texto editable: 1500 → "15", 1550 → "15.5", 75 → "0.75". */
 export function formatPercentBps(bps: number): string {
   assertCents(bps, "bps");

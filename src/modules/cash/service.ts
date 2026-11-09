@@ -2,6 +2,7 @@ import type { Prisma, PrismaClient } from "@/generated/prisma/client";
 import { audit } from "@/lib/audit";
 import { db } from "@/lib/db";
 import {
+  CashFloatLockedError,
   CashSessionClosedError,
   CashSessionOpenError,
   CashSessionStateError,
@@ -143,7 +144,7 @@ async function lockOwnOpenSession(tx: Tx, userId: string): Promise<{ id: string 
 /**
  * Abre el turno con un fondo inicial. Una sola caja abierta por usuario y por terminal: la terminal
  * se bloquea mientras se decide, y los índices parciales de la base cubren cualquier otra carrera.
- * Si el último cierre dejó un fondo mayor que cero y se abre con otro monto, el comentario es obligatorio y queda en la auditoría.
+ * Si el último cierre dejó un fondo mayor que cero, el turno abre con ese saldo y con ningún otro (RF-CASH-8).
  */
 export async function openCashSession(
   actor: Actor,
@@ -166,12 +167,10 @@ export async function openCashSession(
         throw new CashSessionOpenError();
       }
       const inherited = await getInheritedFloat(tx, terminal.id);
-      const { openingFloatCents, openingNotes } = parsed.data;
-      const differs = inherited !== null && openingFloatCents !== inherited.cents;
-      if (differs && inherited.cents > 0 && !openingNotes) {
-        throw new ValidationError(
-          "A comment is required when the float differs from the inherited one",
-        );
+      const { openingFloatCents } = parsed.data;
+      // El saldo anterior no se puede cambiar: lo que no cuadre con el cajón se corrige después con una entrada o salida con motivo.
+      if (inherited !== null && inherited.cents > 0 && openingFloatCents !== inherited.cents) {
+        throw new CashFloatLockedError();
       }
       const session = await tx.cashSession.create({
         data: {
@@ -179,20 +178,8 @@ export async function openCashSession(
           userId: actor.id,
           openingFloatCents,
           inheritedFloatCents: inherited?.cents ?? null,
-          openingNotes: differs ? (openingNotes ?? null) : null,
         },
       });
-      if (differs) {
-        await audit.log(tx, {
-          userId: actor.id,
-          action: "CASH_FLOAT_ADJUSTED",
-          entityType: "CashSession",
-          entityId: session.id,
-          before: { inheritedFloatCents: inherited.cents },
-          after: { openingFloatCents },
-          reason: openingNotes,
-        });
-      }
       return { id: session.id };
     });
   } catch (error) {

@@ -5,9 +5,11 @@ import { describe, expect, it } from "vitest";
 
 import { ImageTooLargeError, InvalidImageError } from "@/lib/errors";
 import {
+  LOGO_MAX_BYTES,
   PHOTO_MAX_BYTES,
   PHOTO_SIZES,
   isPhotoSize,
+  processLogo,
   processPhoto,
   sniffImageFormat,
 } from "@/lib/images";
@@ -187,5 +189,57 @@ describe("processPhoto", () => {
     const error = await processPhoto(Buffer.from("no soy una foto")).catch((e: unknown) => e);
     expect(error).toBeInstanceOf(InvalidImageError);
     expect((error as InvalidImageError).code).toBe("INVALID_IMAGE");
+  });
+});
+
+describe("processLogo", () => {
+  const decode = async (dataUri: string) => {
+    const [, base64] = dataUri.split(",");
+    return Buffer.from(base64 ?? "", "base64");
+  };
+
+  it("fits a big colour logo into the 80 mm ticket, in greys, as a PNG data URI", async () => {
+    const logo = await processLogo(await solid(1200, 600).png().toBuffer());
+
+    expect(logo.dataUri.startsWith("data:image/png;base64,")).toBe(true);
+    // 1200 × 600 cabe en 576 × 240 al reducirlo a la altura: 480 × 240, sin deformar
+    expect([logo.width, logo.height]).toEqual([480, 240]);
+    const meta = await sharp(await decode(logo.dataUri)).metadata();
+    expect(meta).toMatchObject({ format: "png", width: 480, height: 240, channels: 1 });
+    expect(logo.bytes).toBeGreaterThan(0);
+  });
+
+  it("does not enlarge a small logo", async () => {
+    const logo = await processLogo(await solid(100, 50).png().toBuffer());
+    expect([logo.width, logo.height]).toEqual([100, 50]);
+  });
+
+  it("puts a white background where the logo is transparent, so it prints white and not black", async () => {
+    const transparent = await solid(20, 20, 4, { r: 0, g: 0, b: 0, alpha: 0 } as never)
+      .png()
+      .toBuffer();
+    const logo = await processLogo(transparent);
+    const { data } = await sharp(await decode(logo.dataUri))
+      .raw()
+      .toBuffer({ resolveWithObject: true });
+    expect(data[0]).toBeGreaterThanOrEqual(250);
+  });
+
+  it.each([
+    ["text", () => Buffer.from("esto es texto, no un logo")],
+    [
+      "an SVG, which can carry code",
+      () => Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"/>'),
+    ],
+    ["a GIF", () => Buffer.from("GIF89a\x01\x00\x01\x00")],
+    ["an empty file", () => Buffer.alloc(0)],
+  ])("rejects %s", async (_name, make) => {
+    await expect(processLogo(make())).rejects.toBeInstanceOf(InvalidImageError);
+  });
+
+  it("rejects a file over the logo size limit, whatever it is", async () => {
+    await expect(processLogo(Buffer.alloc(LOGO_MAX_BYTES + 1, 65))).rejects.toBeInstanceOf(
+      ImageTooLargeError,
+    );
   });
 });

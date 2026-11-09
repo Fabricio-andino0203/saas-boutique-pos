@@ -31,7 +31,6 @@ export default async function UsersPage() {
     <div className="space-y-6">
       <PageHeader
         title={messages.users.title}
-        description={messages.users.description}
         actions={
           <Link href="/usuarios/nuevo" className={buttonVariants()}>
             {messages.users.new}

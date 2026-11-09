@@ -6,7 +6,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Notice } from "@/components/shared/notice";
 import { messages } from "@/config/messages.es";
-import { formatMoney, formatPercentBps } from "@/lib/format";
+import { formatMoney, formatPercentBps, pluralize } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { CartItem, CartSummary } from "@/modules/sales/cart-logic";
 import type { ExchangeContext, PosConfig, QuickCustomer } from "@/modules/sales/pos-types";
@@ -101,8 +101,8 @@ export function TicketPanel({
             <h2 id="ticket-title" className="font-semibold">
               {ticket.title}
             </h2>
-            <p className="text-muted-foreground text-xs">
-              {summary.units} {ticket.units}
+            <p className="text-muted-foreground text-sm">
+              {summary.units} {pluralize(summary.units, ticket.unit, ticket.units)}
             </p>
           </div>
           <Button type="button" variant="outline" size="sm" onClick={onCustomer}>
@@ -114,7 +114,7 @@ export function TicketPanel({
         </header>
 
         {customer ? (
-          <div className="flex items-center justify-between gap-2 border-b px-4 py-1.5 text-xs">
+          <div className="flex items-center justify-between gap-2 border-b px-4 py-1.5 text-sm">
             <span
               className={creditCents > 0 ? "text-success font-medium" : "text-muted-foreground"}
             >
@@ -156,7 +156,7 @@ export function TicketPanel({
                       >
                         <span className="block truncate font-medium">{item.productName}</span>
                         {item.variantLabel ? (
-                          <span className="text-muted-foreground block truncate text-xs">
+                          <span className="text-muted-foreground block truncate text-sm">
                             {item.variantLabel}
                           </span>
                         ) : null}
@@ -202,11 +202,11 @@ export function TicketPanel({
                             ? formatMoney(line.lineTotalCents)
                             : formatMoney(item.unitPriceCents * item.quantity)}
                         </p>
-                        <p className="text-muted-foreground text-xs tabular-nums">
+                        <p className="text-muted-foreground text-sm tabular-nums">
                           {item.quantity} × {formatMoney(item.unitPriceCents)}
                         </p>
                         {line && line.ownDiscountCents > 0 ? (
-                          <p className="text-success text-xs tabular-nums">
+                          <p className="text-success text-sm tabular-nums">
                             {ticket.lineDiscount} −{formatMoney(line.ownDiscountCents)}
                           </p>
                         ) : null}

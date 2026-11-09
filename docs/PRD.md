@@ -123,13 +123,15 @@ Contabilidad de partida doble, planillas y nómina, CRM de marketing, integraci�
 
 - **RF-CASH-1** **Apertura de caja** con monto inicial (fondo).
 - **RF-CASH-2** Movimientos de efectivo manuales: entradas (ingreso) y salidas (gasto, retiro) con motivo. Si el plan incluye Finanzas, la salida pregunta «¿Qué fue?»: **gasto** (con categoría; crea el gasto enlazado en la misma transacción), **retiro del dueño** u **otra salida** (RF-FIN-4).
-- **RF-CASH-3** **Cierre de caja con arqueo:** el cajero cuenta el efectivo (por denominaciones, opcional), el sistema compara contra lo esperado y muestra la diferencia; indica cuánto retira (RF-CASH-7); el gerente aprueba.
+- **RF-CASH-3** **Cierre de caja con arqueo:** el cajero cuenta el efectivo **siempre por billetes y monedas** (el total se calcula solo), el sistema compara contra lo esperado y muestra la diferencia; indica cuánto retira (RF-CASH-7); el gerente aprueba.
 - **RF-CASH-4** Resumen del turno: ventas por método de pago, devoluciones, entradas/salidas, esperado vs contado.
 - **RF-CASH-5** No se puede vender sin una caja abierta.
 - **RF-CASH-6** Un cajero tiene como máximo una caja abierta a la vez; cada caja pertenece a un "terminal".
 - **RF-CASH-7** **Retiro al cerrar y fondo para el día siguiente:** al cerrar, después de contar, se indica cuánto se **retira**; el resto (lo contado menos lo retirado) **se queda en el cajón**. El retiro no puede superar lo contado, no es un gasto ni cambia el esperado (se decide con el efectivo ya contado) y queda guardado en el cierre y en la auditoría. En los planes con Finanzas, lo retirado entra a la **caja de finanzas** (RF-FIN-11); sin el módulo solo queda anotado en el cierre.
-- **RF-CASH-8** **Apertura con el fondo heredado:** la caja de una terminal se abre ofreciendo el fondo que dejó el último cierre (lo contado menos lo retirado). Se puede cambiar el monto; si había un fondo heredado mayor que cero y se abre con otro, el comentario es obligatorio y la auditoría guarda lo heredado y lo contado. Un cierre anterior sin retiro declarado (anterior a esta función) no hereda nada. El fondo heredado es contado, no esperado: una diferencia del arqueo no se arrastra al día siguiente.
+- **RF-CASH-8** **Apertura con el saldo anterior:** la caja de una terminal abre con el saldo que dejó el último cierre (lo contado menos lo retirado). **El saldo anterior no se puede cambiar:** se muestra, no se escribe, y el servidor rechaza cualquier otro monto (`CASH_FLOAT_LOCKED`). Si el cajón tiene otra cantidad, la diferencia se registra después como entrada o salida de efectivo con su motivo (RF-CASH-2), que queda en el turno. Sin saldo anterior (la primera apertura de la terminal o un cierre que retiró todo) el fondo se escribe. Un cierre anterior sin retiro declarado (anterior a esta función) no hereda nada. El fondo heredado es contado, no esperado: una diferencia del arqueo no se arrastra al día siguiente.
 - **RF-CASH-9** **La caja se opera desde Vender:** abrir la caja, ver el turno, registrar entradas y salidas y cerrar son opciones del propio punto de venta (un panel «Caja»); `/caja` lleva a Vender. El historial de cierres y su aprobación siguen en «Cierres de caja».
+- **RF-CASH-10** **Botones de acción de la caja:** el panel «Caja» muestra el efectivo que debe haber y los botones de una caja registradora: *Ingresar efectivo*, *Retirar efectivo*, *Agregar gasto* (solo con Finanzas), *Apartados*, *Cancelar venta* y *Realizar corte* (cambiar de cajero sigue en el encabezado de Vender). Ingresar, retirar y agregar un gasto piden siempre un monto y un **motivo**; el gasto, además, una categoría. Un abono de apartado se registra dentro del propio apartado.
+- **RF-CASH-11** **Nada se quita sin motivo y sin registro:** los movimientos de efectivo no se editan ni se borran (solo se compensan con otro movimiento con su motivo); las ventas cobradas se anulan con motivo y usuario autorizador; y **cancelar un ticket antes de cobrarlo** —el de la pantalla o uno en espera que se descarta— pide un motivo y deja en la auditoría quién, por qué y qué prendas tenía (`TICKET_CANCELLED`). Quitar una línea suelta del ticket no pide motivo.
 
 ### 4.5 Punto de venta (POS)
 
@@ -141,7 +143,8 @@ Contabilidad de partida doble, planillas y nómina, CRM de marketing, integraci�
 - **RF-POS-6** **Pagos mixtos:** una venta puede pagarse con varios métodos (efectivo + tarjeta + transferencia + crédito de tienda); calcula cambio.
 - **RF-POS-7** Asociar cliente a la venta (opcional; obligatorio para apartados y crédito).
 - **RF-POS-8** **Ventas en espera** (suspender y recuperar), varias a la vez.
-- **RF-POS-9** Recibo/ticket imprimible (térmico 80 mm y A4) y reimprimible; envío por WhatsApp/correo como mejora posterior.
+- **RF-POS-9** Recibo/ticket imprimible (térmico 80 mm y A4) y reimprimible; envío por WhatsApp/correo como mejora posterior. El recibo de 80 mm va en blanco y negro y en este orden: logo y datos del negocio (RTN, dirección, teléfono), «Comprobante de venta» con su número, fecha y hora, quién atendió y el cliente, las prendas en columnas (cantidad, descripción, precio, total), subtotal, descuento, ISV, **total** en banda negra, forma de pago, recibido, cambio y el mensaje de cierre. Una venta con factura lleva además el CAI y el rango autorizado.
+- **RF-POS-13** Cancelar la venta (vaciar el ticket) pide un motivo y queda en la auditoría (RF-CASH-11).
 - **RF-POS-10** Atajos de teclado para todas las acciones frecuentes (ver `UX.md`).
 - **RF-POS-11** Validación en vivo de existencias: avisar si se intenta vender algo sin stock.
 - **RF-POS-12** Idempotencia: pulsar "Cobrar" dos veces o reintentar tras una falla de red no duplica la venta.
@@ -188,7 +191,7 @@ Contabilidad de partida doble, planillas y nómina, CRM de marketing, integraci�
 
 ### 4.11 Configuración (CFG)
 
-- **RF-CFG-1** Datos del negocio (nombre, RTN, dirección, teléfono, logo) que salen en el recibo.
+- **RF-CFG-1** Datos del negocio (nombre, RTN, dirección, teléfono, logo) que salen en el recibo. El logo se sube en Configuración (JPG, PNG o WebP de hasta 4 MB); el sistema lo pasa a grises y lo reduce a lo que cabe en la térmica de 80 mm.
 - **RF-CFG-2** Impuestos (tasa de ISV, precios con impuesto incluido sí/no).
 - **RF-CFG-3** Numeración de documentos y **rango/CAI** de facturación con fecha límite (ver §7).
 - **RF-CFG-4** Métodos de pago activos.

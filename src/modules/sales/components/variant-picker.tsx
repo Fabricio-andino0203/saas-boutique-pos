@@ -33,9 +33,7 @@ export function VariantPicker({
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{product?.name ?? copy.title}</DialogTitle>
-          <DialogDescription>
-            {copy.title}. {copy.hint}
-          </DialogDescription>
+          <DialogDescription>{copy.title}</DialogDescription>
         </DialogHeader>
         <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3">
           {product?.variants.map((variant) => {
@@ -63,7 +61,7 @@ export function VariantPicker({
                     ) : null}
                     {label}
                   </span>
-                  <span className="text-muted-foreground text-xs tabular-nums">
+                  <span className="text-muted-foreground text-sm tabular-nums">
                     {formatMoney(variant.priceCents)} ·{" "}
                     {out ? copy.out : `${variant.onHand} ${copy.left}`}
                   </span>

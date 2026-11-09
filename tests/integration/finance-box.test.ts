@@ -3,6 +3,7 @@ import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { localDateKey } from "@/lib/dates";
 import { db } from "@/lib/db";
 import type { Role } from "@/lib/permissions";
+import { getTerminalStatus } from "@/modules/cash/queries";
 import { openCashSession, submitCashClose } from "@/modules/cash/service";
 import { BOX_LIST_LIMIT, getFinanceBox, getFinanceSummary } from "@/modules/finance/queries";
 import { createFinanceEntry, voidFinanceEntry } from "@/modules/finance/service";
@@ -55,11 +56,10 @@ const entry = (
 
 /** Abre y cierra un turno contando `counted` y retirando `withdrawn`. */
 async function closeShift(w: World, counted: number, withdrawn: number) {
-  await openCashSession(
-    w.cashier,
-    { openingFloatCents: counted, openingNotes: "Fondo para la prueba" },
-    testDb,
-  );
+  // El saldo anterior no se puede cambiar: el turno abre con lo que dejó el cierre anterior, si dejó algo.
+  const inherited = (await getTerminalStatus()).inherited;
+  const openingFloatCents = inherited && inherited.cents > 0 ? inherited.cents : counted;
+  await openCashSession(w.cashier, { openingFloatCents }, testDb);
   const { id } = await submitCashClose(
     w.cashier,
     { countedCashCents: counted, withdrawnCents: withdrawn, notes: "Cierre de prueba" },

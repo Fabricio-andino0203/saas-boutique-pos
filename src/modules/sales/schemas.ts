@@ -63,3 +63,23 @@ export const voidSaleSchema = z.object({
 });
 
 export type VoidSaleInput = z.input<typeof voidSaleSchema>;
+
+/** Una venta que se arma y se descarta antes de cobrar: queda con su motivo y lo que tenía el ticket. */
+export const cancelTicketSchema = z.object({
+  reason: z.string().trim().min(3).max(200),
+  /** Si era el ticket de la pantalla o uno de los que estaban en espera. */
+  source: z.enum(["current", "parked"]),
+  lines: z
+    .array(
+      z.object({
+        productName: z.string().trim().min(1).max(200),
+        variantLabel: z.string().trim().max(200),
+        quantity: z.number().int().min(1).max(9999),
+        unitPriceCents: z.number().int().min(0).max(MAX_SALE_CENTS),
+      }),
+    )
+    .min(1)
+    .max(200),
+});
+
+export type CancelTicketInput = z.input<typeof cancelTicketSchema>;

@@ -7,6 +7,7 @@ import {
   formatPercentBps,
   parseMoney,
   parsePercentBps,
+  pluralize,
 } from "@/lib/format";
 
 import { mulberry32 } from "./helpers/prng";
@@ -111,5 +112,14 @@ describe("formatPercentBps", () => {
 
   it("rejects unsafe numbers", () => {
     expect(() => formatPercentBps(1.5)).toThrow(ValidationError);
+  });
+});
+
+describe("pluralize", () => {
+  it("uses the singular only for exactly one", () => {
+    expect(pluralize(1, "prenda", "prendas")).toBe("prenda");
+    expect(pluralize(0, "prenda", "prendas")).toBe("prendas");
+    expect(pluralize(2, "prenda", "prendas")).toBe("prendas");
+    expect(pluralize(12, "venta", "ventas")).toBe("ventas");
   });
 });

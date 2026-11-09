@@ -51,7 +51,6 @@ export default async function CustomersPage({
     <div className="space-y-6">
       <PageHeader
         title={copy.title}
-        description={copy.description}
         actions={
           hasCapability(user.role, "customer.write") ? (
             <Link href="/clientes/nuevo" className={buttonVariants()}>

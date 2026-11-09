@@ -111,7 +111,7 @@ export default async function ReceiptsPage({
       </dl>
 
       {list.rows.length === 0 ? (
-        <EmptyState title={copy.emptyReceipts.title} description={copy.emptyReceipts.description} />
+        <EmptyState title={copy.emptyReceipts.title} />
       ) : (
         <div className="overflow-x-auto">
           <Table>

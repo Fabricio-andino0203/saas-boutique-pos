@@ -4,13 +4,7 @@ import { useState } from "react";
 
 import { FormField } from "@/components/shared/form-field";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Notice } from "@/components/shared/notice";
 import { messages } from "@/config/messages.es";
@@ -111,7 +105,6 @@ function DiscountForm({
     <>
       <DialogHeader>
         <DialogTitle>{copy.title}</DialogTitle>
-        <DialogDescription>{copy.description}</DialogDescription>
       </DialogHeader>
 
       <fieldset className="space-y-2">
@@ -138,7 +131,7 @@ function DiscountForm({
           {copy.scopeLine}
           {selected ? `: ${selected.productName} ${selected.variantLabel}`.trimEnd() : ""}
         </label>
-        {!selected ? <p className="text-muted-foreground text-xs">{copy.noLine}</p> : null}
+        {!selected ? <p className="text-muted-foreground text-sm">{copy.noLine}</p> : null}
       </fieldset>
 
       <fieldset className="flex flex-wrap gap-x-6 gap-y-2">
@@ -187,7 +180,7 @@ function DiscountForm({
         />
       </FormField>
 
-      <p className="text-muted-foreground text-xs">
+      <p className="text-muted-foreground text-sm">
         {config.canDiscountBeyondLimit
           ? copy.limitManager
           : `${copy.limit} ${config.cashierDiscountPercent} %.`}{" "}

@@ -15,51 +15,52 @@ import type { CashActionState } from "@/modules/cash/types";
 
 const copy = messages.cash.movements;
 
-type FinanceCategoryOption = { id: string; name: string; type: "EXPENSE" | "INCOME" };
+export type FinanceCategoryOption = { id: string; name: string; type: "EXPENSE" | "INCOME" };
+
+export type MovementKind = "in" | "out" | "expense";
 
 /**
- * `financeCategories` solo llega si el plan incluye Finanzas. Entonces una salida puede registrarse como gasto y una entrada
- * como ingreso, con su categoría; sin el módulo el formulario es el de siempre.
+ * Una forma de mover efectivo del cajón, siempre con su motivo: ingresar, retirar o agregar un gasto. `financeCategories`
+ * solo llega si el plan incluye Finanzas: el gasto elige su categoría (queda también en Finanzas) y una entrada puede
+ * registrarse como un ingreso que no es una venta.
  */
 export function CashMovementForm({
+  kind,
   financeCategories = null,
   onSaved,
 }: {
+  kind: MovementKind;
   financeCategories?: readonly FinanceCategoryOption[] | null;
   /** Se llama después de guardar (el panel de Vender vuelve a cargar el turno). */
   onSaved?: () => void;
 }) {
   const router = useRouter();
-  const [type, setType] = useState<"IN" | "OUT">("OUT");
   const [amountCents, setAmountCents] = useState<number | null>(null);
   const [reason, setReason] = useState("");
-  const [asFinance, setAsFinance] = useState(true);
   const [categoryId, setCategoryId] = useState("");
   const [state, setState] = useState<CashActionState>(undefined);
   const [pending, startTransition] = useTransition();
 
-  const kind = type === "OUT" ? "EXPENSE" : "INCOME";
-  const options = (financeCategories ?? []).filter((category) => category.type === kind);
-  const financeAvailable = options.length > 0;
-  const registering = financeAvailable && asFinance;
+  const options = (financeCategories ?? []).filter(
+    (category) => category.type === (kind === "expense" ? "EXPENSE" : "INCOME"),
+  );
+  // Un gasto siempre lleva categoría; una entrada puede ser solo efectivo ("").
+  const showCategory =
+    kind === "expense" ? options.length > 0 : kind === "in" && options.length > 0;
   const selectedCategory = options.some((option) => option.id === categoryId)
     ? categoryId
-    : (options[0]?.id ?? "");
-
-  function changeType(next: "IN" | "OUT") {
-    setType(next);
-    // Una salida suele ser un gasto; una entrada suele ser más cambio: cada una arranca en su caso más común.
-    setAsFinance(next === "OUT");
-  }
+    : kind === "expense"
+      ? (options[0]?.id ?? "")
+      : "";
 
   function submit() {
     setState(undefined);
     startTransition(async () => {
       const result = await addCashMovementAction({
-        type,
+        type: kind === "in" ? "IN" : "OUT",
         amountCents: amountCents ?? 0,
         reason,
-        ...(registering ? { financeCategoryId: selectedCategory } : {}),
+        ...(showCategory && selectedCategory ? { financeCategoryId: selectedCategory } : {}),
       });
       setState(result);
       if (result?.success) {
@@ -72,29 +73,7 @@ export function CashMovementForm({
   }
 
   return (
-    <section aria-labelledby="movement-title" className="bg-card space-y-4 rounded-lg border p-4">
-      <div className="space-y-1">
-        <h2 id="movement-title" className="text-lg font-medium">
-          {copy.title}
-        </h2>
-        <p className="text-muted-foreground text-sm">{copy.description}</p>
-      </div>
-      <fieldset className="flex flex-wrap gap-x-6 gap-y-2">
-        <legend className="mb-1 text-sm font-medium">{copy.type}</legend>
-        {(["OUT", "IN"] as const).map((option) => (
-          <label key={option} className="flex items-center gap-2 text-sm">
-            <input
-              type="radio"
-              name="movement-type"
-              value={option}
-              checked={type === option}
-              onChange={() => changeType(option)}
-              className="accent-primary size-4"
-            />
-            {copy[option]}
-          </label>
-        ))}
-      </fieldset>
+    <section aria-label={copy.forms[kind]} className="space-y-4">
       <div className="grid gap-4 sm:grid-cols-[12rem_1fr]">
         <FormField label={copy.amount} htmlFor="movement-amount">
           <MoneyInput
@@ -104,7 +83,7 @@ export function CashMovementForm({
             placeholder="L 0.00"
           />
         </FormField>
-        <FormField label={copy.reason} htmlFor="movement-reason" hint={copy.reasonHint}>
+        <FormField label={copy.reason} htmlFor="movement-reason">
           <Input
             id="movement-reason"
             value={reason}
@@ -114,49 +93,24 @@ export function CashMovementForm({
         </FormField>
       </div>
 
-      {financeAvailable ? (
-        <fieldset className="border-divider space-y-3 rounded-lg border p-3">
-          <legend className="px-1 text-sm font-medium">{copy.finance.question}</legend>
-          <div className="flex flex-wrap gap-x-6 gap-y-2">
-            {[true, false].map((value) => (
-              <label key={String(value)} className="flex items-center gap-2 text-sm">
-                <input
-                  type="radio"
-                  name="movement-finance"
-                  checked={asFinance === value}
-                  onChange={() => setAsFinance(value)}
-                  className="accent-primary size-4"
-                />
-                {value
-                  ? type === "OUT"
-                    ? copy.finance.expense
-                    : copy.finance.income
-                  : type === "OUT"
-                    ? copy.finance.withdrawal
-                    : copy.finance.otherIn}
-              </label>
+      {showCategory ? (
+        <FormField
+          label={kind === "expense" ? copy.finance.category : copy.finance.registerAs}
+          htmlFor="movement-category"
+        >
+          <NativeSelect
+            id="movement-category"
+            value={selectedCategory}
+            onChange={(event) => setCategoryId(event.target.value)}
+          >
+            {kind === "in" ? <option value="">{copy.finance.cashOnly}</option> : null}
+            {options.map((option) => (
+              <option key={option.id} value={option.id}>
+                {option.name}
+              </option>
             ))}
-          </div>
-          {registering ? (
-            <FormField
-              label={copy.finance.category}
-              htmlFor="movement-category"
-              hint={copy.finance.hint}
-            >
-              <NativeSelect
-                id="movement-category"
-                value={selectedCategory}
-                onChange={(event) => setCategoryId(event.target.value)}
-              >
-                {options.map((option) => (
-                  <option key={option.id} value={option.id}>
-                    {option.name}
-                  </option>
-                ))}
-              </NativeSelect>
-            </FormField>
-          ) : null}
-        </fieldset>
+          </NativeSelect>
+        </FormField>
       ) : null}
 
       <Button type="button" loading={pending} onClick={submit}>

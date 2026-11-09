@@ -32,7 +32,6 @@ export function ApproveCashButton({ sessionId }: { sessionId: string }) {
       <Button type="button" loading={pending} onClick={approve}>
         {pending ? copy.approving : copy.action}
       </Button>
-      <p className="text-muted-foreground text-xs">{copy.hint}</p>
       {state?.error ? <Notice tone="error">{state.error}</Notice> : null}
       {state?.success ? <Notice tone="success">{state.success}</Notice> : null}
     </div>

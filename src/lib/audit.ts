@@ -2,6 +2,7 @@ import type { Prisma } from "@/generated/prisma/client";
 
 export const AUDIT_ACTIONS = [
   "SALE_VOIDED",
+  "TICKET_CANCELLED",
   "RETURN_PROCESSED",
   "RETURN_OVERRIDE",
   "STORE_CREDIT_ADJUSTED",

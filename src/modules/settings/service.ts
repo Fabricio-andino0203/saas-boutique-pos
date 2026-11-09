@@ -10,6 +10,7 @@ import {
   RangeOverlapError,
   ValidationError,
 } from "@/lib/errors";
+import { processLogo } from "@/lib/images";
 import { requireCapability } from "@/lib/permissions";
 import {
   getSettings,
@@ -52,6 +53,50 @@ export async function getBusinessProfile(
     address: profile?.address ?? "",
     phone: profile?.phone ?? "",
   };
+}
+
+/** El logo del negocio como `data:` URI, o `null` si no hay. Aparte de `getBusinessProfile`: pesa, y solo lo pide el ticket. */
+export async function getBusinessLogo(
+  client: Pick<PrismaClient, "businessProfile"> = db,
+): Promise<string | null> {
+  const profile = await client.businessProfile.findFirst({
+    orderBy: { createdAt: "asc" },
+    select: { logoUrl: true },
+  });
+  return profile?.logoUrl ?? null;
+}
+
+/**
+ * Pone el logo del negocio (ya reducido a gris y a lo que cabe en el ticket) o lo quita con `null`. Deja constancia en la
+ * auditoría sin guardar la imagen en ella. Necesita que los datos del negocio ya existan.
+ */
+export async function setBusinessLogo(
+  actor: Actor,
+  bytes: Uint8Array | null,
+  client: PrismaClient = db,
+): Promise<void> {
+  requireCapability(actor, "settings.manage");
+  const logo = bytes === null ? null : await processLogo(bytes);
+  await client.$transaction(async (tx) => {
+    const current = await tx.businessProfile.findFirst({ orderBy: { createdAt: "asc" } });
+    if (!current) {
+      throw new ValidationError("Save the business data before adding a logo");
+    }
+    await tx.businessProfile.update({
+      where: { id: current.id },
+      data: { logoUrl: logo?.dataUri ?? null },
+    });
+    await audit.log(tx, {
+      userId: actor.id,
+      action: "SETTINGS_CHANGED",
+      entityType: "BusinessProfile",
+      entityId: current.id,
+      before: { logo: current.logoUrl ? "set" : "none" },
+      after: logo
+        ? { logo: "set", width: logo.width, height: logo.height, bytes: logo.bytes }
+        : { logo: "removed" },
+    });
+  });
 }
 
 export async function updateBusinessProfile(

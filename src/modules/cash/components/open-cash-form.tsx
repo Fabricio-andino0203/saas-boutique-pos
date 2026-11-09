@@ -24,31 +24,24 @@ export type InheritedFloatView = {
 };
 
 /**
- * Abre el turno. Si el último cierre de la terminal dejó efectivo en el cajón, ese fondo ya aparece puesto; cambiarlo
- * pide explicar por qué. Si no dejó nada, el campo empieza vacío, como siempre.
+ * Abre el turno. Si el último cierre dejó efectivo en el cajón, ese saldo anterior es el fondo: se muestra y no se edita
+ * (cualquier diferencia se registra después como entrada o salida, con su motivo). Si no dejó nada, el fondo se escribe.
  */
 export function OpenCashForm({
-  terminalName,
   inherited: inheritedFloat = null,
 }: {
-  terminalName: string;
   inherited?: InheritedFloatView | null;
 }) {
   const router = useRouter();
-  // Si el último cierre no dejó nada, no hay fondo que ofrecer.
   const inherited = inheritedFloat && inheritedFloat.cents > 0 ? inheritedFloat : null;
-  const [floatCents, setFloatCents] = useState<number | null>(inherited?.cents ?? null);
-  const [notes, setNotes] = useState("");
+  const [floatCents, setFloatCents] = useState<number | null>(null);
   const [state, setState] = useState<CashActionState>(undefined);
   const [pending, startTransition] = useTransition();
-
-  const differs = inherited !== null && floatCents !== inherited.cents;
-  const notesReady = !differs || notes.trim().length >= 3;
 
   function submit() {
     setState(undefined);
     startTransition(async () => {
-      const result = await openCashAction(floatCents ?? Number.NaN, differs ? notes : undefined);
+      const result = await openCashAction(inherited?.cents ?? floatCents ?? Number.NaN);
       setState(result);
       if (result?.success) {
         toast.success(messages.toasts.cashOpened);
@@ -58,49 +51,28 @@ export function OpenCashForm({
   }
 
   return (
-    <section aria-labelledby="open-cash-title" className="bg-card space-y-4 rounded-lg border p-4">
-      <div className="space-y-1">
-        <h2 id="open-cash-title" className="text-lg font-medium">
-          {copy.title}
-        </h2>
-        <p className="text-muted-foreground text-sm">
-          {terminalName} · {copy.description}
-        </p>
-      </div>
+    <section aria-label={copy.title} className="bg-card space-y-4 rounded-lg border p-4">
       {inherited ? (
-        <div role="note" className="bg-muted/50 space-y-0.5 rounded-lg p-3 text-sm">
-          <p className="font-medium">
-            {copy.inherited}: <span className="tabular-nums">{formatMoney(inherited.cents)}</span>
-          </p>
-          <p className="text-muted-foreground text-xs">
-            {copy.inheritedBy} {inherited.closedByName} ·{" "}
-            {formatLocalDateTime(new Date(inherited.closedAt))}. {copy.inheritedHint}
+        <div className="space-y-1 text-center">
+          <p className="text-muted-foreground text-sm">{copy.previous}</p>
+          <p className="text-3xl font-semibold tabular-nums">{formatMoney(inherited.cents)}</p>
+          <p className="text-muted-foreground text-sm">
+            {inherited.closedByName} · {formatLocalDateTime(new Date(inherited.closedAt))}
           </p>
         </div>
-      ) : null}
-      <div className="max-w-xs">
-        <FormField label={copy.float} htmlFor="opening-float" hint={copy.floatHint}>
-          <MoneyInput
-            id="opening-float"
-            valueCents={floatCents}
-            onValueChange={setFloatCents}
-            placeholder="L 0.00"
-          />
-        </FormField>
-      </div>
-      {differs ? (
-        <FormField label={copy.changedNotes} htmlFor="opening-notes" hint={copy.changedNotesHint}>
-          <textarea
-            id="opening-notes"
-            rows={2}
-            maxLength={300}
-            value={notes}
-            onChange={(event) => setNotes(event.target.value)}
-            className="border-input bg-background focus-visible:border-ring focus-visible:ring-ring/50 w-full min-w-0 rounded-lg border px-2.5 py-1.5 text-base outline-none focus-visible:ring-3 md:text-sm"
-          />
-        </FormField>
-      ) : null}
-      <Button type="button" loading={pending} disabled={!notesReady} onClick={submit}>
+      ) : (
+        <div className="max-w-xs">
+          <FormField label={copy.float} htmlFor="opening-float">
+            <MoneyInput
+              id="opening-float"
+              valueCents={floatCents}
+              onValueChange={setFloatCents}
+              placeholder="L 0.00"
+            />
+          </FormField>
+        </div>
+      )}
+      <Button type="button" className="h-11 w-full text-base" loading={pending} onClick={submit}>
         {pending ? copy.submitting : copy.submit}
       </Button>
       {state?.error ? <Notice tone="error">{state.error}</Notice> : null}

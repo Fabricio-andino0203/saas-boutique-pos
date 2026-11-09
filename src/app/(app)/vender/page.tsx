@@ -23,13 +23,12 @@ export default async function PosPage() {
     const canOpen = hasCapability(user.role, "cash.open");
     return (
       <div className="mx-auto max-w-lg space-y-6 py-12">
-        <div className="space-y-2 text-center">
+        <div className="space-y-1 text-center">
           <h1 className="text-2xl font-semibold tracking-tight">{copy.title}</h1>
-          <p className="text-muted-foreground">{copy.description}</p>
+          <p className="text-muted-foreground text-sm">{terminal.terminalName}</p>
         </div>
         {canOpen ? (
           <OpenCashForm
-            terminalName={terminal.terminalName}
             inherited={
               terminal.inherited
                 ? {

@@ -61,7 +61,7 @@ erDiagram
 Clave/valor tipado por ámbito (`key @unique`, `valueJson`). Ejemplos: `tax.rate`, `tax.pricesIncludeTax`, `sales.allowNegativeStock`, `discount.maxPercent.CASHIER`, `returns.maxDays`, `layaway.expiryDays`, `ticket.footer`. Con helper tipado en `src/lib/settings.ts`.
 
 ### BusinessProfile
-`legalName`, `tradeName`, `taxId (RTN)`, `address`, `phone`, `logoUrl?`.
+`legalName`, `tradeName`, `taxId (RTN)`, `address`, `phone`, `logoUrl?`. `logoUrl` guarda el logo ya procesado como `data:image/png;base64,…` (escala de grises, hasta 576 × 240 px; ver `processLogo` en `src/lib/images.ts`): no depende del almacén de fotos y el ticket lo imprime sin pedir nada más. Se lee aparte (`getBusinessLogo`) porque pesa; subirlo o quitarlo deja un `AuditLog SETTINGS_CHANGED` sin la imagen.
 
 ### FiscalRange (rango CAI)
 | Campo | Notas |
@@ -84,7 +84,7 @@ Sesiones en BD, revocables (forma compatible con Auth.js). `sessionToken @unique
 Numeración correlativa interna sin saltos (ticket, devolución, apartado…). `key` es la clave primaria (p. ej. `SALE`, `RETURN`, `LAYAWAY`, `PURCHASE_ORDER`), `nextValue Int` (por defecto 1) y `updatedAt`. Se incrementa con bloqueo de fila dentro de la transacción del documento.
 
 ### AuditLog
-`userId?`, `action String` (p. ej. `SALE_VOIDED`), `entityType`, `entityId`, `before Json?`, `after Json?`, `reason String?`, `ip?`, `createdAt`. **Solo inserción**; nunca update/delete. Índices por `(entityType, entityId)`, `(userId, createdAt)` y `(action, createdAt)`.
+`userId?`, `action String` (p. ej. `SALE_VOIDED`), `entityType`, `entityId`, `before Json?`, `after Json?`, `reason String?`, `ip?`, `createdAt`. **Solo inserción**; nunca update/delete. Índices por `(entityType, entityId)`, `(userId, createdAt)` y `(action, createdAt)`. `TICKET_CANCELLED` es el registro de un ticket que se descartó sin cobrar (el ticket vive en el navegador y no toca inventario ni dinero): `entityType = CashSession` y `entityId` el turno abierto de quien lo cancela (`User` si no había turno), `reason` el motivo y `after { source, units, grossCents, lines }` lo que tenía.
 
 ## 3. Catálogo
 
@@ -191,7 +191,7 @@ Al confirmar: crea `StockMovement PURCHASE_IN`, actualiza `StockLevel`, recalcul
 
 ### CashSession (turno de caja)
 `terminalId`, `userId`, `openedAt`, `openingFloatCents`, `inheritedFloatCents?`, `openingNotes?`, `closedAt?`, `expectedCashCents?`, `countedCashCents?`, `differenceCents?`, `withdrawnCents?`, `status enum (OPEN, CLOSED_PENDING_APPROVAL, CLOSED)`, `approvedById?`, `notes?`.
-`withdrawnCents` es lo que se retiró al cerrar (0 si no se retiró nada; `NULL` en los turnos anteriores a esta función): CHECK `0 ≤ withdrawnCents ≤ countedCashCents`. Lo que **se queda en el cajón** es `countedCashCents − withdrawnCents` y es el fondo que se ofrece al abrir la siguiente caja de esa terminal; un cierre con `withdrawnCents NULL` no hereda nada. `inheritedFloatCents` es lo que se ofreció al abrir (`NULL` si no había cierre anterior con retiro declarado) y `openingNotes` explica por qué se abrió con otro monto (obligatorio si lo heredado era mayor que cero y el fondo fue distinto).
+`withdrawnCents` es lo que se retiró al cerrar (0 si no se retiró nada; `NULL` en los turnos anteriores a esta función): CHECK `0 ≤ withdrawnCents ≤ countedCashCents`. Lo que **se queda en el cajón** es `countedCashCents − withdrawnCents` y es el **saldo anterior** con el que abre la siguiente caja de esa terminal; un cierre con `withdrawnCents NULL` no hereda nada. `inheritedFloatCents` es ese saldo (`NULL` si no había cierre anterior con retiro declarado). **El saldo anterior no se puede cambiar:** si es mayor que cero, `openingFloatCents` es exactamente ese monto (lo exige `openCashSession`, error `CASH_FLOAT_LOCKED`); lo que el cajón tenga de más o de menos se registra después con un `CashMovement` y su motivo. `openingNotes` ya no se escribe: queda solo en los turnos que se abrieron cuando todavía se permitía abrir con otro monto, explicando por qué (con su `AuditLog CASH_FLOAT_ADJUSTED`).
 Restricción: máximo una sesión `OPEN` por usuario y por terminal (índice parcial).
 Ciclo: `OPEN` → (el cajero cierra con arqueo: guarda `expectedCashCents`, `countedCashCents`, `differenceCents`; si la diferencia no es 0, `notes` es obligatorio) `CLOSED_PENDING_APPROVAL` → (gerente o propietario aprueba: `approvedById`) `CLOSED`. El desglose por billetes y monedas, si se usó, queda en el `after` del `AuditLog` `CASH_SESSION_CLOSED`. Mientras está `OPEN`, lo esperado se calcula al momento; al cerrar se congela.
 

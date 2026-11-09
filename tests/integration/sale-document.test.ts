@@ -109,6 +109,23 @@ describe("getSaleDocument", () => {
     expect(await getSaleDocument("no-existe")).toBeNull();
   });
 
+  it("only carries the business logo when the print screen asks for it", async () => {
+    const w = await world();
+    const result = await sell(
+      w,
+      [{ variantId: w.dressV.id, quantity: 1 }],
+      [{ method: "CASH", amountCents: 11500 }],
+    );
+    await testDb.businessProfile.updateMany({ data: { logoUrl: "data:image/png;base64,AAAA" } });
+
+    expect((await getSaleDocument(result.id))?.logo).toBeNull();
+    expect((await getSaleDocument(result.id, { logo: true }))?.logo).toBe(
+      "data:image/png;base64,AAAA",
+    );
+    await testDb.businessProfile.updateMany({ data: { logoUrl: null } });
+    expect((await getSaleDocument(result.id, { logo: true }))?.logo).toBeNull();
+  });
+
   it("collects everything a ticket prints", async () => {
     const w = await world();
     const customer = await testDb.customer.create({ data: { name: "Ana", phone: "9999-0000" } });

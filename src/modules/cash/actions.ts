@@ -30,31 +30,14 @@ import { listFinanceCategories } from "@/modules/finance/queries";
 
 const copy = messages.cash;
 
-export async function openCashAction(
-  openingFloatCents: number,
-  openingNotes?: string,
-): Promise<CashActionState> {
-  const parsed = openCashSchema.safeParse({ openingFloatCents, openingNotes });
+export async function openCashAction(openingFloatCents: number): Promise<CashActionState> {
+  const parsed = openCashSchema.safeParse({ openingFloatCents });
   if (!parsed.success) {
-    return {
-      error:
-        parsed.error.issues[0]?.path[0] === "openingNotes"
-          ? copy.open.invalidNotes
-          : copy.open.invalidFloat,
-    };
+    return { error: copy.open.invalidFloat };
   }
   const { user } = await requireUserCapability("cash.open");
   const result = await toActionResult(() => openCashSession(user, parsed.data), messages.errors);
-  if (result.ok) {
-    return { success: copy.open.opened };
-  }
-  // Con el monto y el comentario ya válidos, lo único que puede fallar por validación es el comentario que falta.
-  return {
-    error:
-      result.error.code === "VALIDATION" && !parsed.data.openingNotes
-        ? copy.open.notesRequired
-        : result.error.message,
-  };
+  return result.ok ? { success: copy.open.opened } : { error: result.error.message };
 }
 
 export async function addCashMovementAction(input: {

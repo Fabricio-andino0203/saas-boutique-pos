@@ -30,8 +30,7 @@ export const messages = {
   finance: {
     box: {
       title: "Caja de finanzas",
-      description:
-        "El efectivo del negocio que está fuera del cajón: lo que se retira al cerrar la caja, más y menos lo que se recibe o se paga en efectivo fuera de caja.",
+      description: "El efectivo del negocio que está fuera del cajón.",
       balance: "Saldo de la caja de finanzas",
       figures: {
         deposits: "Retirado en cierres",
@@ -42,13 +41,12 @@ export const messages = {
       withdraw: {
         action: "Retirar de la caja",
         title: "Retirar de la caja de finanzas",
-        description:
-          "Registra el efectivo que sale de la caja de finanzas: lo que se lleva el dueño o se deposita en el banco. No es un gasto.",
+        description: "Lo que se lleva el dueño o se deposita en el banco. No es un gasto.",
         balance: "Saldo disponible",
         date: "Fecha",
         amount: "Monto",
         reason: "¿Para qué es?",
-        reasonHint: "Por ejemplo: se lo llevó la dueña, o depósito al banco.",
+        reasonHint: "Ej.: depósito al banco.",
         submit: "Retirar",
         submitting: "Retirando…",
         listTitle: "Retiros de la caja de finanzas",
@@ -58,10 +56,9 @@ export const messages = {
         voidedBecause: "Motivo de la anulación",
         truncated: "Se muestran los 50 más recientes. El saldo incluye todos.",
       },
-      review:
-        "El saldo es negativo: hay gastos pagados en efectivo fuera de caja que no vienen de un retiro. Revísalos.",
+      review: "Saldo negativo: revisa los gastos pagados en efectivo fuera de caja.",
       reviewLink: "Ver esos gastos",
-      note: "Lo que se retira al cerrar la caja no es un ingreso ni un gasto: es el mismo dinero que pasa del cajón a esta caja, por eso no cambia la utilidad.",
+      note: "Lo retirado al cerrar no es ingreso ni gasto: es el mismo dinero, por eso no cambia la utilidad.",
       depositsTitle: "Retiros de los cierres de caja",
       depositsEmpty: "Aún no se ha retirado efectivo al cerrar la caja.",
       depositsEmptyHint: "Cuando un cierre retire efectivo, aparecerá aquí.",
@@ -73,11 +70,11 @@ export const messages = {
     },
     entries: {
       title: "Movimientos",
-      description: "Gastos e ingresos que no son ventas. Las ventas ya están en el sistema.",
+      description: "Gastos e ingresos que no son ventas.",
       newExpense: "Nuevo gasto",
       newIncome: "Nuevo ingreso",
       empty: "No hay movimientos en este periodo.",
-      emptyHint: "Registra un gasto o un ingreso, o prueba con otro periodo.",
+      emptyHint: "Registra uno o prueba otro periodo.",
       truncated: "Se muestran los 300 más recientes. Los totales incluyen todos.",
       totals: { expenses: "Gastos", income: "Ingresos", balance: "Diferencia" },
       columns: {
@@ -116,14 +113,14 @@ export const messages = {
     form: {
       titleExpense: "Nuevo gasto",
       titleIncome: "Nuevo ingreso",
-      descriptionExpense: "Algo que pagó el negocio y no es mercadería para vender.",
-      descriptionIncome: "Dinero que entró al negocio y no es una venta.",
+      descriptionExpense: "Algo que pagó el negocio y no es mercadería.",
+      descriptionIncome: "Dinero que entró y no es una venta.",
       date: "Fecha",
       amount: "Monto",
       category: "Categoría",
       payment: "Forma de pago",
       details: "Descripción",
-      detailsHint: "Qué fue, por ejemplo «Recibo de luz de octubre».",
+      detailsHint: "Ej.: Recibo de luz de octubre.",
       supplier: "Proveedor (opcional)",
       noSupplier: "Sin proveedor",
       noCategories: "No hay categorías de este tipo. Agrégalas en Categorías.",
@@ -133,17 +130,16 @@ export const messages = {
     void: {
       action: "Anular",
       title: "Anular movimiento",
-      description: "El movimiento no se borra: queda anulado con su motivo y deja de sumar.",
+      description: "Queda anulado con su motivo y deja de sumar.",
       reason: "Motivo",
-      reasonHint: "Por ejemplo «Se registró dos veces».",
+      reasonHint: "Ej.: Se registró dos veces.",
       submit: "Anular movimiento",
       submitting: "Anulando…",
-      drawerHint: "Salió de la caja: se corrige con una entrada de efectivo.",
+      drawerHint: "Salió de la caja: corrígelo con una entrada de efectivo.",
     },
     categories: {
       title: "Categorías",
-      description:
-        "Para ordenar los gastos y los ingresos. Una categoría con movimientos no se borra: se archiva.",
+      description: "Ordenan los gastos y los ingresos. Con movimientos no se borran: se archivan.",
       expenses: "De gastos",
       income: "De ingresos",
       newName: "Nombre de la categoría",
@@ -160,8 +156,7 @@ export const messages = {
     },
     summary: {
       title: "Resumen",
-      description:
-        "Cuánto se ganó de verdad en el periodo: las ventas, menos lo que costó la mercadería y menos los gastos del negocio.",
+      description: "Lo que se ganó de verdad: ventas, menos costo de la mercadería, menos gastos.",
       netProfit: "Utilidad neta",
       margin: "de margen",
       figures: {
@@ -188,7 +183,7 @@ export const messages = {
       pendingMany: "pagos por pagar,",
       pendingTotal: "en total",
       pendingLink: "Ver costos fijos",
-      note: "Las ventas y su costo salen de los reportes. Las compras de mercadería no son un gasto: se reflejan como costo de lo vendido cuando se venden.",
+      note: "Las compras de mercadería no son un gasto: se cuentan como costo cuando se venden.",
     },
     export: {
       summarySheet: "Resumen",
@@ -215,14 +210,13 @@ export const messages = {
     },
     fixed: {
       title: "Costos fijos",
-      description:
-        "Lo que pagas cada mes (alquiler, internet, sueldos). Cada mes aparece por pagar y, al registrar el pago, queda como un gasto.",
+      description: "Lo que pagas cada mes. Al registrar el pago queda como gasto.",
       new: "Nuevo costo fijo",
       pendingTitle: "Por pagar",
       pendingEmpty: "No hay pagos pendientes. Todo está al día.",
-      pendingHint: "Se muestran los últimos 6 meses y el actual. Lo más viejo se da por resuelto.",
+      pendingHint: "Últimos 6 meses y el actual.",
       listTitle: "Costos fijos",
-      listEmpty: "Todavía no hay costos fijos. Agrega el alquiler, la luz o los sueldos.",
+      listEmpty: "Aún no hay costos fijos.",
       showArchived: "Mostrar archivados",
       hideArchived: "Ocultar archivados",
       columns: {
@@ -251,10 +245,9 @@ export const messages = {
       form: {
         titleNew: "Nuevo costo fijo",
         titleEdit: "Editar costo fijo",
-        description:
-          "Un pago que haces todos los meses. No se registra solo: cada mes lo registras tú cuando lo pagas.",
+        description: "Un pago de todos los meses; tú lo registras al pagarlo.",
         name: "Nombre",
-        nameHint: "Por ejemplo «Alquiler del local».",
+        nameHint: "Ej.: Alquiler del local.",
         category: "Categoría",
         amount: "Monto de cada mes",
         dueDay: "Día de pago (1 a 28)",
@@ -265,7 +258,7 @@ export const messages = {
       },
       payForm: {
         title: "Registrar pago",
-        description: "El monto parte del habitual; cámbialo si este mes pagaste otra cantidad.",
+        description: "Cambia el monto si este mes pagaste otra cantidad.",
         amount: "Monto pagado",
         date: "Fecha del pago",
         payment: "Forma de pago",
@@ -342,7 +335,7 @@ export const messages = {
     },
     account: {
       title: "Mi cuenta",
-      description: "Cambia tu contraseña cuando quieras. Las demás sesiones se cerrarán.",
+      description: "Las demás sesiones se cerrarán.",
       currentPassword: "Contraseña actual",
       newPassword: "Contraseña nueva",
       confirmPassword: "Repite la contraseña nueva",
@@ -353,8 +346,7 @@ export const messages = {
       /** Pantalla que se muestra al entrar con una contraseña temporal (la puso otra persona). */
       forced: {
         title: "Elige tu contraseña",
-        description:
-          "Entraste con una contraseña temporal. Para proteger tu cuenta, escribe una propia antes de continuar.",
+        description: "Entraste con una contraseña temporal. Escribe una propia para continuar.",
         currentPassword: "Contraseña temporal",
         submit: "Guardar y continuar",
       },
@@ -382,7 +374,6 @@ export const messages = {
   },
   users: {
     title: "Usuarios",
-    description: "Quién puede entrar al sistema y qué puede hacer.",
     new: "Nuevo usuario",
     createTitle: "Nuevo usuario",
     editTitle: "Editar usuario",
@@ -401,13 +392,13 @@ export const messages = {
     form: {
       name: "Nombre completo",
       username: "Usuario",
-      usernameHint: "Minúsculas, números, punto, guion o guion bajo (de 3 a 30).",
+      usernameHint: "Minúsculas, números, punto, guion o guion bajo (3 a 30).",
       role: "Rol",
       password: "Contraseña inicial",
       passwordHint: "La persona podrá cambiarla en Mi cuenta.",
-      resetHint: "Al entrar con ella, la persona tendrá que elegir una propia.",
+      resetHint: "Al entrar con ella, deberá elegir una propia.",
       pin: "PIN rápido (opcional)",
-      pinHint: "De 4 a 6 números, para cambiar de cajero en el punto de venta.",
+      pinHint: "De 4 a 6 números, para cambiar de cajero.",
       create: "Crear usuario",
       creating: "Creando…",
       save: "Guardar cambios",
@@ -419,7 +410,7 @@ export const messages = {
     reactivate: "Reactivar usuario",
     deactivated: "Usuario desactivado.",
     reactivated: "Usuario reactivado.",
-    deactivateHint: "No podrá entrar mientras esté inactivo. Su historial se conserva.",
+    deactivateHint: "No podrá entrar. Su historial se conserva.",
     resetPassword: {
       title: "Restablecer contraseña",
       label: "Contraseña nueva",
@@ -434,14 +425,13 @@ export const messages = {
     },
     validation: {
       name: "Escribe el nombre.",
-      username:
-        "El usuario debe tener de 3 a 30 caracteres: minúsculas, números, punto, guion o guion bajo.",
+      username: "Usuario de 3 a 30 caracteres: minúsculas, números, punto, guion o guion bajo.",
       role: "Elige un rol.",
     },
   },
   audit: {
     title: "Auditoría",
-    description: "Registro de las acciones sensibles. No se puede editar ni borrar.",
+    description: "No se puede editar ni borrar.",
     system: "Sistema",
     filters: {
       action: "Acción",
@@ -464,11 +454,12 @@ export const messages = {
     showChanges: "Ver cambios",
     empty: {
       title: "No hay registros con esos filtros",
-      description: "Prueba con otro rango de fechas o quita algún filtro.",
+      description: "Prueba con otro rango de fechas.",
     },
     pagination: { previous: "Anterior", next: "Siguiente" },
     actions: {
       SALE_VOIDED: "Venta anulada",
+      TICKET_CANCELLED: "Venta cancelada antes de cobrar",
       RETURN_PROCESSED: "Devolución registrada",
       RETURN_OVERRIDE: "Devolución con autorización",
       STORE_CREDIT_ADJUSTED: "Ajuste del crédito de tienda",
@@ -483,7 +474,7 @@ export const messages = {
       COST_CHANGED: "Cambio de costo",
       CASH_SESSION_CLOSED: "Cierre de caja",
       CASH_SESSION_APPROVED: "Cierre de caja aprobado",
-      CASH_FLOAT_ADJUSTED: "Fondo de apertura distinto del heredado",
+      CASH_FLOAT_ADJUSTED: "Fondo de apertura distinto del saldo anterior",
       PERMISSION_CHANGED: "Cambio de permisos",
       USER_CREATED: "Usuario creado",
       USER_DEACTIVATED: "Usuario desactivado",
@@ -508,18 +499,16 @@ export const messages = {
   },
   products: {
     title: "Productos",
-    description: "Las prendas que vendes, con sus tallas y colores.",
     new: "Nuevo producto",
     back: "Volver a productos",
     edit: "Editar",
     created: "Producto creado. Ya puedes ajustar sus tallas y precios.",
     empty: {
       title: "Aún no hay productos",
-      description: "Crea el primero: solo te toma un minuto.",
     },
     emptySearch: {
       title: "No encontramos productos",
-      description: "Prueba con otra palabra o quita algún filtro.",
+      description: "Prueba con otra palabra.",
     },
     search: {
       label: "Buscar",
@@ -567,8 +556,7 @@ export const messages = {
       taxExempt: "Exento de ISV",
       description: "Descripción (opcional)",
       code: "Código del producto (opcional)",
-      codeHint:
-        "Si lo dejas vacío, el sistema asigna uno. Con él se arma el código de cada talla y color.",
+      codeHint: "Vacío: se asigna solo.",
       none: "Ninguna",
       noBrand: "Sin marca",
       noSeason: "Sin temporada",
@@ -578,7 +566,6 @@ export const messages = {
     },
     wizard: {
       title: "Nuevo producto",
-      description: "Tres pasos: la prenda, sus tallas y colores, y cuántas hay.",
       steps: ["La prenda", "Tallas y colores", "Cantidad inicial"],
       next: "Siguiente",
       previous: "Atrás",
@@ -586,21 +573,19 @@ export const messages = {
       saving: "Guardando…",
       sizes: "Tallas",
       colors: "Colores",
-      pickHint:
-        "Marca las que tiene esta prenda. Si no tiene tallas ni colores (por ejemplo, un accesorio), sigue sin marcar nada.",
+      pickHint: "Marca las que tiene. Sin tallas ni colores, déjalo vacío.",
       addSize: "Agregar talla",
       addColor: "Agregar color",
       newSizePlaceholder: "Nueva talla",
       newColorPlaceholder: "Nuevo color",
       add: "Agregar",
       quantityTitle: "¿Cuántas hay de cada una?",
-      quantityHint: "Escribe la cantidad por talla y color. Puedes dejar 0 y cargarlas después.",
+      quantityHint: "Cantidad por talla y color. Puede ser 0.",
       single: "Sin talla ni color",
       previewTitle: "Se van a crear",
       previewOne: "1 variante",
       previewMany: "variantes",
-      previewNote:
-        "Cada una recibe su propio código y código de barras al guardar. Los verás en la ficha del producto.",
+      previewNote: "Cada una recibe su código de barras al guardar.",
       quantity: "Cantidad",
     },
     detail: {
@@ -610,10 +595,10 @@ export const messages = {
       saving: "Guardando…",
       saved: "Cambios guardados.",
       duplicate: "Duplicar",
-      duplicateHint: "Crea una copia sin existencias, para prendas parecidas.",
+      duplicateHint: "Copia sin existencias.",
       archive: "Archivar producto",
       restore: "Restaurar producto",
-      archiveHint: "Deja de aparecer para vender. Su historial se conserva.",
+      archiveHint: "Ya no se vende; el historial se conserva.",
       archived: "Producto archivado.",
       restored: "Producto restaurado.",
       archivedBanner: "Este producto está archivado.",
@@ -635,14 +620,14 @@ export const messages = {
       editVariant: "Editar",
       saveVariant: "Guardar",
       cancel: "Cancelar",
-      variantPriceHint: "Déjalo vacío para usar el precio del producto.",
-      variantCostHint: "Déjalo vacío para usar el costo del producto.",
+      variantPriceHint: "Vacío: usa el del producto.",
+      variantCostHint: "Vacío: usa el del producto.",
       reorderHint: "Avisa cuando queden estas o menos.",
       variantSaved: "Variante guardada.",
       archiveVariant: "Archivar",
       restoreVariant: "Restaurar",
       addTitle: "Agregar tallas o colores",
-      addHint: "Marca las que faltan. Las que ya existen se omiten.",
+      addHint: "Marca las que faltan.",
       addSubmit: "Agregar variantes",
       added: "Variantes agregadas.",
       historyTitle: "Historial de precios",
@@ -670,7 +655,7 @@ export const messages = {
       pricePercent: "Subir o bajar un porcentaje",
       priceValue: "Precio nuevo",
       percentValue: "Porcentaje (por ejemplo 10 o -15)",
-      percentHint: "Si algunas tallas o colores tienen su propio precio, también cambian.",
+      percentHint: "Incluye las variantes con precio propio.",
       apply: "Aplicar a los seleccionados",
       applying: "Aplicando…",
       done: "Productos actualizados.",
@@ -680,11 +665,9 @@ export const messages = {
     import: {
       open: "Importar",
       title: "Importar productos",
-      description: "Carga muchas prendas a la vez desde un archivo de Excel o CSV.",
       back: "Volver a productos",
       templateTitle: "1. Descarga la plantilla",
-      templateHint:
-        "Una fila por cada talla y color. Las filas con el mismo producto se juntan solas.",
+      templateHint: "Una fila por talla y color.",
       downloadXlsx: "Plantilla de Excel",
       downloadCsv: "Plantilla CSV",
       fileTitle: "2. Sube tu archivo",
@@ -704,8 +687,7 @@ export const messages = {
       newColors: "Colores",
       costIgnored: "Tu rol no puede cargar costos: la columna Costo se ignora.",
       problemsTitle: "Hay filas con problemas",
-      problemsHint:
-        "Corrige el archivo y vuelve a subirlo. No se importa nada hasta que todo esté bien.",
+      problemsHint: "Corrige el archivo y vuélvelo a subir.",
       problemColumns: { line: "Línea", column: "Columna", problem: "Problema" },
       moreProblems: "Hay más problemas; corrige estos primero.",
       confirm: "Importar ahora",
@@ -733,21 +715,20 @@ export const messages = {
       guideSheet: "Cómo llenarla",
       dataSheet: "Productos",
       guide: [
-        "Una fila por cada talla y color de una prenda. Si el producto no tiene tallas ni colores, deja esas celdas vacías.",
-        "Las filas con el mismo producto (mismo código, o mismo nombre y categoría) se juntan en un solo producto.",
+        "Una fila por talla y color. Sin tallas ni colores, deja esas celdas vacías.",
+        "Las filas del mismo producto (mismo código, o nombre y categoría) se juntan solas.",
         "Obligatorias: Producto, Categoría y Precio. El resto es opcional.",
-        "Categoría: escribe su nombre (Blusas) o su ruta (Mujer › Blusas). Debe existir.",
+        "Categoría: su nombre (Blusas) o su ruta (Mujer › Blusas). Debe existir.",
         "Marca, Temporada, Proveedor, Talla y Color: si no existen, se crean.",
-        "Precio y Costo: números como 250 o 1,250.50. Cantidad: número entero (la existencia inicial).",
-        "Código y Código de barras: déjalos vacíos para que el sistema los asigne.",
-        "Impuesto: escribe Exento si la prenda no paga ISV; si no, déjalo vacío.",
+        "Precio y Costo: 250 o 1,250.50. Cantidad: número entero.",
+        "Código y Código de barras: vacíos, se asignan solos.",
+        "Impuesto: Exento si no paga ISV; si no, vacío.",
         "Ejemplo: Vestido floral | Mujer › Vestidos | 850 | 380 | Zara | PV26 | | | M | Rojo | 6",
       ],
       problems: {
         fileType: "Sube un archivo .xlsx o .csv.",
         fileTooBig: "El archivo es muy grande (máximo 5 MB).",
-        fileTooComplex:
-          "La hoja es demasiado grande: usa la plantilla (hasta 1000 filas y las columnas de la plantilla).",
+        fileTooComplex: "Hoja demasiado grande: usa la plantilla (hasta 1000 filas).",
         fileUnreadable: "No pudimos leer el archivo. Revisa que no esté dañado.",
         fileEmpty: "El archivo no tiene filas de productos.",
         tooManyRows: "El archivo tiene más de 1000 filas. Divídelo en partes.",
@@ -755,19 +736,18 @@ export const messages = {
         nameRequired: "Escribe el nombre del producto.",
         categoryRequired: "Escribe la categoría.",
         categoryUnknown: "La categoría «{value}» no existe. Créala primero en Categorías.",
-        categoryAmbiguous:
-          "Hay varias categorías llamadas «{value}». Escribe la ruta, por ejemplo Mujer › Vestidos.",
-        priceInvalid: "El precio debe ser un monto mayor que cero, por ejemplo 250 o 1,250.50.",
+        categoryAmbiguous: "Hay varias categorías «{value}». Escribe la ruta: Mujer › Vestidos.",
+        priceInvalid: "El precio debe ser mayor que cero, como 250 o 1,250.50.",
         costInvalid: "El costo no es un monto válido.",
         quantityInvalid: "La cantidad debe ser un número entero, cero o más.",
         taxInvalid: "Escribe «Exento» o deja la celda vacía.",
-        codeInvalid: "El código solo lleva letras, números y guiones (de 2 a 20).",
+        codeInvalid: "Código: letras, números y guiones (2 a 20).",
         codeExists: "Ya existe un producto con el código «{value}».",
         productExists: "Ya existe un producto con ese nombre en esa categoría.",
-        barcodeInvalid: "El código de barras solo lleva letras, números y guiones (de 4 a 32).",
+        barcodeInvalid: "Código de barras: letras, números y guiones (4 a 32).",
         barcodeDuplicate: "El código de barras «{value}» se repite en el archivo.",
         barcodeExists: "El código de barras «{value}» ya lo usa otra variante.",
-        variantDuplicate: "Esa talla y color ya aparecen en otra fila del mismo producto.",
+        variantDuplicate: "Esa talla y color ya están en otra fila.",
         conflict: "No coincide con la primera fila de este producto.",
         archivedRef: "«{value}» está archivado. Restáuralo primero.",
         tooManyVariants: "Este producto tiene más de 200 variantes.",
@@ -780,7 +760,7 @@ export const messages = {
       price: "Escribe un precio mayor que cero.",
       cost: "El costo no es válido.",
       money: "Escribe un monto válido.",
-      code: "El código solo lleva letras, números y guiones (de 2 a 20).",
+      code: "Código: letras, números y guiones (2 a 20).",
       tooMany: "Son demasiadas combinaciones. Elige menos tallas o colores.",
       quantity: "La cantidad debe ser un número entero, cero o más.",
       reorder: "El mínimo debe ser un número entero, cero o más.",
@@ -817,17 +797,16 @@ export const messages = {
   },
   photos: {
     title: "Fotos",
-    description:
-      "Muestra la prenda como se ve. La primera foto es la principal: la que aparece en la lista de productos y en el punto de venta.",
-    limits: "Hasta 6 fotos por producto, de 8 MB como máximo (JPG, PNG o WebP).",
+    description: "La primera foto es la principal.",
+    limits: "Hasta 6 fotos de 8 MB (JPG, PNG o WebP).",
     of: "de",
     empty: {
       title: "Este producto aún no tiene fotos",
-      description: "Agrega la primera: se verá en la lista de productos y en el punto de venta.",
+      description: "Se verá en el punto de venta.",
     },
-    full: "Este producto ya tiene el máximo de fotos. Quita una para agregar otra.",
+    full: "Máximo de fotos. Quita una para agregar otra.",
     add: "Agregar fotos",
-    dropHint: "Arrastra las fotos aquí o elige los archivos",
+    dropHint: "Arrastra las fotos o elige archivos",
     alt: "Foto de",
     main: "Principal",
     makeMain: "Hacer principal",
@@ -838,7 +817,7 @@ export const messages = {
     generalColor: "Todos los colores",
     removeDialog: {
       title: "¿Quitar esta foto?",
-      description: "Se borra del sistema y ya no se verá en ningún lado. No se puede deshacer.",
+      description: "Se borra y no se puede deshacer.",
       confirm: "Quitar foto",
     },
     status: {
@@ -848,23 +827,22 @@ export const messages = {
       failed: "No se pudo subir",
       skipped: "No cabe: el producto ya tiene el máximo de fotos",
     },
-    network: "No se pudo conectar con el servidor. Revisa el internet e inténtalo de nuevo.",
+    network: "Sin conexión con el servidor. Revisa el internet.",
     saved: "Fotos actualizadas.",
     removed: "Foto quitada.",
     placeholder: "Sin foto",
     wizard: {
       title: "Fotos (opcional)",
-      hint: "Puedes agregarlas ahora o más tarde desde la ficha del producto.",
+      hint: "Puedes agregarlas después desde la ficha.",
       choose: "Elegir fotos",
       removeOne: "Quitar esta foto de la selección",
       uploading: "Subiendo fotos…",
     },
     createdWithFailures:
-      "El producto se guardó, pero algunas fotos no se pudieron subir. Vuelve a subirlas aquí abajo.",
+      "Producto guardado, pero algunas fotos no subieron. Vuelve a subirlas abajo.",
     bulk: {
       title: "Fotos de productos",
-      description:
-        "Agrega fotos a muchos productos de una vez, o a uno por uno desde su tarjeta. Una foto bien tomada vende más y te ayuda a encontrar la prenda con la vista.",
+      description: "Agrega fotos a varios productos de una vez.",
       progressOf: "de",
       progressSuffix: "productos tienen foto",
       filters: { missing: "Sin foto", all: "Todos" },
@@ -876,18 +854,17 @@ export const messages = {
       },
       drop: {
         title: "Arrastra aquí las fotos de varios productos",
-        hint: "El nombre de cada archivo empieza con el código del producto: VES-001.jpg, VES-001_2.jpg (otra foto del mismo) o VES-001_rojo.jpg (la foto de ese color).",
+        hint: "El nombre del archivo empieza con el código: VES-001.jpg, VES-001_2.jpg (otra foto) o VES-001_rojo.jpg (foto de ese color).",
         choose: "Elegir fotos",
-        tooMany: "Se tomaron las primeras 100 fotos; sube el resto en otra tanda.",
+        tooMany: "Se tomaron las primeras 100 fotos; sube el resto aparte.",
       },
       matching: "Buscando a qué producto corresponde cada foto…",
-      matchFailed: "No se pudo revisar los nombres de las fotos. Inténtalo de nuevo.",
+      matchFailed: "No se pudieron revisar los nombres. Inténtalo de nuevo.",
       review: {
         title: "Revisa antes de subir",
         ready: "fotos listas para subir",
         unmatched: "sin producto",
-        unmatchedHint:
-          "Estas no se subirán: su nombre no empieza con el código de un producto activo.",
+        unmatchedHint: "No se subirán: su nombre no empieza con el código de un producto.",
         file: "Archivo",
         product: "Producto",
         color: "Color",
@@ -912,12 +889,10 @@ export const messages = {
       },
       empty: {
         title: "Aún no hay productos",
-        description: "Crea el primero y después agrégale sus fotos.",
         action: "Nuevo producto",
       },
       allDone: {
         title: "Todos tus productos tienen foto",
-        description: "Cuando crees productos nuevos aparecerán aquí hasta que les pongas una.",
         action: "Ver todos",
       },
       noResults: "No encontramos productos con esa búsqueda.",
@@ -928,7 +903,6 @@ export const messages = {
 
   labels: {
     title: "Etiquetas",
-    description: "Imprime etiquetas con código de barras para tus prendas.",
     template: "Plantilla de etiquetas",
     fromProduct: "Imprimir etiquetas",
     fromProductStock: "Etiquetas según el stock",
@@ -936,15 +910,14 @@ export const messages = {
     fromSelection: "Imprimir etiquetas",
     builder: {
       title: "Qué vas a imprimir",
-      hint: "Escribe cuántas etiquetas quieres de cada prenda. Puedes agregar más buscando o escaneando.",
-      empty:
-        "Todavía no elegiste prendas. Busca o escanea una, o entra desde un producto o una recepción.",
+      hint: "Escribe cuántas etiquetas de cada prenda.",
+      empty: "Aún no elegiste prendas. Busca o escanea una.",
       product: "Prenda",
       sku: "Código",
       quantity: "Etiquetas",
       remove: "Quitar",
       total: "etiquetas en total",
-      tooMany: "Son demasiadas etiquetas para una sola impresión. Imprime menos de 1000 a la vez.",
+      tooMany: "Son demasiadas: máximo 1000 por impresión.",
       print: "Vista previa e imprimir",
       stock: "En stock",
       useStock: "Usar el stock",
@@ -954,7 +927,7 @@ export const messages = {
       aboveStock: "Más que el stock",
       productPicker: {
         title: "Todas las prendas de un producto",
-        hint: "Busca un producto y agrega todas sus tallas y colores de una vez. Elige si quieres 1 etiqueta de cada una o las que hay en stock: es opcional y siempre puedes cambiar las cantidades.",
+        hint: "Agrega todas las tallas y colores de un producto de una vez.",
         label: "Producto",
         placeholder: "Nombre, código o código de barras",
         search: "Buscar",
@@ -974,7 +947,6 @@ export const messages = {
     },
     templateForm: {
       title: "Plantilla de etiquetas",
-      description: "El tamaño y lo que dice cada etiqueta. Aplica a todas las impresiones.",
       back: "Volver a etiquetas",
       layout: "Papel",
       roll: "Rollo (una etiqueta por página)",
@@ -993,15 +965,14 @@ export const messages = {
       save: "Guardar plantilla",
       saving: "Guardando…",
       saved: "Plantilla guardada.",
-      invalid:
-        "Revisa los números: el ancho va de 20 a 150 mm, el alto de 15 a 100 mm y las columnas de 1 a 6.",
+      invalid: "Revisa los números: ancho 20–150 mm, alto 15–100 mm, columnas 1–6.",
     },
     print: {
       back: "Volver",
       print: "Imprimir",
       label: "Etiqueta",
       summary: "etiquetas",
-      hint: "En el cuadro de impresión desactiva los encabezados y pies de página, y elige márgenes ninguno.",
+      hint: "En el cuadro de impresión: sin encabezados ni pies de página y sin márgenes.",
       empty: "No hay etiquetas para imprimir.",
       invalid: "No se pudo preparar la impresión. Revisa las cantidades.",
     },
@@ -1104,7 +1075,6 @@ export const messages = {
   },
   purchasing: {
     title: "Compras",
-    description: "Lo que pides a tus proveedores y lo que ya llegó.",
     newOrder: "Nueva orden",
     receipts: "Recepciones",
     receive: "Recibir mercadería",
@@ -1148,11 +1118,10 @@ export const messages = {
     },
     empty: {
       title: "Aún no hay órdenes de compra",
-      description: "Crea una orden para pedir mercadería, o recibe directamente sin orden.",
+      description: "Crea una orden o recibe sin orden.",
     },
     emptyReceipts: {
       title: "Aún no hay recepciones",
-      description: "Cuando recibas mercadería quedará aquí, con su costo y su proveedor.",
     },
     order: {
       newTitle: "Nueva orden de compra",
@@ -1162,8 +1131,7 @@ export const messages = {
       expectedAt: "Fecha esperada (opcional)",
       notes: "Notas (opcional)",
       lines: "Prendas que pides",
-      linesHint:
-        "Escanea el código de barras o busca por nombre. El costo viene del último que conocemos.",
+      linesHint: "Escanea o busca por nombre.",
       save: "Guardar orden",
       saving: "Guardando…",
       saved: "Orden guardada.",
@@ -1172,7 +1140,7 @@ export const messages = {
       cancel: "Cancelar orden",
       cancelled: "La orden se canceló.",
       edit: "Editar",
-      draftHint: "Mientras sea un borrador puedes cambiarla. Márcala como pedida cuando la envíes.",
+      draftHint: "Puedes cambiarla mientras sea borrador.",
       receiptsTitle: "Recepciones de esta orden",
       noReceipts: "Todavía no se recibe nada de esta orden.",
       total: "Costo total",
@@ -1180,13 +1148,13 @@ export const messages = {
     },
     receipt: {
       newTitle: "Recibir mercadería",
-      description: "Escanea lo que llegó; entra al inventario al confirmar.",
+      description: "Entra al inventario al confirmar.",
       fromOrder: "Recibiendo la orden",
       supplier: "Proveedor",
       chooseSupplier: "Elige un proveedor",
       invoice: "Factura o remisión del proveedor (opcional)",
       lines: "Lo que llegó",
-      linesHint: "Escanea cada prenda: suma una unidad. También puedes escribir la cantidad.",
+      linesHint: "Escanear suma una unidad. También puedes escribir la cantidad.",
       notInOrder: "Esa prenda no está en la orden.",
       empty: "Escanea o busca la primera prenda.",
       confirm: "Confirmar recepción",
@@ -1197,7 +1165,7 @@ export const messages = {
       total: "Costo total",
       units: "prendas",
       supplierHistory: "Compras a este proveedor",
-      costIgnored: "Tu rol no captura costos: se usa el de la orden o el último conocido.",
+      costIgnored: "Tu rol no captura costos: se usa el de la orden.",
     },
     picker: {
       label: "Escanear o buscar",
@@ -1206,7 +1174,7 @@ export const messages = {
       none: "No encontramos esa prenda.",
       pick: "Agregar",
       all: "Todas las prendas",
-      allHint: "Elige de la lista o escribe arriba para filtrar.",
+      allHint: "Elige de la lista o escribe para filtrar.",
       emptyAll: "Todavía no hay prendas: crea productos primero.",
       loadMore: "Ver más",
       loading: "Cargando…",
@@ -1223,7 +1191,6 @@ export const messages = {
   },
   inventory: {
     title: "Existencias",
-    description: "Cuántas prendas hay de cada talla y color, y cuánto valen.",
     filters: {
       search: {
         label: "Buscar",
@@ -1267,17 +1234,15 @@ export const messages = {
     },
     empty: {
       title: "Aún no hay productos",
-      description: "Cuando crees productos, aquí verás cuántas prendas hay de cada uno.",
     },
     emptyFiltered: {
       title: "No hay productos con esos filtros",
-      description: "Prueba con otra palabra o cambia lo que muestras.",
+      description: "Prueba con otra palabra.",
     },
     results: "productos",
     kardex: {
       title: "Kardex",
       back: "Volver a existencias",
-      description: "Todos los movimientos de esta prenda, del más nuevo al más viejo.",
       link: "Kardex",
       current: "Existencia actual",
       avgCost: "Costo promedio",
@@ -1296,13 +1261,11 @@ export const messages = {
       },
       empty: {
         title: "Todavía no hay movimientos",
-        description: "Aquí aparecerá cada entrada y salida de esta prenda.",
       },
     },
     adjust: {
       title: "Ajustar existencia",
-      description:
-        "Para mermas, daños, regalos o errores. Queda en el historial con tu nombre y el motivo.",
+      description: "Queda en el historial con tu nombre y el motivo.",
       what: "¿Qué pasó?",
       modes: {
         in: "Entraron prendas",
@@ -1327,7 +1290,7 @@ export const messages = {
       done: "Ajuste registrado.",
       noChange: "La existencia ya era esa; no se cambió nada.",
       validation: {
-        quantity: "Escribe una cantidad entera. Para entradas y salidas, de 1 en adelante.",
+        quantity: "Escribe una cantidad entera, desde 1.",
         reason: "Elige el motivo del ajuste.",
         note: "Si el motivo es Otro, escribe el detalle.",
       },
@@ -1349,19 +1312,35 @@ export const messages = {
   },
   settings: {
     title: "Configuración",
-    description: "Los datos y las reglas de tu tienda.",
     save: "Guardar cambios",
     saving: "Guardando…",
     saved: "Cambios guardados.",
     region: "Ajustes de la tienda",
     business: {
       title: "Tu negocio",
-      description: "Estos datos salen en el ticket y en las facturas.",
+      description: "Salen en el ticket y en las facturas.",
       legalName: "Nombre del negocio",
       tradeName: "Nombre comercial (opcional)",
       taxId: "RTN (opcional)",
       address: "Dirección (opcional)",
       phone: "Teléfono (opcional)",
+    },
+    /** El logo del ticket: se sube una vez y sale en blanco y negro. */
+    logo: {
+      title: "Logo del ticket",
+      alt: "Logo del negocio",
+      empty: "Aún no tienes logo.",
+      file: "Imagen (JPG, PNG o WebP)",
+      upload: "Subir logo",
+      change: "Cambiar logo",
+      uploading: "Subiendo…",
+      remove: "Quitar logo",
+      saved: "Logo guardado.",
+      removed: "Logo quitado.",
+      noFile: "Elige una imagen.",
+      invalid: "Archivo no válido. Sube una imagen JPG, PNG o WebP.",
+      tooLarge: "El logo pesa más de 4 MB. Sube uno más liviano.",
+      needBusiness: "Guarda primero los datos del negocio.",
     },
     tax: {
       title: "Impuestos",
@@ -1371,8 +1350,7 @@ export const messages = {
     },
     payments: {
       title: "Formas de pago",
-      description:
-        "Las que se podrán elegir al cobrar. El crédito de tienda siempre está disponible.",
+      description: "Las que se podrán elegir al cobrar.",
       CASH: "Efectivo",
       CARD: "Tarjeta",
       TRANSFER: "Transferencia",
@@ -1381,27 +1359,26 @@ export const messages = {
     rules: {
       title: "Reglas de venta",
       discount: "Descuento máximo del cajero (%)",
-      discountHint: "Si pide más, necesita la autorización de un gerente.",
+      discountHint: "Si pide más, necesita a un gerente.",
       returnsDays: "Días para devolver",
       returnsHint: "Pasado este plazo no se aceptan devoluciones.",
       layawayDays: "Días de un apartado",
-      layawayHint: "Si no se salda en este plazo, el abono pasa a crédito de tienda.",
+      layawayHint: "Si no se salda, el abono pasa a crédito de tienda.",
       layawayDeposit: "Abono mínimo para apartar (%)",
-      layawayDepositHint: "Parte del total que el cliente debe abonar al crear el apartado.",
+      layawayDepositHint: "Parte del total que se abona al apartar.",
       allowNegativeStock: "Permitir vender sin existencia",
-      negativeHint:
-        "Si lo activas, el inventario puede quedar en negativo. Lo normal es dejarlo apagado.",
+      negativeHint: "El inventario puede quedar en negativo. Lo normal es apagarlo.",
     },
     codes: {
       title: "Códigos",
       barcodePrefix: "Prefijo de los códigos de barras internos",
-      barcodeHint: "De 1 a 6 números. Solo cambia los códigos que se creen de ahora en adelante.",
+      barcodeHint: "De 1 a 6 números. Solo afecta los códigos nuevos.",
       ticketFooter: "Mensaje al pie del ticket",
     },
     fiscal: {
       link: "Rangos de facturación (CAI)",
       title: "Rangos de facturación (CAI)",
-      description: "Los rangos autorizados por el SAR para tus facturas. Solo uno activo por caja.",
+      description: "Rangos autorizados por el SAR. Solo uno activo por caja.",
       back: "Volver a configuración",
       new: "Nuevo rango",
       create: "Guardar rango",
@@ -1413,7 +1390,7 @@ export const messages = {
       deactivated: "Rango desactivado.",
       empty: {
         title: "Aún no hay rangos",
-        description: "Agrega el rango que te autorizó el SAR para poder facturar.",
+        description: "Agrega el rango que te autorizó el SAR.",
       },
       columns: {
         type: "Documento",
@@ -1431,7 +1408,7 @@ export const messages = {
         type: "Documento",
         terminal: "Caja",
         cai: "CAI",
-        caiHint: "Seis bloques de letras y números, por ejemplo A1B2C3-D4E5F6-…",
+        caiHint: "Seis bloques de letras y números.",
         prefix: "Prefijo",
         prefixHint: "Por ejemplo 000-001-01-",
         start: "Número inicial",
@@ -1441,21 +1418,20 @@ export const messages = {
     },
     onboarding: {
       banner: "Termina de configurar tu tienda",
-      bannerHint: "Son cinco pasos cortos: tu negocio, impuestos, reglas y tu mercadería.",
+      bannerHint: "Cinco pasos cortos.",
       bannerAction: "Continuar",
       title: "Bienvenida",
-      description: "Vamos a dejar tu tienda lista en cinco pasos.",
+      description: "Tu tienda lista en cinco pasos.",
       steps: ["Tu negocio", "Impuestos y pagos", "Reglas de venta", "Tu mercadería", "Listo"],
       next: "Siguiente",
       previous: "Atrás",
       finish: "Terminar",
       goalTitle: "Tu mercadería",
       goalText:
-        "Ya tienes categorías, tallas y colores básicos. Ahora carga tus prendas: una por una, o muchas a la vez desde Excel.",
+        "Ya tienes categorías, tallas y colores. Carga tus prendas: una por una o desde Excel.",
       createLink: "Crear un producto",
       importLink: "Importar desde Excel",
-      sampleText:
-        "¿Quieres probar con datos de ejemplo? Se crean algunas prendas con existencias para que veas cómo se ve todo.",
+      sampleText: "¿Quieres probar con datos de ejemplo? Se crean prendas con existencias.",
       doneTitle: "Tu tienda está lista",
       doneText: "Cuando quieras, cambia cualquier ajuste en Configuración.",
       goHome: "Ir al inicio",
@@ -1466,7 +1442,7 @@ export const messages = {
       loading: "Cargando…",
       confirmTitle: "¿Cargar datos de ejemplo?",
       confirmText:
-        "Se crean algunas prendas con existencias. Quedan en el historial: para quitarlas después hay que dejar su existencia en cero y archivarlas.",
+        "Se crean prendas con existencias. Para quitarlas después: existencia en cero y archivar.",
       done: "Datos de ejemplo cargados:",
       products: "productos",
       already: "Los datos de ejemplo ya están cargados.",
@@ -1477,7 +1453,7 @@ export const messages = {
       whole: "Escribe un número entero dentro del rango permitido.",
       prefix: "El prefijo debe tener de 1 a 6 números.",
       payments: "Deja al menos una forma de pago.",
-      cai: "El CAI debe tener seis bloques de letras y números separados por guiones.",
+      cai: "El CAI lleva seis bloques de letras y números con guiones.",
       fiscalPrefix: "El prefijo solo lleva números, letras y guiones.",
       numbers: "Escribe números enteros mayores que cero.",
       order: "El número final debe ser mayor o igual que el inicial.",
@@ -1492,7 +1468,7 @@ export const messages = {
         plural: "Categorías",
         new: "Nueva categoría",
         emptyTitle: "Aún no hay categorías",
-        emptyDescription: "Crea la primera, por ejemplo Mujer, y dentro de ella Vestidos.",
+        emptyDescription: "Ej.: Mujer, y dentro Vestidos.",
       },
       brands: {
         singular: "Marca",
@@ -1573,7 +1549,7 @@ export const messages = {
       saved: "Cambios guardados.",
       archived: "Archivado. Ya no aparecerá al crear productos.",
       restored: "Restaurado.",
-      archiveHint: "Archivar no borra nada: el historial se conserva y se puede restaurar.",
+      archiveHint: "El historial se conserva y se puede restaurar.",
     },
     validation: {
       name: "Escribe el nombre.",
@@ -1585,8 +1561,6 @@ export const messages = {
   },
   cash: {
     title: "Caja",
-    description:
-      "Abre tu turno con un fondo, registra el efectivo que entra o sale y ciérralo contando lo que hay.",
     status: {
       OPEN: "Abierta",
       CLOSED_PENDING_APPROVAL: "Por aprobar",
@@ -1594,23 +1568,14 @@ export const messages = {
     },
     open: {
       title: "Abre tu caja",
-      description:
-        "Cuenta el efectivo con el que empiezas (el fondo inicial) y ábrela para poder vender.",
+      /** El saldo que dejó el último cierre: se muestra y no se edita. */
+      previous: "Saldo anterior",
       float: "Fondo inicial",
-      floatHint: "Puede ser L 0.00 si empiezas sin efectivo.",
       submit: "Abrir caja",
       submitting: "Abriendo…",
       invalidFloat: "Escribe el fondo inicial; puede ser L 0.00.",
-      inherited: "Fondo que dejó el último cierre",
-      inheritedBy: "Lo dejó",
-      inheritedHint: "Ya está puesto como fondo. Cámbialo solo si al contar hay otro monto.",
-      changedNotes: "¿Por qué el fondo es distinto?",
-      changedNotesHint: "Obligatorio: no es el fondo que dejó el último cierre. Queda anotado.",
-      invalidNotes: "El comentario es muy corto: escribe al menos 3 letras.",
-      notesRequired:
-        "El fondo no es el que dejó el cierre anterior: explica por qué con un comentario.",
       busyBy: "ya está abierta por",
-      busyHint: "Pídele que cierre su turno para poder abrir la tuya.",
+      busyHint: "Pídele que cierre su turno.",
       opened: "Caja abierta. ¡A vender!",
     },
     current: {
@@ -1625,48 +1590,36 @@ export const messages = {
       layawayCash: "Abonos de apartados en efectivo",
       cashRefunds: "Reembolsos en efectivo",
       expected: "Efectivo que debe haber",
-      expectedHint:
-        "Fondo + cobros en efectivo − vuelto + entradas − salidas − reembolsos en efectivo.",
       sales: "Ventas del turno",
+      saleOne: "Venta del turno",
       noSales: "Aún no hay ventas en este turno.",
     },
     movements: {
       title: "Entradas y salidas de efectivo",
-      description:
-        "Dinero que pones o sacas del cajón y que no es una venta: un pago a un proveedor, más cambio, etc.",
-      type: "Tipo",
       IN: "Entrada",
       OUT: "Salida",
       amount: "Monto",
       reason: "Motivo",
-      reasonHint: "Obligatorio: quedará en el cierre para que cualquiera entienda de dónde salió.",
       submit: "Registrar",
       submitting: "Guardando…",
       saved: "Movimiento registrado.",
       invalidAmount: "Escribe un monto mayor que cero.",
       invalidReason: "Escribe el motivo (al menos 3 letras).",
       listTitle: "Movimientos del turno",
-      empty: "Aún no hay entradas ni salidas en este turno.",
+      empty: "Sin entradas ni salidas.",
       columns: { time: "Hora", type: "Tipo", amount: "Monto", reason: "Motivo", by: "Registró" },
-      /** Solo con el módulo Finanzas: la salida o entrada también se registra allí como gasto o ingreso. */
+      /** Las tres formas de mover efectivo desde el panel de Caja. */
+      forms: { in: "Ingresar efectivo", out: "Retirar efectivo", expense: "Agregar gasto" },
+      /** Solo con el módulo Finanzas: el gasto (o el ingreso) también queda allí, con su categoría. */
       finance: {
-        question: "¿Qué fue?",
-        expense: "Un gasto del negocio",
-        withdrawal: "Un retiro del dueño u otro uso del efectivo (no es un gasto)",
-        income: "Un ingreso que no es una venta (por ejemplo, una devolución de un gasto)",
-        otherIn: "Más cambio u otro efectivo que no es un ingreso",
         category: "Categoría",
-        hint: "Queda también en Finanzas, con este motivo.",
+        registerAs: "Registrar como",
+        cashOnly: "Solo en la caja",
       },
     },
     close: {
-      title: "Cerrar caja",
-      description:
-        "Cuenta el efectivo que hay en el cajón. Después verás la diferencia con lo que el sistema esperaba.",
-      counted: "Efectivo contado",
-      byDenomination: "Contar por billetes y monedas",
-      denominationsHint: "Escribe cuántos hay de cada uno; el total se calcula solo.",
-      denomination: "Cantidad de",
+      title: "Corte de caja",
+      /** El conteo siempre es por billetes y monedas: el total se calcula solo. */
       denominationsTotal: "Total contado",
       check: "Ver diferencia",
       checking: "Calculando…",
@@ -1677,8 +1630,7 @@ export const messages = {
       over: "Sobra dinero:",
       short: "Falta dinero:",
       notes: "Comentario",
-      notesHintRequired: "Explica la diferencia: es obligatorio cuando la caja no cuadra.",
-      notesHintOptional: "Opcional.",
+      notesHintRequired: "Explica la diferencia.",
       notesRequired: "Explica la diferencia con un comentario (al menos 3 letras).",
       recount: "Volver a contar",
       submit: "Cerrar caja",
@@ -1687,25 +1639,19 @@ export const messages = {
       invalidWithdrawal: "No puedes retirar más efectivo del que contaste.",
       withdrawTitle: "Retiro del cajón",
       withdrawAmount: "¿Cuánto retiras?",
-      withdrawHintFinance:
-        "Va directo a la caja de finanzas. Lo que no retires se queda en el cajón para abrir mañana.",
-      withdrawHintPlain:
-        "Queda anotado en el cierre. Lo que no retires se queda en el cajón para abrir mañana.",
+      withdrawHintFinance: "Va a la caja de finanzas. Lo demás queda para mañana.",
+      withdrawHintPlain: "Queda anotado en el cierre. Lo demás queda para mañana.",
       withdrawAll: "Retirar todo",
       withdrawNone: "No retirar nada",
-      leftInDrawer: "Queda en la caja para mañana",
+      leftInDrawer: "Queda para mañana",
       tooMuch: "No puedes retirar más de lo que contaste.",
       closed: "Caja cerrada. Un gerente debe aprobar el cierre.",
     },
     list: {
       title: "Cierres de caja",
-      description: "Los turnos de caja con su arqueo. Un gerente aprueba los cierres pendientes.",
       pending: "cierres esperan tu aprobación",
       pendingOne: "cierre espera tu aprobación",
-      empty: {
-        title: "Aún no hay turnos de caja",
-        description: "Cuando se abra una caja, su turno aparecerá aquí.",
-      },
+      empty: { title: "Aún no hay turnos de caja" },
       columns: {
         opened: "Apertura",
         cashier: "Cajero",
@@ -1753,25 +1699,28 @@ export const messages = {
     },
     panel: {
       title: "Caja",
-      description: "Tu turno, las entradas y salidas de efectivo y el cierre, sin salir de Vender.",
-      tabs: {
-        label: "Opciones de la caja",
-        shift: "Turno",
-        movements: "Entradas y salidas",
-        close: "Cerrar caja",
+      /** Los botones de acción del panel, tal como están en la caja registradora. */
+      actions: {
+        label: "Acciones de la caja",
+        cashIn: "Ingresar efectivo",
+        cashOut: "Retirar efectivo",
+        expense: "Agregar gasto",
+        layaways: "Apartados",
+        cancelSale: "Cancelar venta",
+        close: "Realizar corte",
       },
+      back: "Volver a la caja",
       loading: "Cargando tu caja…",
       failed: "No se pudo cargar la caja. Inténtalo de nuevo.",
       retry: "Reintentar",
       notYours: "La caja de esta terminal la abrió otra persona.",
-      notYoursHint: "Para usar estas opciones entra con esa cuenta, o pídele que cierre su turno.",
-      closings: "Ver los cierres de caja",
+      notYoursHint: "Entra con esa cuenta o pídele que cierre su turno.",
+      closings: "Ver cierres de caja",
     },
     approve: {
       action: "Aprobar cierre",
       approving: "Aprobando…",
       approved: "Cierre aprobado.",
-      hint: "Revisa el resumen y la diferencia antes de aprobar.",
       needManager: "Un gerente o el propietario debe aprobar este cierre.",
     },
     methods: {
@@ -1804,14 +1753,10 @@ export const messages = {
   pos: {
     title: "Vender",
     closed: {
-      title: "Abre tu caja para empezar a vender.",
-      description: "Para cobrar, el turno de caja de la terminal tiene que estar abierto.",
+      title: "Abre tu caja",
       action: "Abrir caja",
       busyBy: "ya está abierta por",
       busyHint: "Pídele que cierre su turno, o pasa a vender en su caja.",
-    },
-    header: {
-      open: "Abierta",
     },
     search: {
       label: "Escanea o busca una prenda",
@@ -1819,8 +1764,8 @@ export const messages = {
       all: "Todas",
       categories: "Categorías",
       loading: "Buscando…",
-      noResults: "No encontramos prendas con eso. Revisa el nombre o prueba con el código.",
-      empty: "Aún no hay prendas para vender. Crea productos y dales existencia.",
+      noResults: "No hay prendas con eso.",
+      empty: "Aún no hay prendas para vender.",
       error: "No pudimos buscar. Inténtalo de nuevo.",
       results: "Resultados",
     },
@@ -1833,19 +1778,19 @@ export const messages = {
     },
     picker: {
       title: "Elige talla y color",
-      hint: "Las que están agotadas se ven atenuadas.",
       left: "quedan",
       out: "Agotado",
     },
     notices: {
       added: "Agregada:",
-      notFound: "No encontramos ese código. Búscala por nombre.",
+      notFound: "Código no encontrado.",
       capped: "No hay más de esta prenda. Quedan",
-      outOfStock: "No quedan prendas de esta talla. ¿Quieres ver otras tallas o colores?",
+      outOfStock: "Sin existencia de esta talla.",
     },
     ticket: {
       title: "Ticket",
-      empty: "Escanea o elige una prenda para empezar.",
+      empty: "Escanea o elige una prenda.",
+      unit: "prenda",
       units: "prendas",
       subtotal: "Subtotal",
       discount: "Descuento",
@@ -1857,11 +1802,21 @@ export const messages = {
       decrease: "Una menos",
       quantity: "Cantidad de",
       lineDiscount: "desc.",
-      clear: "Vaciar ticket",
+      clear: "Cancelar venta",
       invalidDiscount: "El descuento es mayor que el ticket. Revísalo.",
       customerNone: "Consumidor final",
       credit: "Crédito de tienda",
       creditLink: "Ver ficha",
+    },
+    /** Descartar un ticket antes de cobrarlo: siempre con motivo, y queda en la auditoría. */
+    cancel: {
+      title: "Cancelar venta",
+      reason: "Motivo",
+      invalidReason: "Escribe el motivo (al menos 3 letras).",
+      confirm: "Cancelar venta",
+      confirming: "Cancelando…",
+      keep: "Seguir vendiendo",
+      done: "Venta cancelada.",
     },
     actions: {
       discount: "Descuento",
@@ -1875,28 +1830,24 @@ export const messages = {
     },
     discount: {
       title: "Descuento",
-      description: "Aplícalo a toda la venta o solo a la línea que tienes seleccionada.",
       scope: "Aplicar a",
       scopeAll: "Toda la venta",
       scopeLine: "La línea seleccionada",
-      noLine: "Selecciona una línea del ticket para descontarle solo a ella.",
+      noLine: "Elige una línea para descontarla.",
       type: "Tipo",
       percent: "Porcentaje (%)",
       amount: "Monto (L)",
       value: "Valor",
       limit: "Tu límite es",
-      limitManager: "No tienes límite de descuento.",
-      overLimit:
-        "Este descuento necesita la aprobación de un gerente. Al cobrar, pídele que ingrese su PIN.",
+      limitManager: "Sin límite de descuento.",
+      overLimit: "Pasa tu límite: al cobrar pedirá la aprobación de un gerente.",
       apply: "Aplicar descuento",
       remove: "Quitar descuento",
-      invalid: "Escribe un descuento válido: un porcentaje de 1 a 100 o un monto mayor que cero.",
-      tooBig: "El descuento no puede ser mayor que lo que descuentas.",
+      invalid: "Descuento no válido.",
+      tooBig: "No puede ser mayor que el total.",
     },
     customer: {
       title: "Cliente",
-      description:
-        "Solo el nombre y, si quieres, el teléfono. Si ya existe, se usa el que está guardado.",
       name: "Nombre",
       phone: "Teléfono",
       phoneHint: "Opcional",
@@ -1908,20 +1859,18 @@ export const messages = {
       noMatches: "No hay clientes con eso: créalo abajo.",
       createNew: "O crea uno nuevo",
       invalidName: "Escribe el nombre del cliente (al menos 2 letras).",
-      invalidPhone:
-        "El teléfono solo puede llevar números, espacios, + y guiones (6 a 20 caracteres).",
+      invalidPhone: "Teléfono no válido: de 6 a 20 números.",
     },
     parked: {
       title: "Ventas en espera",
-      description:
-        "Tickets guardados en este navegador para atender a otra persona y volver después.",
       empty: "No hay ventas en espera.",
       parkCurrent: "Poner este ticket en espera",
       resume: "Recuperar",
       discard: "Descartar",
       units: "prendas",
       parkedNow: "Ticket en espera.",
-      nothingToPark: "El ticket está vacío: no hay nada que poner en espera.",
+      unit: "prenda",
+      nothingToPark: "El ticket está vacío.",
     },
     charge: {
       title: "Cobrar",
@@ -1941,30 +1890,29 @@ export const messages = {
       quick: "Montos rápidos",
       exact: "Exacto",
       reference: "Referencia",
-      referenceHint:
-        "Últimos 4 dígitos, número de autorización o de transferencia. Nunca el número completo de la tarjeta.",
+      referenceHint: "Últimos 4 dígitos o n.º de autorización; nunca la tarjeta completa.",
       addPayment: "Agregar otro pago",
       removePayment: "Quitar pago",
       payments: "Pagos",
       invoice: "Emitir factura con CAI",
       invoiceTaxId: "RTN del cliente",
       invoiceName: "Nombre en la factura",
-      invoiceHint: "Si los dejas vacíos, sale a nombre de Consumidor final.",
+      invoiceHint: "Vacío: sale a Consumidor final.",
       submit: "Cobrar",
       submitting: "Cobrando…",
       back: "Volver al ticket",
       approval: {
         title: "Autorización de un gerente",
-        hint: "Este descuento pasa de tu límite. Pídele a un gerente que escriba su usuario y su PIN.",
+        hint: "Un gerente escribe su usuario y su PIN.",
         username: "Usuario del gerente",
         pin: "PIN",
       },
       errors: {
         pinInvalid: "El usuario o el PIN del gerente no son correctos.",
         pinNotManager: "Esa persona no puede autorizar descuentos.",
-        notEnough: "El pago no alcanza para cubrir el total. Agrega lo que falta.",
-        noChange: "Solo el efectivo puede dar cambio: ajusta los montos.",
-        creditExceeded: "El crédito que quieres usar es mayor que el saldo del cliente.",
+        notEnough: "El pago no cubre el total.",
+        noChange: "Solo el efectivo da cambio.",
+        creditExceeded: "El crédito es mayor que el saldo del cliente.",
       },
       creditBalance: "Saldo",
       done: {
@@ -1984,7 +1932,7 @@ export const messages = {
     switch: {
       button: "Cambiar cajero",
       title: "Cambiar cajero",
-      description: "Quien entra escribe su usuario y su PIN. El ticket que está armado no se toca.",
+      description: "El ticket armado se conserva.",
       username: "Usuario",
       pin: "PIN",
       submit: "Entrar",
@@ -2114,7 +2062,6 @@ export const messages = {
   },
   returns: {
     title: "Devoluciones",
-    description: "Busca la venta, elige lo que vuelve a la tienda y cómo se le devuelve el dinero.",
     methods: {
       STORE_CREDIT: "Crédito de tienda",
       ORIGINAL: "Mismo método de pago",
@@ -2128,7 +2075,7 @@ export const messages = {
       submit: "Buscar",
       recent: "Ventas recientes",
       results: "Ventas encontradas",
-      empty: "No encontramos ventas con eso. Revisa el número del ticket o el nombre del cliente.",
+      empty: "No hay ventas con eso. Revisa el número o el cliente.",
       choose: "Elegir",
       back: "Volver a buscar",
       today: "hoy",
@@ -2180,12 +2127,10 @@ export const messages = {
       chooseCustomer: "Elegir cliente",
       changeCustomer: "Cambiar",
       balance: "Saldo de crédito",
-      creditHint: "Queda como saldo a favor del cliente, para usarlo en su próxima compra.",
-      originalHint:
-        "Solo si se pagó con tarjeta o transferencia: la devolución se hace en esa misma terminal.",
-      originalUnavailable:
-        "Esta venta se pagó con efectivo o crédito: no se puede devolver al mismo método.",
-      cashHint: "Sale del cajón de tu turno y necesita la autorización de un gerente.",
+      creditHint: "Queda como saldo a favor del cliente.",
+      originalHint: "Solo con tarjeta o transferencia, en la misma terminal.",
+      originalUnavailable: "La venta se pagó con efectivo o crédito: no aplica.",
+      cashHint: "Sale del cajón de tu turno y necesita a un gerente.",
     },
     total: {
       label: "Se devolverán",
@@ -2194,7 +2139,7 @@ export const messages = {
     },
     approval: {
       title: "Autorización de un gerente",
-      hint: "Esto necesita la autorización de un gerente: pídele que escriba su usuario y su PIN.",
+      hint: "Un gerente escribe su usuario y su PIN.",
       username: "Usuario del gerente",
       pin: "PIN",
     },
@@ -2217,7 +2162,7 @@ export const messages = {
     },
     exchange: {
       action: "Cambiar por otra prenda",
-      hint: "Elige la prenda nueva en la pantalla de venta: solo se cobra la diferencia.",
+      hint: "Elige la prenda nueva en Vender: solo se cobra la diferencia.",
       banner: "Cambio del ticket",
       bannerValue: "Valor de lo que devuelve",
       cancel: "Cancelar cambio",
@@ -2228,8 +2173,7 @@ export const messages = {
       toPay: "Diferencia a pagar",
       inFavor: "A favor del cliente",
       noPayment: "No hay nada que cobrar: lo devuelto cubre lo nuevo.",
-      customerNeeded:
-        "Para dar crédito de tienda elige un cliente en el ticket (botón Cliente) y vuelve a registrar.",
+      customerNeeded: "Para dar crédito de tienda, elige un cliente en el ticket.",
       leftoverTitle: "Lo que sobra, ¿cómo se le devuelve?",
       submit: "Registrar cambio",
       submitting: "Registrando…",
@@ -2258,7 +2202,7 @@ export const messages = {
       taxId: "RTN",
       issued: "Nota de crédito",
       missing:
-        "La venta tenía factura, pero no hay un rango de notas de crédito vigente: la devolución quedó registrada sin nota de crédito. Pídele al propietario que registre el rango en Configuración · Facturación.",
+        "Falta un rango vigente de notas de crédito: la devolución quedó sin nota. El propietario lo registra en Configuración · Facturación.",
     },
     detail: {
       title: "Devoluciones de esta venta",
@@ -2287,7 +2231,6 @@ export const messages = {
   },
   reports: {
     title: "Reportes",
-    description: "Para decidir con datos: qué se vende, qué no se mueve y cuánto se gana.",
     onlyMine: "Estás viendo solo tus ventas.",
     export: {
       title: "Exportar",
@@ -2321,24 +2264,23 @@ export const messages = {
     index: {
       sales: {
         title: "Ventas",
-        description:
-          "Por periodo, hora, cajero, categoría, marca y forma de pago; con utilidad si tu rol la ve.",
+        description: "Por periodo, hora, cajero, categoría, marca y pago.",
       },
       products: {
         title: "Productos",
-        description: "Los que más y los que menos se venden, y cuánto rotan.",
+        description: "Los que más y menos se venden, y su rotación.",
       },
       sizes: {
         title: "Tallas y colores",
-        description: "Qué tallas y colores se venden, para decidir qué recomprar.",
+        description: "Qué tallas y colores se venden.",
       },
       closings: {
         title: "Cierres de caja",
-        description: "Cada cierre con lo esperado, lo contado y la diferencia.",
+        description: "Cada cierre: esperado, contado y diferencia.",
       },
       inventory: {
         title: "Inventario",
-        description: "Cuánto vale lo que hay en tienda y qué lleva mucho sin venderse.",
+        description: "Cuánto vale lo que hay y qué no se mueve.",
       },
     },
     filter: {
@@ -2409,7 +2351,7 @@ export const messages = {
         hour: "Ventas por hora del día",
       },
       methodNote:
-        "En efectivo ya está descontado el vuelto. El crédito por cambio y los abonos de apartados no son dinero nuevo.",
+        "Efectivo ya sin el vuelto. El crédito por cambio y los abonos no son dinero nuevo.",
       refundsTitle: "Reembolsos por forma",
     },
     products: {
@@ -2424,7 +2366,7 @@ export const messages = {
         rotation: "Rotación",
         days: "Días de existencia",
       },
-      note: "Vendidas netas = vendidas − devueltas. Rotación = vendidas netas ÷ existencia de hoy. Los menos vendidos solo cuentan productos con existencia.",
+      note: "Netas = vendidas − devueltas. Rotación = netas ÷ existencia actual.",
       none: "Sin ventas",
     },
     sizes: {
@@ -2435,7 +2377,7 @@ export const messages = {
       units: "prendas vendidas",
       size: "Talla",
       empty: "No se vendieron prendas con talla y color en este periodo.",
-      note: "Cuenta las prendas vendidas (sin descontar devoluciones). Entre más oscuro, más se vendió.",
+      note: "Cuenta lo vendido, sin descontar devoluciones. Más oscuro, más ventas.",
     },
     closings: {
       title: "Cierres de caja",
@@ -2466,7 +2408,7 @@ export const messages = {
         cost: "A costo",
         retail: "A precio de venta",
         total: "Total",
-        note: "Solo cuenta lo que hay en estante. El costo es el costo promedio de cada prenda.",
+        note: "Solo lo que hay en estante, a costo promedio.",
       },
       dead: {
         title: "Sin movimiento",
@@ -2501,9 +2443,7 @@ export const messages = {
   },
   layaways: {
     title: "Apartados",
-    description: "Prendas reservadas para clientes que las van pagando con abonos.",
-    newHint:
-      "Para crear un apartado, arma el ticket en Vender, elige al cliente y pulsa «Apartar».",
+    newHint: "Arma el ticket en Vender, elige al cliente y pulsa «Apartar».",
     status: { ACTIVE: "Activo", COMPLETED: "Saldado", CANCELLED: "Cancelado", EXPIRED: "Vencido" },
     methods: { CASH: "Efectivo", CARD: "Tarjeta", TRANSFER: "Transferencia", OTHER: "Otro" },
     search: {
@@ -2531,12 +2471,12 @@ export const messages = {
       day: "día",
       today: "hoy",
       overdueBefore: "venció hace",
-      overdueNote: "Los vencidos se cancelan solos y su abono pasa a crédito de tienda.",
+      overdueNote: "Los vencidos se cancelan solos y su abono pasa a crédito.",
     },
     create: {
       button: "Apartar",
       title: "Crear apartado",
-      description: "Las prendas del ticket quedan reservadas para este cliente.",
+      description: "Las prendas quedan reservadas para este cliente.",
       customer: "Cliente",
       noCustomer: "Elige un cliente en el ticket (botón Cliente) para poder apartar.",
       total: "Total del apartado",
@@ -2547,12 +2487,12 @@ export const messages = {
       deposit: "Abono inicial",
       method: "Forma de abono",
       reference: "Referencia",
-      referenceHint: "Últimos 4 dígitos, número de autorización o de transferencia.",
+      referenceHint: "Últimos 4 dígitos o autorización.",
       submit: "Crear apartado",
       submitting: "Creando…",
       back: "Volver al ticket",
       errors: {
-        empty: "El ticket está vacío: agrega las prendas que se van a apartar.",
+        empty: "El ticket está vacío.",
         customer: "Elige un cliente en el ticket para poder apartar.",
         amount: "Escribe el abono inicial.",
         tooLow: "El abono inicial tiene que ser de al menos",
@@ -2596,7 +2536,7 @@ export const messages = {
         by: "Recibió",
         print: "Imprimir",
       },
-      overdue: "Este apartado ya venció: se cancelará y su abono pasará a crédito de tienda.",
+      overdue: "Venció: se cancelará y el abono pasará a crédito de tienda.",
     },
     pay: {
       title: "Recibir un abono",
@@ -2614,8 +2554,7 @@ export const messages = {
     },
     settle: {
       title: "Saldar el apartado",
-      description:
-        "Se convierte en una venta con los precios de cuando se apartó. Se cobra solo lo que falta.",
+      description: "Se vende a los precios de cuando se apartó. Se cobra lo que falta.",
       due: "Falta cobrar",
       method: "Forma de pago",
       amount: "Monto que entrega",
@@ -2636,14 +2575,14 @@ export const messages = {
     cancel: {
       button: "Cancelar apartado",
       title: "Cancelar el apartado",
-      description: "Las prendas vuelven a estar disponibles y lo abonado pasa a crédito de tienda.",
+      description: "Las prendas vuelven a estar disponibles y lo abonado pasa a crédito.",
       reason: "Motivo",
       reasonPlaceholder: "El cliente ya no lo quiere, no volvió…",
       retain: "La tienda se queda con (L)",
       retainHint: "Opcional. Lo demás pasa a crédito de tienda.",
       approval: {
         title: "Autorización de un gerente",
-        hint: "Cancelar un apartado lo autoriza un gerente: pídele que escriba su usuario y su PIN.",
+        hint: "Un gerente escribe su usuario y su PIN.",
         username: "Usuario del gerente",
         pin: "PIN",
       },
@@ -2672,14 +2611,12 @@ export const messages = {
     errors: {
       pinInvalid: "El usuario o el PIN del gerente no son correctos.",
       pinNotManager: "Esa persona no puede autorizar la cancelación de un apartado.",
-      needsManager: "Esto lo autoriza un gerente: pídele que escriba su usuario y su PIN.",
+      needsManager: "Lo autoriza un gerente: que escriba su usuario y su PIN.",
     },
   },
   customers: {
     list: {
       title: "Clientes",
-      description:
-        "Busca por nombre o teléfono. Desde aquí ves su historial y su crédito de tienda.",
       new: "Nuevo cliente",
       search: {
         label: "Cliente",
@@ -2690,7 +2627,7 @@ export const messages = {
       },
       results: "Clientes",
       empty: "No encontramos clientes con eso.",
-      emptyHint: "Prueba con otra parte del nombre o del teléfono, o crea el cliente.",
+      emptyHint: "Prueba con otro nombre o teléfono, o crea el cliente.",
       archivedBadge: "Archivado",
       open: "Ver",
       columns: {
@@ -2728,7 +2665,7 @@ export const messages = {
       saved: "Cambios guardados.",
       errors: {
         name: "Escribe el nombre del cliente (al menos 2 letras).",
-        phone: "El teléfono solo puede llevar números, espacios, + y guiones (6 a 20 caracteres).",
+        phone: "Teléfono no válido: de 6 a 20 números.",
         email: "Escribe un correo válido, por ejemplo nombre@correo.com.",
       },
     },
@@ -2736,8 +2673,8 @@ export const messages = {
       edit: "Editar",
       archive: "Archivar cliente",
       restore: "Restaurar cliente",
-      archiveHint: "No aparecerá en las búsquedas. Su historial y su crédito se conservan.",
-      archivedNote: "Este cliente está archivado: no aparece en las búsquedas de la caja.",
+      archiveHint: "No aparece en búsquedas; su historial y crédito se conservan.",
+      archivedNote: "Cliente archivado: no aparece en las búsquedas de la caja.",
       back: "Volver a clientes",
     },
     since: "Cliente desde",
@@ -2766,8 +2703,7 @@ export const messages = {
     },
     adjust: {
       title: "Ajustar el crédito",
-      description:
-        "Para corregir un error o dar una cortesía. Queda anotado con tu nombre y el motivo.",
+      description: "Para corregir un error o dar una cortesía. Queda con tu nombre y el motivo.",
       direction: "Tipo de ajuste",
       directions: { ADD: "Sumar crédito", SUBTRACT: "Restar crédito" },
       amount: "Monto",
@@ -2792,13 +2728,18 @@ export const messages = {
   },
   salesDoc: {
     ticket: "Ticket",
+    /** El título del recibo de una venta sin factura (el ticket de 80 mm). */
+    voucher: "Comprobante de venta",
+    numberShort: "N.º",
     invoice: "Factura",
     internalTicket: "Ticket interno",
     attendedBy: "Atendió",
     customer: "Cliente",
     taxId: "RTN",
+    phoneShort: "Tel.",
     finalConsumer: "Consumidor final",
     date: "Fecha",
+    time: "Hora",
     subtotal: "Subtotal",
     discount: "Descuento",
     taxIncluded: "ISV incluido",
@@ -2830,11 +2771,10 @@ export const messages = {
     },
     error: {
       title: "Algo salió mal",
-      description: "No pudimos mostrar esta pantalla. Puedes intentarlo de nuevo.",
+      description: "No pudimos mostrar esta pantalla. Inténtalo de nuevo.",
     },
     empty: {
       title: "Aún no hay nada por aquí",
-      description: "Cuando agregues información aparecerá en esta lista.",
     },
   },
   errors: {
@@ -2846,70 +2786,58 @@ export const messages = {
     INSUFFICIENT_STOCK:
       "No quedan suficientes prendas de este artículo. ¿Quieres ver otras tallas o colores?",
     CASH_SESSION_CLOSED: "No tienes una caja abierta. Ábrela para vender o registrar movimientos.",
-    CASH_SESSION_OPEN:
-      "Ya hay una caja abierta (la tuya o la de esta terminal). Ciérrala antes de abrir otra.",
-    CASH_SESSION_STATE:
-      "Esta caja ya no permite esa acción. Actualiza la pantalla para ver su estado.",
+    CASH_SESSION_OPEN: "Ya hay una caja abierta en esta terminal o a tu nombre. Ciérrala primero.",
+    CASH_SESSION_STATE: "Esta caja ya no permite esa acción. Actualiza la pantalla.",
     DISCOUNT_NEEDS_APPROVAL:
-      "Este descuento supera tu límite. Pide a un gerente que lo autorice con su PIN.",
-    SALE_STATE: "Esta venta ya no permite esa acción. Actualiza la pantalla para ver su estado.",
+      "Supera tu límite de descuento: un gerente debe autorizarlo con su PIN.",
+    SALE_STATE: "Esta venta ya no permite esa acción. Actualiza la pantalla.",
     RETURN_POLICY:
-      "Esta devolución no cumple la política (el plazo o la categoría). Un gerente puede autorizarla con su PIN.",
-    OVER_RETURN:
-      "No puedes devolver más prendas de las que se vendieron. Revisa lo que ya se devolvió de esa venta.",
+      "No cumple la política de devoluciones (plazo o categoría). Un gerente puede autorizarla.",
+    OVER_RETURN: "No puedes devolver más prendas de las vendidas. Revisa lo ya devuelto.",
     CUSTOMER_REQUIRED: "Para dar crédito de tienda necesitas elegir un cliente.",
-    APPROVAL_REQUIRED:
-      "Esto necesita la autorización de un gerente: pídele que escriba su usuario y su PIN.",
+    APPROVAL_REQUIRED: "Lo autoriza un gerente: que escriba su usuario y su PIN.",
     INSUFFICIENT_CREDIT: "Esa persona no tiene tanto crédito de tienda. Revisa su saldo.",
     LAYAWAY_STATE: "Este apartado ya no admite esa operación. Revisa su estado.",
     LAYAWAY_DEPOSIT: "El abono no alcanza el mínimo que pide la tienda para apartar.",
-    PHONE_TAKEN: "Ya hay un cliente con ese teléfono (puede estar archivado). Búscalo en la lista.",
+    PHONE_TAKEN: "Ya hay un cliente con ese teléfono (puede estar archivado).",
     CUSTOMER_IN_USE:
       "Este cliente tiene apartados activos. Termínalos o cancélalos antes de archivarlo.",
     READ_ONLY:
-      "Tu cuenta está en solo lectura porque la suscripción venció: puedes consultar y exportar, pero no registrar nada nuevo. Comunícate con quien administra tu servicio para renovarla.",
+      "Cuenta en solo lectura: venció la suscripción. Puedes consultar y exportar; renuévala con quien administra tu servicio.",
     FEATURE_NOT_INCLUDED:
-      "Esa función no está incluida en tu plan. Pídele a quien administra tu servicio que lo cambie.",
-    PLAN_LIMIT:
-      "Tu plan no permite agregar más de esto. Pídele a quien administra tu servicio que lo cambie.",
+      "Esa función no está en tu plan. Pide el cambio a quien administra tu servicio.",
+    PLAN_LIMIT: "Tu plan no permite agregar más. Pide el cambio a quien administra tu servicio.",
     // Los números de estos tres mensajes son los de PHOTO_LIMITS (config/constants.ts) y PHOTO_MAX_BYTES (lib/images.ts).
-    INVALID_IMAGE:
-      "Ese archivo no se pudo usar como foto. Sube una imagen JPG, PNG o WebP que no esté dañada.",
-    IMAGE_TOO_LARGE: "La foto pesa más de 8 MB. Sube una más liviana o redúcela antes.",
-    PHOTO_LIMIT: "Este producto ya tiene 6 fotos, que es lo máximo. Quita una para agregar otra.",
+    INVALID_IMAGE: "Archivo no válido. Sube una imagen JPG, PNG o WebP sin dañar.",
+    IMAGE_TOO_LARGE: "La foto pesa más de 8 MB. Sube una más liviana.",
+    PHOTO_LIMIT: "Máximo de 6 fotos por producto. Quita una para agregar otra.",
     FINANCE_ENTRY_VOIDED: "Ese movimiento ya está anulado.",
     FINANCE_DRAWER_ENTRY:
-      "Este gasto salió de la caja y no se anula desde Finanzas. Corrígelo con una entrada de efectivo en la caja, con su motivo.",
+      "Este gasto salió de la caja: no se anula aquí. Corrígelo con una entrada de efectivo con su motivo.",
     FIXED_COST_PAID: "Ese costo fijo ya tiene un pago registrado en ese mes.",
-    INSUFFICIENT_FINANCE_BOX:
-      "No hay tanto efectivo en la caja de finanzas. Revisa el saldo e inténtalo con un monto menor.",
-    INSUFFICIENT_CASH:
-      "No hay tanto efectivo en la caja. Revisa el monto: el efectivo esperado no puede quedar en negativo.",
-    FISCAL_RANGE_EXHAUSTED: "El rango de facturas se agotó o ya venció. Solicita uno nuevo al SAR.",
-    RATE_LIMITED:
-      "Hubo demasiados intentos fallidos desde este equipo. Espera unos minutos e inténtalo de nuevo.",
+    INSUFFICIENT_FINANCE_BOX: "No hay tanto efectivo en la caja de finanzas. Prueba con menos.",
+    INSUFFICIENT_CASH: "No hay tanto efectivo en la caja. Revisa el monto.",
+    CASH_FLOAT_LOCKED:
+      "El saldo anterior no se puede cambiar. Ábrela con él y registra la diferencia con su motivo.",
+    FISCAL_RANGE_EXHAUSTED: "El rango de facturas se agotó o venció. Pide uno nuevo al SAR.",
+    RATE_LIMITED: "Demasiados intentos fallidos. Espera unos minutos.",
     USERNAME_TAKEN: "Ese usuario ya existe. Elige otro nombre de usuario.",
     LAST_OWNER: "Debe quedar al menos un Propietario activo.",
     SELF_ACTION: "No puedes hacer esto con tu propio usuario.",
     NAME_TAKEN: "Ya existe un elemento con ese nombre. Elige otro.",
-    ITEM_IN_USE:
-      "No se puede archivar porque todavía se usa en productos o en otras categorías activas. Archiva o cambia esos primero.",
-    CODE_TAKEN:
-      "Ya existe un producto con ese código. Déjalo vacío para que el sistema asigne uno.",
+    ITEM_IN_USE: "No se puede archivar: todavía se usa en productos o categorías activas.",
+    CODE_TAKEN: "Ya existe un producto con ese código. Déjalo vacío para asignar uno.",
     COUNT_IN_PROGRESS: "Ya hay un conteo en curso. Termínalo o cancélalo antes de empezar otro.",
-    COUNT_STATE: "Este conteo ya no permite esa acción. Actualiza la pantalla para ver su estado.",
-    ORDER_STATE: "Esta orden ya no permite esa acción. Actualiza la pantalla para ver su estado.",
-    OVER_RECEIPT:
-      "No puedes recibir más prendas de las que faltan por llegar en esa orden. Revisa las cantidades.",
+    COUNT_STATE: "Este conteo ya no permite esa acción. Actualiza la pantalla.",
+    ORDER_STATE: "Esta orden ya no permite esa acción. Actualiza la pantalla.",
+    OVER_RECEIPT: "No puedes recibir más de lo que falta en la orden.",
     RANGE_OVERLAP: "Ese rango se cruza con otro de la misma serie. Revisa los números.",
-    ACTIVE_RANGE_EXISTS:
-      "Ya hay un rango activo para ese documento y esa caja. Desactívalo antes de activar otro.",
+    ACTIVE_RANGE_EXISTS: "Ya hay un rango activo para ese documento y caja. Desactívalo primero.",
     HAS_STOCK:
       "Todavía hay prendas en existencia. Ajusta el inventario a cero antes de archivarlo.",
     INVALID_CREDENTIALS: "Usuario o contraseña incorrectos.",
     ACCOUNT_LOCKED: "Demasiados intentos fallidos. Espera unos minutos e inténtalo de nuevo.",
-    INVALID_CODE:
-      "El código no es correcto. Revisa que sea el más reciente y que la hora de tu teléfono esté al día.",
+    INVALID_CODE: "Código incorrecto. Usa el más reciente y revisa la hora de tu teléfono.",
     UNEXPECTED:
       "Ocurrió un problema inesperado. Inténtalo de nuevo; si sigue pasando, avisa al administrador.",
   },

@@ -57,7 +57,7 @@ export function Notice({ tone, role, size = "md", className, children }: NoticeP
       role={role ?? defaultRole}
       className={cn(
         "animate-in fade-in-0 slide-in-from-top-1 flex items-start gap-2 rounded-lg border duration-200",
-        small ? "px-2.5 py-1.5 text-xs" : "px-3 py-2 text-sm",
+        small ? "px-2.5 py-1.5 text-sm" : "px-3 py-2 text-sm",
         box,
         className,
       )}

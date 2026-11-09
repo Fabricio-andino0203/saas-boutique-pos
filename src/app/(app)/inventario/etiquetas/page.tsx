@@ -43,7 +43,6 @@ export default async function LabelsPage({
     <div className="mx-auto max-w-4xl space-y-6">
       <PageHeader
         title={copy.title}
-        description={copy.description}
         actions={
           <Link
             href="/inventario/etiquetas/plantilla"

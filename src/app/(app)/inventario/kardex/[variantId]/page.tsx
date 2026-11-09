@@ -48,7 +48,6 @@ export default async function KardexPage({
       </Link>
       <PageHeader
         title={`${copy.title}: ${header.productName}${variantLabel ? ` · ${variantLabel}` : ""}`}
-        description={copy.description}
       />
 
       <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -81,7 +80,7 @@ export default async function KardexPage({
       />
 
       {kardex.rows.length === 0 ? (
-        <EmptyState title={copy.empty.title} description={copy.empty.description} />
+        <EmptyState title={copy.empty.title} />
       ) : (
         <div className="overflow-x-auto">
           <Table>

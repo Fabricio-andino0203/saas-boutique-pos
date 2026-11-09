@@ -2,7 +2,7 @@ import type { FiscalDocumentType, PaymentMethod, SaleStatus } from "@/generated/
 import { db } from "@/lib/db";
 import { getSetting } from "@/lib/settings";
 import { formatFiscalNumber } from "@/modules/fiscal/issuer";
-import { getBusinessProfile } from "@/modules/settings/service";
+import { getBusinessLogo, getBusinessProfile } from "@/modules/settings/service";
 
 export type SaleDocumentItem = {
   id: string;
@@ -53,11 +53,19 @@ export type SaleDocument = {
   } | null;
   voided: { at: Date; reason: string | null } | null;
   business: { legalName: string; tradeName: string; taxId: string; address: string; phone: string };
+  /** El logo del negocio (`data:` URI); solo viene si se pidió con `{ logo: true }` porque pesa. */
+  logo: string | null;
   footer: string;
 };
 
-/** Todo lo que lleva un ticket o una factura impresa: la venta, sus líneas y pagos, el negocio y el rango fiscal. */
-export async function getSaleDocument(id: string): Promise<SaleDocument | null> {
+/**
+ * Todo lo que lleva un ticket o una factura impresa: la venta, sus líneas y pagos, el negocio y el rango fiscal. El logo
+ * solo se carga cuando la pantalla lo va a imprimir.
+ */
+export async function getSaleDocument(
+  id: string,
+  options: { logo?: boolean } = {},
+): Promise<SaleDocument | null> {
   const sale = await db.sale.findUnique({
     where: { id },
     include: {
@@ -73,6 +81,7 @@ export async function getSaleDocument(id: string): Promise<SaleDocument | null> 
     return null;
   }
   const business = await getBusinessProfile();
+  const logo = options.logo ? await getBusinessLogo() : null;
   const footer = await getSetting(db, "ticket.footer");
 
   const grossCents = sale.items.reduce((sum, item) => sum + item.unitPriceCents * item.quantity, 0);
@@ -135,6 +144,7 @@ export async function getSaleDocument(id: string): Promise<SaleDocument | null> 
       address: business.address,
       phone: business.phone,
     },
+    logo,
     footer,
   };
 }

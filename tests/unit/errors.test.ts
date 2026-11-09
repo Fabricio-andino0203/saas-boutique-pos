@@ -5,6 +5,7 @@ import { ok, toActionResult } from "@/lib/action-result";
 import {
   APP_ERROR_CODES,
   AppError,
+  CashFloatLockedError,
   CashSessionClosedError,
   CashSessionOpenError,
   CashSessionStateError,
@@ -114,6 +115,7 @@ const table = [
     code: "INSUFFICIENT_FINANCE_BOX",
     status: 409,
   },
+  { create: () => new CashFloatLockedError(), code: "CASH_FLOAT_LOCKED", status: 409 },
 ] as const;
 
 describe("AppError subclasses", () => {

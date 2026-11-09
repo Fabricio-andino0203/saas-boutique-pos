@@ -15,7 +15,7 @@ export function FormField({ label, htmlFor, hint, children }: FormFieldProps) {
         {label}
       </label>
       {children}
-      {hint ? <p className="text-muted-foreground text-xs">{hint}</p> : null}
+      {hint ? <p className="text-muted-foreground text-sm">{hint}</p> : null}
     </div>
   );
 }

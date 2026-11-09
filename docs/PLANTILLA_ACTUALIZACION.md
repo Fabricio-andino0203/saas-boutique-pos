@@ -78,13 +78,14 @@ Railway → proyecto **boutique-pos** → servicio **app** → **Deployments** �
 - [ ] El panel de plataforma abre: `https://admin.andino-software.cloud`.
 - [ ] Una tienda abre y deja entrar: `https://giocollecionpos.andino-software.cloud/login`.
 - [ ] Panel → **Negocios**: ninguno quedó en mantenimiento.
-- [ ] **Planes:** si esta versión trae una función nueva por plan, los planes que ya existen **no la reciben solos**. Panel → **Planes** → abre cada plan → marca la función → guarda. *(Hoy: «Finanzas: gastos, ingresos y utilidad».)*
+- [ ] **Planes:** si esta versión trae una función nueva por plan, los planes que ya existen **no la reciben solos**. Panel → **Planes** → abre cada plan → marca la función → guarda. *(Esta versión no agrega funciones por plan; la anterior sumó «Finanzas: gastos, ingresos y utilidad».)*
 - [ ] **Prueba lo nuevo en una tienda de verdad** (usa una de prueba, no la de un cliente). Lista de esta versión; cámbiala en cada actualización:
-  - [ ] **Vender** → botón **Caja**: se abre el panel con *Turno*, *Entradas y salidas* y *Cerrar caja*.
-  - [ ] Abrir caja con un fondo; si el último cierre dejó efectivo, el fondo aparece puesto.
-  - [ ] Cerrar caja contando y **retirando** una parte; la siguiente apertura ofrece lo que quedó.
-  - [ ] **Finanzas → Caja de finanzas:** aparece el retiro del cierre; **Retirar de la caja** registra un retiro, baja el saldo y se puede **Anular** (con motivo).
-  - [ ] **Etiquetas por producto** (opcional según el stock) y el **menú lateral** agrupado.
+  - [ ] **Vender** → botón **Caja**: el panel muestra el efectivo que debe haber y los botones *Ingresar efectivo*, *Retirar efectivo*, *Agregar gasto*, *Apartados*, *Cancelar venta* y *Realizar corte*.
+  - [ ] Abrir caja: si el último cierre dejó efectivo, se ve el **saldo anterior** y **no se puede cambiar**. Si no dejó, se escribe el fondo.
+  - [ ] **Cancelar venta** con prendas en el ticket pide un **motivo** y aparece en **Auditoría** como «Venta cancelada antes de cobrar».
+  - [ ] **Realizar corte:** se cuentan **billetes y monedas** (el total sale solo), se ve la diferencia, se retira una parte y la siguiente apertura muestra lo que quedó.
+  - [ ] **Configuración → Logo del ticket:** subir un logo, verlo, y **cobrar una venta de prueba**: el recibo sale con logo, «Comprobante de venta», fecha, hora, columnas y total en banda negra.
+  - [ ] Las pantallas se ven con menos texto: títulos sin subtítulo, ayudas cortas y letra de 14 px o más.
 - [ ] Al día siguiente, mira que el cron `tareas-diarias` y el de respaldos no hayan salido en rojo.
 
 ## 4. Si algo sale mal

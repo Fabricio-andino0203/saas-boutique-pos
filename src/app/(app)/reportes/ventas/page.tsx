@@ -76,7 +76,6 @@ export default async function SalesReportPage({
     <div className="space-y-6">
       <PageHeader
         title={copy.sales.title}
-        description={copy.description}
         actions={
           <ExportLinks
             kind="ventas"

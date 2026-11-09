@@ -46,7 +46,6 @@ export default async function CashClosingsPage({
     <div className="space-y-6">
       <PageHeader
         title={copy.title}
-        description={copy.description}
         actions={
           <Link href="/vender" className={buttonVariants({ variant: "outline" })}>
             {copy.goToCash}
@@ -61,7 +60,7 @@ export default async function CashClosingsPage({
       ) : null}
 
       {sessions.rows.length === 0 ? (
-        <EmptyState title={copy.empty.title} description={copy.empty.description} />
+        <EmptyState title={copy.empty.title} />
       ) : (
         <div className="overflow-x-auto">
           <Table>

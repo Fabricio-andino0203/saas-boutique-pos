@@ -4,19 +4,27 @@ import { PageHeader } from "@/components/shared/page-header";
 import { buttonVariants } from "@/components/ui/button";
 import { messages } from "@/config/messages.es";
 import { requirePageCapability } from "@/lib/auth";
+import { LogoForm } from "@/modules/settings/components/logo-form";
 import { BusinessForm, SettingsForm } from "@/modules/settings/components/settings-forms";
-import { getBusinessProfile, getSettingsSnapshot } from "@/modules/settings/service";
+import {
+  getBusinessLogo,
+  getBusinessProfile,
+  getSettingsSnapshot,
+} from "@/modules/settings/service";
 
 export default async function SettingsPage() {
   await requirePageCapability("settings.manage");
-  const [business, settings] = await Promise.all([getBusinessProfile(), getSettingsSnapshot()]);
+  const [business, settings, logo] = await Promise.all([
+    getBusinessProfile(),
+    getSettingsSnapshot(),
+    getBusinessLogo(),
+  ]);
   const copy = messages.settings;
 
   return (
     <div className="mx-auto max-w-3xl space-y-10">
       <PageHeader
         title={copy.title}
-        description={copy.description}
         actions={
           <Link href="/configuracion/cai" className={buttonVariants({ variant: "outline" })}>
             {copy.fiscal.link}
@@ -32,6 +40,13 @@ export default async function SettingsPage() {
           <p className="text-muted-foreground text-sm">{copy.business.description}</p>
         </div>
         <BusinessForm values={business} />
+      </section>
+
+      <section aria-labelledby="logo-title" className="space-y-4">
+        <h2 id="logo-title" className="text-lg font-medium">
+          {copy.logo.title}
+        </h2>
+        <LogoForm logo={logo} />
       </section>
 
       <section aria-labelledby="settings-title">

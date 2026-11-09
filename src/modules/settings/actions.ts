@@ -15,6 +15,7 @@ import {
 import { loadSampleData } from "@/modules/settings/sample-data";
 import {
   createFiscalRange,
+  setBusinessLogo,
   setFiscalRangeActive,
   updateBusinessProfile,
   updateSettings,
@@ -41,6 +42,41 @@ export async function saveBusinessAction(
   const { user } = await requireUserCapability("settings.manage");
   const result = await toActionResult(() => updateBusinessProfile(user, input), messages.errors);
   return result.ok ? { success: copy.saved } : { error: result.error.message };
+}
+
+/** El mensaje de un error al guardar el logo: el archivo, el tamaño o que falta guardar el negocio. */
+function logoErrorText(code: string, fallback: string): string {
+  if (code === "IMAGE_TOO_LARGE") {
+    return copy.logo.tooLarge;
+  }
+  if (code === "INVALID_IMAGE") {
+    return copy.logo.invalid;
+  }
+  return code === "VALIDATION" ? copy.logo.needBusiness : fallback;
+}
+
+export async function saveLogoAction(
+  _previous: SettingsActionState,
+  formData: FormData,
+): Promise<SettingsActionState> {
+  const file = formData.get("logo");
+  if (!(file instanceof File) || file.size === 0) {
+    return { error: copy.logo.noFile };
+  }
+  const { user } = await requireUserCapability("settings.manage");
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const result = await toActionResult(() => setBusinessLogo(user, bytes), messages.errors);
+  return result.ok
+    ? { success: copy.logo.saved }
+    : { error: logoErrorText(result.error.code, result.error.message) };
+}
+
+export async function removeLogoAction(): Promise<SettingsActionState> {
+  const { user } = await requireUserCapability("settings.manage");
+  const result = await toActionResult(() => setBusinessLogo(user, null), messages.errors);
+  return result.ok
+    ? { success: copy.logo.removed }
+    : { error: logoErrorText(result.error.code, result.error.message) };
 }
 
 const wholeNumber = (value: string): number =>

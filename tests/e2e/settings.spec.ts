@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import sharp from "sharp";
 
 import { messages } from "../../src/config/messages.es";
 
@@ -30,6 +31,58 @@ for (const role of ["manager", "warehouse", "cashier"] as const) {
     }
   });
 }
+
+test("the owner uploads the ticket logo, sees it, is told when the file is not an image, and removes it", async ({
+  page,
+}) => {
+  test.slow();
+  await loginAs(page, "owner");
+  await page.goto("/configuracion");
+  const section = page.getByRole("region", { name: copy.logo.title });
+  await expect(section).toBeVisible();
+
+  // Una corrida anterior pudo dejar un logo puesto
+  const remove = section.getByRole("button", { name: copy.logo.remove });
+  if (await remove.isVisible()) {
+    await remove.click();
+    await expect(section.getByText(copy.logo.empty)).toBeVisible();
+  }
+
+  const png = await sharp({
+    create: { width: 600, height: 300, channels: 3, background: "#336699" },
+  })
+    .png()
+    .toBuffer();
+  const file = section.getByLabel(copy.logo.file, { exact: true });
+  await file.setInputFiles({ name: "logo.png", mimeType: "image/png", buffer: png });
+  await section.getByRole("button", { name: copy.logo.upload }).click();
+  await expect(section.getByText(copy.logo.saved)).toBeVisible();
+  await expect(section.getByRole("img", { name: copy.logo.alt })).toBeVisible();
+
+  // Un archivo que no es una imagen no cambia el logo y explica qué pasó
+  await file.setInputFiles({
+    name: "falso.png",
+    mimeType: "image/png",
+    buffer: Buffer.from("esto no es una imagen"),
+  });
+  await section.getByRole("button", { name: copy.logo.change }).click();
+  await expect(section.getByText(copy.logo.invalid)).toBeVisible();
+  await expect(section.getByRole("img", { name: copy.logo.alt })).toBeVisible();
+
+  await section.getByRole("button", { name: copy.logo.remove }).click();
+  await expect(section.getByText(copy.logo.empty)).toBeVisible();
+  await expect(section.getByText(copy.logo.removed)).toBeVisible();
+
+  // Subir otra vez después de quitar: el aviso es el de esta subida, no el de haber quitado el anterior
+  await file.setInputFiles({ name: "logo.png", mimeType: "image/png", buffer: png });
+  await section.getByRole("button", { name: copy.logo.upload }).click();
+  await expect(section.getByText(copy.logo.saved)).toBeVisible();
+  await expect(section.getByText(copy.logo.removed)).toHaveCount(0);
+
+  // Deja la tienda sin logo para las demás pruebas
+  await section.getByRole("button", { name: copy.logo.remove }).click();
+  await expect(section.getByText(copy.logo.empty)).toBeVisible();
+});
 
 test("the owner changes the business name and the cashier discount limit, then restores them", async ({
   page,

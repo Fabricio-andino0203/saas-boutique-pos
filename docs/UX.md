@@ -101,10 +101,11 @@ El mayor cuello de botella de cualquier boutique es **cargar productos**. Diseñ
 
 ## 6. Caja
 
-La caja vive **dentro de Vender** (no tiene entrada propia en el menú; `/caja` lleva a Vender). El botón **Caja** del encabezado del punto de venta abre un panel lateral con tres pestañas —*Turno* (resumen), *Entradas y salidas* (gastos, retiros, más cambio) y *Cerrar caja*— y el efectivo que debe haber siempre a la vista encima de ellas. El panel se pide al abrirlo y tras cada cambio; los atajos del punto de venta se pausan mientras está abierto. Las tres pestañas quedan montadas: cambiar de una a otra no borra lo que se estaba contando.
+La caja vive **dentro de Vender** (no tiene entrada propia en el menú; `/caja` lleva a Vender). El botón **Caja** del encabezado del punto de venta abre un panel lateral: arriba el efectivo que debe haber, siempre a la vista, y debajo los **botones de una caja registradora** —*Ingresar efectivo*, *Retirar efectivo*, *Agregar gasto* (solo con Finanzas), *Apartados*, *Cancelar venta* y *Realizar corte*— seguidos del detalle del turno y sus movimientos. Cada acción de efectivo abre su formulario dentro del panel con una flecha para volver; todas piden un motivo. El panel se pide al abrirlo y tras cada cambio; los atajos del punto de venta se pausan mientras está abierto. El corte queda montado: volver al menú no borra lo que se estaba contando.
 
-- **Apertura:** si no hay turno abierto, Vender muestra el formulario de apertura (un campo: fondo inicial) y [Abrir caja]. Si el último cierre dejó efectivo en el cajón, ese **fondo heredado** ya aparece puesto con quién lo dejó y cuándo. Cambiarlo, cuando lo heredado era mayor que cero, pide explicar por qué (comentario obligatorio, queda en la auditoría).
-- **Cierre:** asistente de pasos: *contar efectivo (opcional por denominaciones) → ver la diferencia → cuánto se retira → comentario y cerrar*. La diferencia se colorea: verde (0), ámbar (pequeña), rojo (grande). El retiro tiene botones «Retirar todo» y «No retirar nada» y una línea que dice cuánto **queda en la caja para mañana**; no deja retirar más de lo contado. Imprimible.
+- **Apertura:** si no hay turno abierto, Vender muestra «Abre tu caja» con un solo botón. Si el último cierre dejó efectivo, se ve el **saldo anterior** en grande, con quién lo dejó y cuándo, y **no se puede cambiar**: la caja abre con ese saldo (la diferencia con el cajón se registra después con Ingresar o Retirar efectivo y su motivo). Sin saldo anterior, un único campo: fondo inicial.
+- **Cancelar venta:** con prendas en el ticket (desde el ticket o desde el panel), un diálogo pide el **motivo** y deja constancia; sin él no se cancela. Descartar un ticket en espera pasa por lo mismo.
+- **Corte:** pasos: *contar billetes y monedas (siempre; el total sale solo) → ver la diferencia → cuánto se retira → comentario y cerrar*. La diferencia se colorea: verde (0), ámbar (pequeña), rojo (grande). El retiro tiene botones «Retirar todo» y «No retirar nada» y una línea que dice cuánto **queda en la caja para mañana**; no deja retirar más de lo contado. Imprimible.
 - La caja de otra persona: si la terminal la abrió alguien más, el panel lo explica y no deja operar (solo quien abrió el turno lo cierra).
 - Sin turno abierto, Vender muestra el formulario de apertura en lugar del punto de venta.
 
@@ -152,14 +153,30 @@ La caja vive **dentro de Vender** (no tiene entrada propia en el menú; `/caja` 
 
 Tono: cercano, claro, respetuoso, en tuteo ("tú") o "usted" según preferencia (por defecto tuteo). Frases cortas.
 
+### Pantallas limpias: las reglas
+
+Una pantalla se lee de un vistazo cuando solo dice lo que hace falta. Estas reglas valen para todo texto nuevo y son lo que se revisa en cada cambio de pantalla (las skills `design:ux-copy`, `design:design-critique` y `design:accessibility-review` sirven de lista de comprobación):
+
+1. **Un título y nada que lo repita.** Una pantalla no lleva subtítulo salvo que diga algo que el título no dice (un rango de fechas, quién abrió la caja, una cifra). «Productos» no necesita «Las prendas que vendes».
+2. **La ayuda va donde un error cuesta dinero o datos.** Un campo obvio no lleva ayuda. Si la lleva: una línea, de 12 palabras o menos, sin repetir la etiqueta. Un ejemplo corto («Ej.: Recibo de luz de octubre») vale más que una explicación.
+3. **Etiquetas de hasta 3 palabras** y un mismo verbo para la misma acción en toda la aplicación (Guardar, Crear, Archivar, Anular, Cancelar venta, Cobrar).
+4. **Estados vacíos: una línea y un botón.** Sin párrafos.
+5. **Avisos solo si se puede actuar.** Una frase: qué pasó y qué hacer. Los errores no piden disculpas.
+6. **Lo que se hace con atajos no se repite en el botón.** Los atajos (F4, F6…) viven en el tooltip y en la ayuda «Atajos»; solo quedan a la vista en Cobrar y Descuento.
+7. **Letra legible:** 14 px (`text-sm`) como mínimo para cualquier ayuda, nota, línea secundaria o error. `text-xs` (12 px) solo para insignias, atajos, códigos y ejes de gráficas. Contraste AA en claro y oscuro.
+8. **Los números mandan:** el dinero y las cantidades van grandes y alineados; las palabras que los rodean, las justas.
+
+Medida: `messages.es.ts` pasó de 9,226 a 7,712 palabras; las ayudas y descripciones, de 2,159 a 1,108; y las frases de más de 12 palabras, de 162 a 47. `tests/unit/copy-budget.test.ts` fija un tope a esas tres cifras: si una función nueva necesita más texto, se sube el tope en el mismo cambio y se explica por qué; si no, se recorta otro texto.
+
 | Situación | Texto |
 |---|---|
-| Caja cerrada | "Abre tu caja para empezar a vender." |
-| Sin stock | "No quedan prendas de esta talla. ¿Quieres ver otras tallas o colores?" |
+| Caja cerrada | "Abre tu caja" |
+| Sin stock | "Sin existencia de esta talla." |
 | Venta exitosa | "¡Venta registrada! Cambio a entregar: L 150.00" |
-| Descuento sobre el límite | "Este descuento necesita la aprobación de un gerente. Pídele que ingrese su PIN." |
+| Descuento sobre el límite | "Pasa tu límite: al cobrar pedirá la aprobación de un gerente." |
+| Cancelar venta | Un campo: «Motivo». Botón «Cancelar venta». |
 | Anular venta | "Vas a anular esta venta. Las prendas volverán al inventario y el pago se revertirá. Escribe el motivo." |
-| Lista vacía (productos) | "Aún no tienes productos. Crea el primero o importa tu catálogo desde Excel." |
+| Lista vacía (productos) | "Aún no tienes productos." y el botón «Crear producto» |
 | Cierre con diferencia | "Hay una diferencia de L 20.00 (faltante). Agrega un comentario para continuar." |
 | CAI por vencer | "Tu rango de facturas vence en 12 días. Solicita uno nuevo al SAR." |
 

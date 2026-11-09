@@ -60,7 +60,7 @@ export default async function LayawaysPage({
 
   return (
     <div className="space-y-6">
-      <PageHeader title={copy.title} description={copy.description} />
+      <PageHeader title={copy.title} />
       <p className="text-muted-foreground text-sm">{copy.newHint}</p>
 
       <form method="get" role="search" className="flex flex-wrap items-end gap-3">

@@ -16,7 +16,7 @@ export default async function LabelTemplatePage() {
       <Link href="/inventario/etiquetas" className="text-muted-foreground text-sm hover:underline">
         {copy.back}
       </Link>
-      <PageHeader title={copy.title} description={copy.description} />
+      <PageHeader title={copy.title} />
       <LabelTemplateForm initial={template} />
     </div>
   );

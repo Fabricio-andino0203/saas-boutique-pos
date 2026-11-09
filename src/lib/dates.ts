@@ -113,6 +113,13 @@ export function formatLocalDate(date: Date): string {
   return `${pad2(p.day)}/${pad2(p.month)}/${p.year}`;
 }
 
+/** Solo la hora, en la zona de la tienda y de 24 horas: `18:05`. */
+export function formatLocalTime(date: Date): string {
+  assertValidDate(date);
+  const p = zonedParts(date);
+  return `${pad2(p.hour)}:${pad2(p.minute)}`;
+}
+
 export function formatLocalDateTime(date: Date): string {
   assertValidDate(date);
   const p = zonedParts(date);

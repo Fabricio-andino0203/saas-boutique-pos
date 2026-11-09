@@ -65,11 +65,7 @@ export function DataTable<TData, TValue>({
 
   if (rows.length === 0) {
     return (
-      <EmptyState
-        title={empty?.title ?? messages.states.empty.title}
-        description={empty?.description ?? messages.states.empty.description}
-        action={empty?.action}
-      />
+      <EmptyState title={empty?.title ?? messages.states.empty.title} action={empty?.action} />
     );
   }
 

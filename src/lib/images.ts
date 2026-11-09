@@ -45,6 +45,62 @@ export function sniffImageFormat(bytes: Uint8Array): ImageFormat | null {
   return null;
 }
 
+/** Lo más que se acepta de un logo. Es mucho: casi todos pesan menos de 500 KB y el servidor recibe hasta 6 MB por acción. */
+export const LOGO_MAX_BYTES = 4_000_000;
+/** Lo que cabe en la térmica de 80 mm (576 puntos de ancho) con una altura que no se come el ticket. */
+const LOGO_BOX = { width: 576, height: 240 } as const;
+
+export type ProcessedLogo = {
+  /** `data:image/png;base64,…`: se guarda tal cual en el negocio y el ticket lo imprime sin pedir nada más. */
+  dataUri: string;
+  width: number;
+  height: number;
+  bytes: number;
+};
+
+/**
+ * El logo del negocio para el ticket. Se mira el contenido (como en las fotos: SVG y GIF no entran), se orienta, se pone
+ * sobre fondo blanco y se pasa a escala de grises, a un tamaño que cabe en la térmica sin agrandar un logo pequeño. Sale
+ * como PNG, sin datos ocultos.
+ */
+export async function processLogo(input: Uint8Array): Promise<ProcessedLogo> {
+  if (input.byteLength > LOGO_MAX_BYTES) {
+    throw new ImageTooLargeError();
+  }
+  if (input.byteLength === 0 || !sniffImageFormat(input.subarray(0, 16))) {
+    throw new InvalidImageError();
+  }
+  const source = Buffer.from(input.buffer, input.byteOffset, input.byteLength);
+  try {
+    const { data, info } = await sharp(source, {
+      limitInputPixels: PHOTO_MAX_PIXELS,
+      failOn: "error",
+    })
+      .rotate()
+      .flatten({ background: "#ffffff" })
+      .resize({
+        width: LOGO_BOX.width,
+        height: LOGO_BOX.height,
+        fit: "inside",
+        withoutEnlargement: true,
+      })
+      .grayscale()
+      // Un fondo casi blanco (235–254) pasa a blanco puro: en la térmica no sale como una mancha gris de puntos.
+      .linear(1.08, 0)
+      .toColourspace("b-w")
+      .png({ compressionLevel: 9 })
+      .toBuffer({ resolveWithObject: true });
+    return {
+      dataUri: `data:image/png;base64,${data.toString("base64")}`,
+      width: info.width,
+      height: info.height,
+      bytes: info.size,
+    };
+  } catch (error) {
+    throw new InvalidImageError("The file could not be read as an image", { cause: error });
+  }
+}
+
 export type PhotoVariant = { data: Buffer; width: number; height: number; bytes: number };
 
 export type ProcessedPhoto = {

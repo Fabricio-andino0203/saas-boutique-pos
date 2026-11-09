@@ -73,7 +73,7 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
 
   return (
     <div className="space-y-6">
-      <PageHeader title={copy.title} description={copy.description} />
+      <PageHeader title={copy.title} />
 
       <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {cards.map((card) => (

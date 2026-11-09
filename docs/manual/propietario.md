@@ -26,6 +26,8 @@ En **Usuarios** creas a tu gente y eliges su rol:
 
 ## 3. Facturas con CAI
 
+**El recibo de venta:** en **Configuración** llenas los datos del negocio (nombre, RTN, dirección y teléfono) y subes tu **logo** (JPG, PNG o WebP, hasta 4 MB). El sistema lo pasa a blanco y negro y lo reduce para la impresora de 80 mm; sale arriba del *Comprobante de venta*, con el número, la fecha y la hora, quién atendió, las prendas, los totales y cómo pagó el cliente. Si no subes logo, el recibo sale igual, solo con el nombre del negocio. El mensaje de cierre («¡Gracias por tu compra!») se cambia en los mismos ajustes.
+
 Si emites factura con CAI, en **Configuración** registras el rango autorizado por el SAR (prefijo, números, fecha límite). El sistema numera sin saltos, avisa cuando quedan pocos números o falta poco para que venza y deja de emitir al agotarse o vencer. **Pendiente:** que tu contador valide el formato exacto de la factura y de la nota de crédito antes de usarlas con clientes.
 
 ## 4. Cómo va el negocio

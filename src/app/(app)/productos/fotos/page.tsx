@@ -69,7 +69,6 @@ export default async function ProductPhotosPage({
         <EmptyState
           icon={Camera}
           title={copy.empty.title}
-          description={copy.empty.description}
           action={
             <Link href="/productos/nuevo" className={buttonVariants()}>
               {copy.empty.action}
@@ -135,7 +134,6 @@ export default async function ProductPhotosPage({
               <EmptyState
                 icon={Camera}
                 title={copy.allDone.title}
-                description={copy.allDone.description}
                 action={
                   <Link
                     href={href({ ver: "todos" })}

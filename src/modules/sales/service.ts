@@ -13,7 +13,7 @@ import {
   ValidationError,
 } from "@/lib/errors";
 import { nextDocumentNumber } from "@/lib/document-number";
-import { sumCents } from "@/lib/money";
+import { mulCents, sumCents } from "@/lib/money";
 import { hasCapability, requireCapability } from "@/lib/permissions";
 import { getSettings } from "@/lib/settings";
 import { authorizeWithManagerPin } from "@/modules/auth/manager-override";
@@ -34,7 +34,12 @@ import {
   settlePayments,
   type CartLine,
 } from "@/modules/sales/calc";
-import { saleInputSchema, voidSaleSchema, type SaleData } from "@/modules/sales/schemas";
+import {
+  cancelTicketSchema,
+  saleInputSchema,
+  voidSaleSchema,
+  type SaleData,
+} from "@/modules/sales/schemas";
 
 type Tx = Prisma.TransactionClient;
 
@@ -571,4 +576,38 @@ export async function voidSale(
     },
     { timeout: 30_000, maxWait: 10_000 },
   );
+}
+
+/**
+ * Deja constancia de un ticket que se descartó sin cobrar (cancelar la venta o descartar una en espera): quién, por qué y
+ * qué tenía. El ticket vive en el navegador y no toca inventario ni dinero, así que este es su único registro.
+ */
+export async function logCancelledTicket(
+  actor: Actor,
+  input: unknown,
+  client: PrismaClient = db,
+): Promise<void> {
+  requireCapability(actor, "sale.create");
+  const parsed = cancelTicketSchema.safeParse(input);
+  if (!parsed.success) {
+    throw new ValidationError(firstIssue(parsed.error));
+  }
+  const { reason, source, lines } = parsed.data;
+  const session = await client.cashSession.findFirst({
+    where: { userId: actor.id, status: "OPEN" },
+    select: { id: true },
+  });
+  await audit.log(client, {
+    userId: actor.id,
+    action: "TICKET_CANCELLED",
+    entityType: session ? "CashSession" : "User",
+    entityId: session?.id ?? actor.id,
+    after: {
+      source,
+      units: lines.reduce((total, line) => total + line.quantity, 0),
+      grossCents: sumCents(lines.map((line) => mulCents(line.unitPriceCents, line.quantity))),
+      lines,
+    },
+    reason,
+  });
 }

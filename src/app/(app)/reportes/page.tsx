@@ -30,7 +30,7 @@ export default async function ReportsPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title={copy.title} description={copy.description} />
+      <PageHeader title={copy.title} />
       <ul className="grid gap-4 sm:grid-cols-2">
         {cards.map((card) => (
           <li key={card.href}>

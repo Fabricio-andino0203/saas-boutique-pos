@@ -70,7 +70,6 @@ export default async function ProductsPage({
     <div className="space-y-6">
       <PageHeader
         title={copy.title}
-        description={copy.description}
         actions={
           <>
             <Link href="/productos/importar" className={buttonVariants({ variant: "outline" })}>

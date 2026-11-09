@@ -17,8 +17,6 @@ const blankToUndefined = (value: unknown) =>
 
 export const openCashSchema = z.object({
   openingFloatCents: cents,
-  /** Por qué el fondo no es el que dejó el cierre anterior; el servicio decide cuándo es obligatorio. */
-  openingNotes: z.preprocess(blankToUndefined, z.string().trim().min(3).max(300).optional()),
 });
 
 export const cashMovementSchema = z.object({

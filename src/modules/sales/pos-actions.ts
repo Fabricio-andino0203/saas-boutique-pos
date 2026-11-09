@@ -7,6 +7,8 @@ import { quickCustomerSchema, type QuickCustomerInput } from "@/modules/customer
 import { getCustomerCreditCents, searchCustomers } from "@/modules/customers/queries";
 import { quickCustomer } from "@/modules/customers/service";
 import { lookupCode, searchSellable } from "@/modules/sales/pos-queries";
+import { cancelTicketSchema, type CancelTicketInput } from "@/modules/sales/schemas";
+import { logCancelledTicket } from "@/modules/sales/service";
 import type {
   LookupResult,
   PosActionError,
@@ -62,6 +64,24 @@ export async function getCustomerCreditAction(
     return { error: result.error.message };
   }
   return { creditCents: result.data ?? 0 };
+}
+
+/** Deja constancia, con su motivo, de un ticket que se descartó sin cobrar. */
+export async function cancelTicketAction(
+  input: CancelTicketInput,
+): Promise<{ ok: true } | PosActionError> {
+  const parsed = cancelTicketSchema.safeParse(input);
+  if (!parsed.success) {
+    return {
+      error:
+        parsed.error.issues[0]?.path[0] === "reason"
+          ? copy.cancel.invalidReason
+          : messages.errors.VALIDATION,
+    };
+  }
+  const { user } = await requireUserCapability("sale.create");
+  const result = await toActionResult(() => logCancelledTicket(user, parsed.data), messages.errors);
+  return result.ok ? { ok: true } : { error: result.error.message };
 }
 
 /** Los clientes que coinciden con lo escrito en la caja (nombre o teléfono). */

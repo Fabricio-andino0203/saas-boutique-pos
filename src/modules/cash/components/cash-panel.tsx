@@ -1,34 +1,36 @@
 "use client";
 
-import { Banknote } from "lucide-react";
+import {
+  ArrowDownToLine,
+  ArrowUpFromLine,
+  Ban,
+  Banknote,
+  Bookmark,
+  ChevronLeft,
+  Receipt,
+  Scissors,
+} from "lucide-react";
 import Link from "next/link";
-import { useRef, useState, useTransition, type KeyboardEvent } from "react";
+import { useState, useTransition, type ComponentProps, type ReactNode } from "react";
+import { toast } from "sonner";
 
 import { Notice } from "@/components/shared/notice";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { messages } from "@/config/messages.es";
 import { formatLocalDateTime } from "@/lib/dates";
-import { formatMoney } from "@/lib/format";
+import { formatMoney, pluralize } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { loadCashPanelAction } from "@/modules/cash/actions";
-import { CashMovementForm } from "@/modules/cash/components/cash-movement-form";
+import { CashMovementForm, type MovementKind } from "@/modules/cash/components/cash-movement-form";
 import { CloseCashForm } from "@/modules/cash/components/close-cash-form";
 import type { CashPanelData, CashPanelState } from "@/modules/cash/types";
 
 const copy = messages.cash;
 const panel = copy.panel;
 
-const TABS = ["shift", "movements", "close"] as const;
-type Tab = (typeof TABS)[number];
+type View = "menu" | MovementKind | "close";
 
 type CashPanelProps = {
   /** La caja abierta de la terminal es de quien está en pantalla; si no, el panel solo lo explica. */
@@ -37,22 +39,33 @@ type CashPanelProps = {
   openedByName: string;
   /** El punto de venta pausa sus atajos mientras el panel está abierto. */
   onOpenChange?: (open: boolean) => void;
+  /** Hay prendas en el ticket: se puede cancelar la venta. */
+  canCancelSale: boolean;
+  onCancelSale: () => void;
+  /** Solo si la persona puede manejar apartados. */
+  canLayaway: boolean;
 };
 
+const actionClass = "h-12 justify-start gap-2 px-3 text-sm font-medium";
+
 /**
- * Las opciones de la caja dentro de Vender: el turno, las entradas y salidas de efectivo y el cierre. Los datos se piden al
- * abrir y otra vez tras cada cambio, así lo que ven coincide con las ventas que se acaban de cobrar.
+ * La caja dentro de Vender, como los botones de una caja registradora: ingresar o retirar efectivo, agregar un gasto, los
+ * apartados, cancelar la venta y el corte. Los datos se piden al abrir y otra vez tras cada cambio, así lo que ven coincide
+ * con las ventas que se acaban de cobrar. (Cambiar de cajero sigue en el encabezado de Vender: también lo usa quien no
+ * es dueño del turno.)
  */
-export function CashPanel({ ownSession, openedByName, onOpenChange }: CashPanelProps) {
+export function CashPanel({
+  ownSession,
+  openedByName,
+  onOpenChange,
+  canCancelSale,
+  onCancelSale,
+  canLayaway,
+}: CashPanelProps) {
   const [open, setOpen] = useState(false);
-  const [tab, setTab] = useState<Tab>("shift");
+  const [view, setView] = useState<View>("menu");
   const [state, setState] = useState<CashPanelState | null>(null);
   const [pending, startTransition] = useTransition();
-  const tabRefs = useRef<Record<Tab, HTMLButtonElement | null>>({
-    shift: null,
-    movements: null,
-    close: null,
-  });
 
   function load() {
     startTransition(async () => {
@@ -64,7 +77,7 @@ export function CashPanel({ ownSession, openedByName, onOpenChange }: CashPanelP
     setOpen(next);
     onOpenChange?.(next);
     if (next) {
-      setTab("shift");
+      setView("menu");
       setState(null);
       if (ownSession) {
         load();
@@ -72,18 +85,21 @@ export function CashPanel({ ownSession, openedByName, onOpenChange }: CashPanelP
     }
   }
 
-  function onTabKeyDown(event: KeyboardEvent<HTMLButtonElement>) {
-    const step = event.key === "ArrowRight" ? 1 : event.key === "ArrowLeft" ? -1 : 0;
-    if (step === 0) {
-      return;
-    }
-    event.preventDefault();
-    const next = TABS[(TABS.indexOf(tab) + step + TABS.length) % TABS.length] as Tab;
-    setTab(next);
-    tabRefs.current[next]?.focus();
+  /** Cierra el panel y deja que el punto de venta siga con lo que pidió (cancelar la venta). */
+  function leaveTo(action: () => void) {
+    changeOpen(false);
+    action();
+  }
+
+  function saved() {
+    toast.success(copy.movements.saved);
+    setView("menu");
+    load();
   }
 
   const data = state && "data" in state ? state.data : null;
+  const heading =
+    view === "close" ? copy.close.title : view === "menu" ? null : copy.movements.forms[view];
 
   return (
     <Sheet open={open} onOpenChange={changeOpen}>
@@ -94,7 +110,6 @@ export function CashPanel({ ownSession, openedByName, onOpenChange }: CashPanelP
       <SheetContent className="data-[side=right]:w-full data-[side=right]:overflow-y-auto data-[side=right]:sm:max-w-xl">
         <SheetHeader className="pr-12">
           <SheetTitle>{panel.title}</SheetTitle>
-          <SheetDescription>{panel.description}</SheetDescription>
         </SheetHeader>
 
         <div className="space-y-4 px-4 pb-6">
@@ -105,103 +120,154 @@ export function CashPanel({ ownSession, openedByName, onOpenChange }: CashPanelP
               </p>
               <p>{panel.notYoursHint}</p>
             </Notice>
+          ) : state === null || (pending && !data) ? (
+            <div role="status" aria-label={panel.loading} className="space-y-3">
+              <Skeleton className="h-20 w-full" />
+              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-12 w-full" />
+            </div>
+          ) : "error" in state ? (
+            <div className="space-y-3">
+              <Notice tone="error">{state.error || panel.failed}</Notice>
+              <Button type="button" variant="outline" loading={pending} onClick={load}>
+                {panel.retry}
+              </Button>
+            </div>
           ) : (
             <>
-              {data ? (
-                <div
-                  role="group"
-                  aria-label={copy.current.expected}
-                  className="bg-muted/50 rounded-lg p-4"
-                >
-                  <p className="text-muted-foreground text-sm">{copy.current.expected}</p>
-                  <p className="text-3xl font-semibold tabular-nums">
-                    {formatMoney(data.expectedCents)}
-                  </p>
-                  <p className="text-muted-foreground text-xs">{copy.current.expectedHint}</p>
+              <div
+                role="group"
+                aria-label={copy.current.expected}
+                className="bg-muted/50 rounded-lg p-4"
+              >
+                <p className="text-muted-foreground text-sm">{copy.current.expected}</p>
+                <p className="text-3xl font-semibold tabular-nums">
+                  {formatMoney(state.data.expectedCents)}
+                </p>
+              </div>
+
+              {heading ? (
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="size-11"
+                    aria-label={panel.back}
+                    onClick={() => setView("menu")}
+                  >
+                    <ChevronLeft aria-hidden="true" />
+                  </Button>
+                  <h2 className="text-lg font-medium">{heading}</h2>
                 </div>
               ) : null}
 
-              <div
-                role="tablist"
-                aria-label={panel.tabs.label}
-                className="bg-muted grid grid-cols-3 gap-1 rounded-lg p-1"
-              >
-                {TABS.map((name) => (
-                  <button
-                    key={name}
-                    ref={(element) => {
-                      tabRefs.current[name] = element;
-                    }}
-                    type="button"
-                    role="tab"
-                    id={`cash-tab-${name}`}
-                    aria-selected={tab === name}
-                    aria-controls={`cash-tabpanel-${name}`}
-                    tabIndex={tab === name ? 0 : -1}
-                    onClick={() => setTab(name)}
-                    onKeyDown={onTabKeyDown}
-                    className={cn(
-                      "focus-visible:ring-ring/50 rounded-md px-2 py-1.5 text-sm font-medium outline-none focus-visible:ring-2",
-                      tab === name
-                        ? "bg-background text-foreground shadow-sm"
-                        : "text-muted-foreground hover:text-foreground",
-                    )}
-                  >
-                    {panel.tabs[name]}
-                  </button>
-                ))}
+              <div hidden={view !== "menu"} className="space-y-4">
+                <ActionGrid
+                  data={state.data}
+                  canCancelSale={canCancelSale}
+                  canLayaway={canLayaway}
+                  onView={setView}
+                  onCancelSale={() => leaveTo(onCancelSale)}
+                />
+                <ShiftDetail data={state.data} />
+                <Link
+                  href="/caja/cierres"
+                  className="text-primary inline-block text-sm underline underline-offset-4"
+                >
+                  {panel.closings}
+                </Link>
               </div>
 
-              {state === null || (pending && !data) ? (
-                <div role="status" aria-label={panel.loading} className="space-y-3">
-                  <Skeleton className="h-20 w-full" />
-                  <Skeleton className="h-12 w-full" />
-                  <Skeleton className="h-12 w-full" />
-                </div>
-              ) : "error" in state ? (
-                <div className="space-y-3">
-                  <Notice tone="error">{state.error || panel.failed}</Notice>
-                  <Button type="button" variant="outline" loading={pending} onClick={load}>
-                    {panel.retry}
-                  </Button>
-                </div>
-              ) : (
-                // Las tres secciones quedan montadas: cambiar de pestaña no borra lo que se estaba contando.
-                TABS.map((name) => (
-                  <div
-                    key={name}
-                    role="tabpanel"
-                    id={`cash-tabpanel-${name}`}
-                    aria-labelledby={`cash-tab-${name}`}
-                    hidden={tab !== name}
-                    className="space-y-4"
-                  >
-                    {name === "shift" ? (
-                      <ShiftTab data={state.data} />
-                    ) : name === "movements" ? (
-                      <MovementsTab data={state.data} onChanged={load} />
-                    ) : (
-                      <CloseCashForm financeBox={state.data.financeCategories !== null} />
-                    )}
-                  </div>
-                ))
-              )}
+              {view === "in" || view === "out" || view === "expense" ? (
+                <CashMovementForm
+                  key={view}
+                  kind={view}
+                  financeCategories={state.data.financeCategories}
+                  onSaved={saved}
+                />
+              ) : null}
+
+              {/* El corte queda montado: volver al menú no borra lo que se estaba contando. */}
+              <div hidden={view !== "close"}>
+                <CloseCashForm financeBox={state.data.financeCategories !== null} />
+              </div>
             </>
           )}
-
-          <Link
-            href="/caja/cierres"
-            className="text-primary inline-block text-sm underline underline-offset-4"
-          >
-            {panel.closings}
-          </Link>
         </div>
       </SheetContent>
     </Sheet>
   );
 }
 
-function ShiftTab({ data }: { data: CashPanelData }) {
+function ActionButton({
+  icon,
+  children,
+  ...props
+}: { icon: ReactNode } & Omit<ComponentProps<typeof Button>, "variant" | "size">) {
+  return (
+    <Button type="button" variant="outline" className={actionClass} {...props}>
+      {icon}
+      {children}
+    </Button>
+  );
+}
+
+function ActionGrid({
+  data,
+  canCancelSale,
+  canLayaway,
+  onView,
+  onCancelSale,
+}: {
+  data: CashPanelData;
+  canCancelSale: boolean;
+  canLayaway: boolean;
+  onView: (view: View) => void;
+  onCancelSale: () => void;
+}) {
+  const actions = panel.actions;
+  // Sin el módulo Finanzas, «Retirar efectivo» cubre también los pagos: el gasto necesita una categoría a dónde ir.
+  const canExpense = data.financeCategories?.some((category) => category.type === "EXPENSE");
+  return (
+    <div role="group" aria-label={actions.label} className="grid grid-cols-2 gap-2">
+      <ActionButton icon={<ArrowDownToLine aria-hidden="true" />} onClick={() => onView("in")}>
+        {actions.cashIn}
+      </ActionButton>
+      <ActionButton icon={<ArrowUpFromLine aria-hidden="true" />} onClick={() => onView("out")}>
+        {actions.cashOut}
+      </ActionButton>
+      {canExpense ? (
+        <ActionButton icon={<Receipt aria-hidden="true" />} onClick={() => onView("expense")}>
+          {actions.expense}
+        </ActionButton>
+      ) : null}
+      {canLayaway ? (
+        <Link href="/apartados" className={cn(buttonVariants({ variant: "outline" }), actionClass)}>
+          <Bookmark aria-hidden="true" />
+          {actions.layaways}
+        </Link>
+      ) : null}
+      <ActionButton
+        icon={<Ban aria-hidden="true" />}
+        disabled={!canCancelSale}
+        onClick={onCancelSale}
+      >
+        {actions.cancelSale}
+      </ActionButton>
+      <Button
+        type="button"
+        className={cn(actionClass, "col-span-2")}
+        onClick={() => onView("close")}
+      >
+        <Scissors aria-hidden="true" />
+        {actions.close}
+      </Button>
+    </div>
+  );
+}
+
+function ShiftDetail({ data }: { data: CashPanelData }) {
   const { totals } = data;
   const cards = [
     { label: copy.current.float, value: formatMoney(totals.openingFloatCents) },
@@ -215,29 +281,19 @@ function ShiftTab({ data }: { data: CashPanelData }) {
   return (
     <div className="space-y-4">
       <p className="text-muted-foreground text-sm">
-        {data.terminalName} · {copy.current.openedAt} {formatLocalDateTime(new Date(data.openedAt))}
+        {data.terminalName} · {formatLocalDateTime(new Date(data.openedAt))}
+        {data.sales.count > 0
+          ? ` · ${data.sales.count} ${pluralize(data.sales.count, copy.current.saleOne, copy.current.sales).toLowerCase()} · ${formatMoney(data.sales.totalCents)}`
+          : ""}
       </p>
       <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         {cards.map((card) => (
           <div key={card.label} className="space-y-0.5">
-            <dt className="text-muted-foreground text-xs">{card.label}</dt>
+            <dt className="text-muted-foreground text-sm">{card.label}</dt>
             <dd className="font-medium tabular-nums">{card.value}</dd>
           </div>
         ))}
       </dl>
-      <p className="text-muted-foreground text-sm">
-        {data.sales.count === 0
-          ? copy.current.noSales
-          : `${copy.current.sales}: ${data.sales.count} · ${formatMoney(data.sales.totalCents)}`}
-      </p>
-    </div>
-  );
-}
-
-function MovementsTab({ data, onChanged }: { data: CashPanelData; onChanged: () => void }) {
-  return (
-    <div className="space-y-4">
-      <CashMovementForm financeCategories={data.financeCategories} onSaved={onChanged} />
       {data.movements.length > 0 ? (
         <section aria-labelledby="panel-movements" className="space-y-2">
           <h3 id="panel-movements" className="text-base font-medium">
@@ -256,9 +312,7 @@ function MovementsTab({ data, onChanged }: { data: CashPanelData; onChanged: () 
             ))}
           </ul>
         </section>
-      ) : (
-        <p className="text-muted-foreground text-sm">{copy.movements.empty}</p>
-      )}
+      ) : null}
     </div>
   );
 }

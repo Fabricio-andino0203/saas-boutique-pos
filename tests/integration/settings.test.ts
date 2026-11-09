@@ -1,3 +1,4 @@
+import sharp from "sharp";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 
 import { isValidEan13 } from "@/lib/barcode";
@@ -5,6 +6,7 @@ import { localDateKey } from "@/lib/dates";
 import {
   ActiveRangeExistsError,
   ForbiddenError,
+  InvalidImageError,
   NotFoundError,
   RangeOverlapError,
   ValidationError,
@@ -16,9 +18,11 @@ import { SAMPLE_PRODUCTS } from "@/modules/settings/sample-products";
 import { hasSampleData, loadSampleData } from "@/modules/settings/sample-data";
 import {
   createFiscalRange,
+  getBusinessLogo,
   getBusinessProfile,
   getSettingsSnapshot,
   listFiscalRanges,
+  setBusinessLogo,
   setFiscalRangeActive,
   updateBusinessProfile,
   updateSettings,
@@ -193,6 +197,81 @@ describe("business profile", () => {
     await expect(updateBusinessProfile(w.owner, { legalName: " " }, testDb)).rejects.toBeInstanceOf(
       ValidationError,
     );
+  });
+});
+
+describe("business logo", () => {
+  beforeEach(resetDatabase);
+
+  const picture = () =>
+    sharp({ create: { width: 800, height: 400, channels: 3, background: "#cc3344" } })
+      .png()
+      .toBuffer();
+
+  it("saves a reduced grey logo, gives it back and audits it without keeping the image in the log", async () => {
+    const w = await world();
+    await updateBusinessProfile(w.owner, { legalName: "Boutique Luna" }, testDb);
+    expect(await getBusinessLogo(testDb)).toBeNull();
+
+    await setBusinessLogo(w.owner, await picture(), testDb);
+
+    const logo = await getBusinessLogo(testDb);
+    expect(logo?.startsWith("data:image/png;base64,")).toBe(true);
+    const entry = await testDb.auditLog.findFirstOrThrow({
+      where: { entityType: "BusinessProfile", after: { path: ["logo"], equals: "set" } },
+    });
+    expect(entry).toMatchObject({
+      userId: w.owner.id,
+      action: "SETTINGS_CHANGED",
+      before: { logo: "none" },
+      after: { logo: "set", width: 480, height: 240 },
+    });
+    expect(JSON.stringify(entry.after)).not.toContain("base64");
+  });
+
+  it("removes the logo, and saving the business data again does not touch it", async () => {
+    const w = await world();
+    await updateBusinessProfile(w.owner, { legalName: "Boutique Luna" }, testDb);
+    await setBusinessLogo(w.owner, await picture(), testDb);
+    await updateBusinessProfile(w.owner, { legalName: "Boutique Luna S. de R.L." }, testDb);
+    expect(await getBusinessLogo(testDb)).not.toBeNull();
+
+    await setBusinessLogo(w.owner, null, testDb);
+    expect(await getBusinessLogo(testDb)).toBeNull();
+    expect((await getBusinessProfile(testDb)).legalName).toBe("Boutique Luna S. de R.L.");
+    expect(
+      await testDb.auditLog.count({
+        where: { entityType: "BusinessProfile", after: { path: ["logo"], equals: "removed" } },
+      }),
+    ).toBe(1);
+  });
+
+  it("needs the business data to exist first", async () => {
+    const w = await world();
+    await expect(setBusinessLogo(w.owner, await picture(), testDb)).rejects.toBeInstanceOf(
+      ValidationError,
+    );
+  });
+
+  it("is only for whoever manages settings", async () => {
+    const w = await world();
+    await updateBusinessProfile(w.owner, { legalName: "Boutique Luna" }, testDb);
+    await expect(setBusinessLogo(w.manager, await picture(), testDb)).rejects.toBeInstanceOf(
+      ForbiddenError,
+    );
+    expect(await getBusinessLogo(testDb)).toBeNull();
+  });
+
+  it("keeps the old logo when the new file is not an image", async () => {
+    const w = await world();
+    await updateBusinessProfile(w.owner, { legalName: "Boutique Luna" }, testDb);
+    await setBusinessLogo(w.owner, await picture(), testDb);
+    const before = await getBusinessLogo(testDb);
+
+    await expect(
+      setBusinessLogo(w.owner, Buffer.from("esto no es un logo"), testDb),
+    ).rejects.toBeInstanceOf(InvalidImageError);
+    expect(await getBusinessLogo(testDb)).toBe(before);
   });
 });
 

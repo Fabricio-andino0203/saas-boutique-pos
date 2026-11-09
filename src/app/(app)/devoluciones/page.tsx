@@ -43,7 +43,7 @@ export default async function ReturnsPage({
     }
     return (
       <div className="mx-auto max-w-4xl space-y-6">
-        <PageHeader title={copy.title} description={copy.description} />
+        <PageHeader title={copy.title} />
         <ReturnForm
           sale={sale}
           canOverridePolicy={hasCapability(user.role, "return.overridePolicy")}
@@ -60,7 +60,7 @@ export default async function ReturnsPage({
 
   return (
     <div className="space-y-6">
-      <PageHeader title={copy.title} description={copy.description} />
+      <PageHeader title={copy.title} />
       <form method="get" role="search" className="flex flex-wrap items-end gap-3">
         <label className="space-y-1 text-sm">
           <span className="font-medium">{copy.search.label}</span>

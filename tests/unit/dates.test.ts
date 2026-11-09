@@ -5,6 +5,7 @@ import {
   addLocalDays,
   endOfLocalDay,
   formatLocalDateTime,
+  formatLocalTime,
   localDateKey,
   parseLocalDateKey,
   startOfLocalDay,
@@ -61,6 +62,18 @@ describe("formatLocalDateTime", () => {
     expect(formatLocalDateTime(utc("2026-10-23T06:00:00.000Z"))).toBe("23/10/2026 00:00");
     expect(formatLocalDateTime(utc("2026-10-23T18:05:00.000Z"))).toBe("23/10/2026 12:05");
     expect(formatLocalDateTime(utc("2026-01-01T00:00:00.000Z"))).toBe("31/12/2025 18:00");
+  });
+});
+
+describe("formatLocalTime", () => {
+  it("shows only HH:mm in 24 hours, in the local zone", () => {
+    expect(formatLocalTime(utc("2026-10-23T06:00:00.000Z"))).toBe("00:00");
+    expect(formatLocalTime(utc("2026-10-23T18:05:00.000Z"))).toBe("12:05");
+    expect(formatLocalTime(utc("2026-10-24T03:59:00.000Z"))).toBe("21:59");
+  });
+
+  it("rejects an invalid date", () => {
+    expect(() => formatLocalTime(new Date("nope"))).toThrow(ValidationError);
   });
 });
 

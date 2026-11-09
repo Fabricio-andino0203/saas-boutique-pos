@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Notice } from "@/components/shared/notice";
 import { messages } from "@/config/messages.es";
 import { formatLocalDateTime } from "@/lib/dates";
-import { formatMoney } from "@/lib/format";
+import { formatMoney, pluralize } from "@/lib/format";
 import { summarizeCart } from "@/modules/sales/cart-logic";
 import type { ParkedCart } from "@/modules/sales/cart-store";
 import { quickCustomerAction, searchCustomersAction } from "@/modules/sales/pos-actions";
@@ -83,7 +83,6 @@ function CustomerForm({ current, onSelect, onClose }: CustomerDialogProps) {
     <>
       <DialogHeader>
         <DialogTitle>{customerCopy.title}</DialogTitle>
-        <DialogDescription>{customerCopy.description}</DialogDescription>
       </DialogHeader>
       <FormField label={customerCopy.searchLabel} htmlFor="customer-search">
         <Input
@@ -195,7 +194,6 @@ export function ParkedDialog({
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{parkedCopy.title}</DialogTitle>
-          <DialogDescription>{parkedCopy.description}</DialogDescription>
         </DialogHeader>
         {hasCurrent ? (
           <Button type="button" onClick={onPark}>
@@ -217,9 +215,9 @@ export function ParkedDialog({
                     <p className="font-medium">
                       {entry.customer?.name ?? messages.pos.ticket.customerNone}
                     </p>
-                    <p className="text-muted-foreground text-xs">
+                    <p className="text-muted-foreground text-sm">
                       {formatLocalDateTime(new Date(entry.createdAt))} · {summary.units}{" "}
-                      {parkedCopy.units} ·{" "}
+                      {pluralize(summary.units, parkedCopy.unit, parkedCopy.units)} ·{" "}
                       <span className="tabular-nums">
                         {formatMoney(summary.priced?.totalCents ?? summary.grossCents)}
                       </span>

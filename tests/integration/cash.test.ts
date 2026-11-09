@@ -2,6 +2,7 @@ import { afterAll, beforeEach, describe, expect, it } from "vitest";
 
 import { db } from "@/lib/db";
 import {
+  CashFloatLockedError,
   CashSessionClosedError,
   CashSessionOpenError,
   CashSessionStateError,
@@ -506,12 +507,11 @@ describe("approveCashClose", () => {
       CashSessionStateError,
     );
 
-    // El cierre anterior dejó L 10.00 en el cajón: abrir con otro fondo pide el comentario.
-    const open = await openCashSession(
-      w.cashier2,
-      { openingFloatCents: 0, openingNotes: "Abro sin fondo" },
-      testDb,
-    );
+    // El cierre anterior dejó L 10.00 en el cajón: el turno abre con ese saldo y con ningún otro.
+    await expect(
+      openCashSession(w.cashier2, { openingFloatCents: 0 }, testDb),
+    ).rejects.toBeInstanceOf(CashFloatLockedError);
+    const open = await openCashSession(w.cashier2, { openingFloatCents: 1000 }, testDb);
     await expect(approveCashClose(w.manager, open.id, testDb)).rejects.toBeInstanceOf(
       CashSessionStateError,
     );

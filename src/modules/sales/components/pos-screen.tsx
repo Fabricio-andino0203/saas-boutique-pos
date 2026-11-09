@@ -15,6 +15,10 @@ import { ProductThumb } from "@/modules/photos/components/product-thumb";
 import { labelOfVariant, summarizeCart } from "@/modules/sales/cart-logic";
 import { hydratePosStore, usePosStore } from "@/modules/sales/cart-store";
 import { FiscalAlerts } from "@/modules/fiscal/components/fiscal-alerts";
+import {
+  CancelTicketDialog,
+  type CancelTarget,
+} from "@/modules/sales/components/cancel-ticket-dialog";
 import { ChargeDialog } from "@/modules/sales/components/charge-dialog";
 import { expireOverdueLayawaysAction } from "@/modules/layaways/actions";
 import { LayawayDialog } from "@/modules/layaways/components/layaway-dialog";
@@ -101,6 +105,10 @@ export function PosScreen({
   const [dialog, setDialog] = useState<DialogName | null>(null);
   // Con el panel de caja abierto los atajos del punto de venta se pausan.
   const [cashOpen, setCashOpen] = useState(false);
+  // El ticket que se está cancelando (el de la pantalla o uno en espera); el motivo se pide antes de descartarlo.
+  const [cancelTarget, setCancelTarget] = useState<(CancelTarget & { parkedId?: string }) | null>(
+    null,
+  );
   // El saldo de crédito del cliente del ticket; se vuelve a leer al elegirlo y al abrir o cerrar el cobro.
   const [credit, setCredit] = useState<{ customerId: string; cents: number } | null>(null);
   const customerId = customer?.id ?? null;
@@ -283,6 +291,43 @@ export function PosScreen({
     }
   };
 
+  /** Cancelar la venta de la pantalla: pide el motivo y deja constancia antes de vaciar el ticket. */
+  const cancelCurrent = () => {
+    if (items.length > 0) {
+      setCancelTarget({
+        source: "current",
+        items,
+        totalCents: summary.priced?.totalCents ?? summary.grossCents,
+      });
+    }
+  };
+
+  /** Descartar una venta en espera pasa por lo mismo. */
+  const cancelParked = (id: string) => {
+    const entry = parked.find((candidate) => candidate.id === id);
+    if (!entry) {
+      return;
+    }
+    const entrySummary = summarizeCart(entry.items, entry.discount, config);
+    setDialog(null);
+    setCancelTarget({
+      source: "parked",
+      parkedId: id,
+      items: entry.items,
+      totalCents: entrySummary.priced?.totalCents ?? entrySummary.grossCents,
+    });
+  };
+
+  const finishCancel = () => {
+    if (cancelTarget?.source === "parked" && cancelTarget.parkedId) {
+      usePosStore.getState().discardParked(cancelTarget.parkedId);
+    } else {
+      usePosStore.getState().clearCart();
+    }
+    setCancelTarget(null);
+    focusSearch();
+  };
+
   /** Reimprime el último ticket cobrado en este navegador, en otra pestaña. */
   const reprint = () => {
     const id = usePosStore.getState().lastSaleId;
@@ -332,7 +377,7 @@ export function PosScreen({
       goReturns,
       runLookup,
       selected,
-      blocked: dialog !== null || picker !== null || cashOpen,
+      blocked: dialog !== null || picker !== null || cashOpen || cancelTarget !== null,
     };
   });
 
@@ -397,11 +442,12 @@ export function PosScreen({
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">{copy.title}</h1>
           <p className="text-muted-foreground text-sm">
-            {config.terminalName} · {copy.header.open} ({config.openedByName})
+            {config.terminalName} · {config.openedByName}
           </p>
         </div>
+        {/* Los atajos (F6, F7, F8, F1) viven en el tooltip y en la ayuda «Atajos»: así los botones quedan limpios. */}
         <div className="flex flex-wrap gap-2">
-          <Button type="button" variant="outline" onClick={() => openDialog("parked")}>
+          <Button type="button" variant="outline" title="F6" onClick={() => openDialog("parked")}>
             <Pause aria-hidden="true" />
             {copy.actions.parked}
             {parked.length > 0 ? (
@@ -409,38 +455,46 @@ export function PosScreen({
                 {parked.length}
               </span>
             ) : null}
-            <kbd className="text-muted-foreground text-xs">F6</kbd>
           </Button>
           {config.canLayaway ? (
             <Button
               type="button"
               variant="outline"
+              title="F7"
               disabled={!summary.priced || exchange !== null}
               onClick={layaway}
             >
               <Bookmark aria-hidden="true" />
-              {messages.layaways.create.button}{" "}
-              <kbd className="text-muted-foreground text-xs">F7</kbd>
+              {messages.layaways.create.button}
             </Button>
           ) : null}
-          <Button type="button" variant="outline" onClick={goReturns}>
+          <Button type="button" variant="outline" title="F8" onClick={goReturns}>
             <Undo2 aria-hidden="true" />
-            {copy.actions.returns} <kbd className="text-muted-foreground text-xs">F8</kbd>
+            {copy.actions.returns}
           </Button>
           {config.canUseCash ? (
             <CashPanel
               ownSession={config.ownsCash}
               openedByName={config.openedByName}
               onOpenChange={setCashOpen}
+              canCancelSale={items.length > 0}
+              onCancelSale={cancelCurrent}
+              canLayaway={config.canLayaway}
             />
           ) : null}
           <Button type="button" variant="outline" onClick={() => openDialog("switch")}>
             <UserRoundCog aria-hidden="true" />
             {copy.switch.button}
           </Button>
-          <Button type="button" variant="outline" onClick={() => openDialog("help")}>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            title={`${copy.actions.help} (F1)`}
+            aria-label={copy.actions.help}
+            onClick={() => openDialog("help")}
+          >
             <Keyboard aria-hidden="true" />
-            {copy.actions.help} <kbd className="text-muted-foreground text-xs">F1</kbd>
           </Button>
         </div>
       </header>
@@ -572,7 +626,7 @@ export function PosScreen({
                         </span>
                         <span
                           className={cn(
-                            "text-xs tabular-nums",
+                            "text-sm tabular-nums",
                             stock <= 0 ? "text-destructive" : "text-muted-foreground",
                           )}
                         >
@@ -609,7 +663,7 @@ export function PosScreen({
           onDiscount={() => openDialog("discount")}
           onCustomer={() => openDialog("customer")}
           onCharge={charge}
-          onClear={() => usePosStore.getState().clearCart()}
+          onClear={cancelCurrent}
         />
       </div>
 
@@ -650,8 +704,16 @@ export function PosScreen({
           usePosStore.getState().resumeParked(id);
           closeDialog();
         }}
-        onDiscard={(id) => usePosStore.getState().discardParked(id)}
+        onDiscard={cancelParked}
         onClose={closeDialog}
+      />
+      <CancelTicketDialog
+        target={cancelTarget}
+        onClose={() => {
+          setCancelTarget(null);
+          focusSearch();
+        }}
+        onCancelled={finishCancel}
       />
       <ChargeDialog
         open={dialog === "charge"}

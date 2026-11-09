@@ -1,10 +1,15 @@
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 
 import { db } from "@/lib/db";
-import { ValidationError } from "@/lib/errors";
+import { CashFloatLockedError, ValidationError } from "@/lib/errors";
 import type { Role } from "@/lib/permissions";
 import { getTerminalStatus } from "@/modules/cash/queries";
-import { approveCashClose, openCashSession, submitCashClose } from "@/modules/cash/service";
+import {
+  addCashMovement,
+  approveCashClose,
+  openCashSession,
+  submitCashClose,
+} from "@/modules/cash/service";
 
 import { closeDatabase, resetDatabase, testDb } from "./helpers/db";
 
@@ -172,48 +177,59 @@ describe("withdrawal when closing and the inherited float", () => {
     ).resolves.toHaveProperty("id");
   });
 
-  it("asks for a comment when the float is not the one that was left, and keeps the trace", async () => {
+  it("does not let the previous balance be changed: it opens with exactly what was left", async () => {
     const w = await world();
     await shiftWithEightThousandInSales(w);
     await submitCashClose(w.cashier, { countedCashCents: 850000, withdrawnCents: 700000 }, testDb);
 
+    for (const openingFloatCents of [0, 120000, 150001]) {
+      await expect(
+        openCashSession(w.cashier, { openingFloatCents }, testDb),
+      ).rejects.toBeInstanceOf(CashFloatLockedError);
+    }
+    // Un comentario no abre la puerta: ya no existe esa salida
     await expect(
-      openCashSession(w.cashier, { openingFloatCents: 120000 }, testDb),
-    ).rejects.toBeInstanceOf(ValidationError);
+      openCashSession(
+        w.cashier,
+        { openingFloatCents: 120000, openingNotes: "Se llevaron L 300.00 para el banco" },
+        testDb,
+      ),
+    ).rejects.toBeInstanceOf(CashFloatLockedError);
     expect(await testDb.cashSession.count({ where: { status: "OPEN" } })).toBe(0);
 
-    const { id } = await openCashSession(
-      w.cashier,
-      { openingFloatCents: 120000, openingNotes: "Se llevaron L 300.00 para el banco" },
-      testDb,
-    );
-    const session = await testDb.cashSession.findUniqueOrThrow({ where: { id } });
-    expect(session).toMatchObject({
-      openingFloatCents: 120000,
+    const { id } = await openCashSession(w.cashier, { openingFloatCents: 150000 }, testDb);
+    expect(await testDb.cashSession.findUniqueOrThrow({ where: { id } })).toMatchObject({
+      openingFloatCents: 150000,
       inheritedFloatCents: 150000,
-      openingNotes: "Se llevaron L 300.00 para el banco",
+      openingNotes: null,
     });
-    const entry = await testDb.auditLog.findFirstOrThrow({
-      where: { entityId: id, action: "CASH_FLOAT_ADJUSTED" },
-    });
-    expect(entry).toMatchObject({
-      userId: w.cashier.id,
-      before: { inheritedFloatCents: 150000 },
-      after: { openingFloatCents: 120000 },
-      reason: "Se llevaron L 300.00 para el banco",
-    });
+    expect(await testDb.auditLog.count({ where: { action: "CASH_FLOAT_ADJUSTED" } })).toBe(0);
   });
 
-  it("does not keep a comment that was not needed", async () => {
+  it("fixes a drawer that does not match the previous balance with a movement and its reason", async () => {
     const w = await world();
     await shiftWithEightThousandInSales(w);
     await submitCashClose(w.cashier, { countedCashCents: 850000, withdrawnCents: 700000 }, testDb);
-    const { id } = await openCashSession(
+    const { id } = await openCashSession(w.cashier, { openingFloatCents: 150000 }, testDb);
+
+    await addCashMovement(
       w.cashier,
-      { openingFloatCents: 150000, openingNotes: "No hacía falta" },
+      { type: "OUT", amountCents: 30000, reason: "Se llevaron L 300.00 para el banco" },
       testDb,
     );
-    expect((await testDb.cashSession.findUniqueOrThrow({ where: { id } })).openingNotes).toBeNull();
+    const movement = await testDb.cashMovement.findFirstOrThrow({ where: { cashSessionId: id } });
+    expect(movement).toMatchObject({
+      type: "OUT",
+      amountCents: 30000,
+      reason: "Se llevaron L 300.00 para el banco",
+      userId: w.cashier.id,
+    });
+    // Lo esperado ya lo descuenta; el fondo del turno sigue siendo el saldo anterior
+    const [detail] = await testDb.cashSession.findMany({ where: { id } });
+    expect(detail?.openingFloatCents).toBe(150000);
+    await expect(
+      submitCashClose(w.cashier, { countedCashCents: 120000 }, testDb),
+    ).resolves.toMatchObject({ expectedCents: 120000, differenceCents: 0 });
   });
 
   it("lets any float open after everything was withdrawn, still noting what was inherited", async () => {
@@ -226,12 +242,5 @@ describe("withdrawal when closing and the inherited float", () => {
       openingFloatCents: 30000,
       inheritedFloatCents: 0,
     });
-  });
-
-  it("rejects a comment that is too short", async () => {
-    const w = await world();
-    await expect(
-      openCashSession(w.cashier, { openingFloatCents: 0, openingNotes: "ab" }, testDb),
-    ).rejects.toBeInstanceOf(ValidationError);
   });
 });
