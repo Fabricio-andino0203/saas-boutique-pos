@@ -251,7 +251,7 @@ export function PhotoGallery({ productId, photos, colors }: PhotoGalleryProps) {
           <ImagePlus className="text-muted-foreground size-8" aria-hidden="true" />
           <span className="font-medium">{copy.add}</span>
           <span className="text-muted-foreground text-sm">{copy.dropHint}</span>
-          <span className="text-muted-foreground text-xs">{copy.limits}</span>
+          <span className="text-muted-foreground text-sm">{copy.limits}</span>
           <input
             type="file"
             accept="image/jpeg,image/png,image/webp"

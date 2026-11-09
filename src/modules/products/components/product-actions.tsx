@@ -34,7 +34,7 @@ export function ProductActions({ productId, archived }: { productId: string; arc
           >
             {copy.duplicate}
           </Button>
-          <p className="text-muted-foreground max-w-xs text-xs">{copy.duplicateHint}</p>
+          <p className="text-muted-foreground max-w-xs text-sm">{copy.duplicateHint}</p>
         </div>
         <div className="space-y-1">
           <Button
@@ -54,7 +54,7 @@ export function ProductActions({ productId, archived }: { productId: string; arc
             {archived ? copy.restore : copy.archive}
           </Button>
           {archived ? null : (
-            <p className="text-muted-foreground max-w-xs text-xs">{copy.archiveHint}</p>
+            <p className="text-muted-foreground max-w-xs text-sm">{copy.archiveHint}</p>
           )}
         </div>
       </div>

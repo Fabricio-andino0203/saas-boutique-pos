@@ -33,7 +33,7 @@ function Feedback({ state }: { state: PlatformFormState }) {
 function PasswordField({ id }: { id: string }) {
   return (
     <div className="space-y-1">
-      <label htmlFor={id} className="text-muted-foreground block text-xs">
+      <label htmlFor={id} className="text-muted-foreground block text-sm">
         {copy.actions.confirmPassword}
       </label>
       <Input
@@ -131,7 +131,7 @@ function UserActionForm({
       <form action={formAction} className="mt-2 space-y-2">
         <input type="hidden" name="slug" value={slug} />
         <input type="hidden" name="userId" value={userId} />
-        <p className="text-muted-foreground text-xs">{hint}</p>
+        <p className="text-muted-foreground text-sm">{hint}</p>
         {children}
         <div className="flex flex-wrap items-end gap-2">
           <PasswordField id={`${id}-password`} />

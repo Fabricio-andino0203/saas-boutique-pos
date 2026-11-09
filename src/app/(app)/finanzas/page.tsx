@@ -194,7 +194,7 @@ export default async function FinanceSummaryPage({
             {copy.noMovements}
           </p>
         ) : null}
-        <p className="text-muted-foreground text-xs">{copy.note}</p>
+        <p className="text-muted-foreground text-sm">{copy.note}</p>
       </section>
 
       <section aria-labelledby="box-title" className="space-y-2">

@@ -163,7 +163,7 @@ export function LabelTemplateForm({ initial }: { initial: LabelTemplate }) {
       <fieldset className="space-y-2">
         <legend className="mb-1 text-sm font-medium">{copy.fields}</legend>
         {(["showName", "showVariant", "showSku", "showPrice"] as const).map(check)}
-        <p className="text-muted-foreground text-xs">{copy.barcode}</p>
+        <p className="text-muted-foreground text-sm">{copy.barcode}</p>
       </fieldset>
 
       <div className="space-y-2">

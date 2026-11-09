@@ -126,7 +126,7 @@ export default async function ProductsReportPage({
               <TableRow key={row.productId}>
                 <TableCell>
                   {row.name}
-                  <span className="text-muted-foreground block text-xs">{row.code}</span>
+                  <span className="text-muted-foreground block text-sm">{row.code}</span>
                 </TableCell>
                 <TableCell>{row.categoryName}</TableCell>
                 <TableCell className={`${num} font-medium`}>{row.netUnits}</TableCell>

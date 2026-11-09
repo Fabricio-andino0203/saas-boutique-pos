@@ -40,7 +40,7 @@ export function ArchiveCustomerButton({ id, archived }: { id: string; archived: 
       >
         {archived ? copy.restore : copy.archive}
       </Button>
-      {archived ? null : <p className="text-muted-foreground text-xs">{copy.archiveHint}</p>}
+      {archived ? null : <p className="text-muted-foreground text-sm">{copy.archiveHint}</p>}
       {error ? <Notice tone="error">{error}</Notice> : null}
     </div>
   );

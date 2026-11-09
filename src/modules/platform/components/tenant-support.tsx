@@ -51,11 +51,11 @@ export async function TenantSupport({
           <p className="font-medium">{copy.current.title}</p>
           <dl className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-0.5">
-              <dt className="text-muted-foreground text-xs">{copy.current.reason}</dt>
+              <dt className="text-muted-foreground text-sm">{copy.current.reason}</dt>
               <dd className="text-sm">{current.reason}</dd>
             </div>
             <div className="space-y-0.5">
-              <dt className="text-muted-foreground text-xs">{copy.current.expires}</dt>
+              <dt className="text-muted-foreground text-sm">{copy.current.expires}</dt>
               <dd className="text-sm">{formatLocalDateTime(current.expiresAt)}</dd>
             </div>
           </dl>

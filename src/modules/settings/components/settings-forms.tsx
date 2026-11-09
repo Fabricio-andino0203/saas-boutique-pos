@@ -54,7 +54,7 @@ function Check({
         />
         {label}
       </label>
-      {hint ? <p className="text-muted-foreground text-xs">{hint}</p> : null}
+      {hint ? <p className="text-muted-foreground text-sm">{hint}</p> : null}
     </div>
   );
 }

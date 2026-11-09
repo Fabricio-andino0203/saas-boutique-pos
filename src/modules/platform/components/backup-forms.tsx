@@ -42,11 +42,11 @@ function PasswordForm({
       <summary className="cursor-pointer text-sm font-medium">{label}</summary>
       <form action={formAction} className="mt-3 space-y-3">
         {slug ? <input type="hidden" name="slug" value={slug} /> : null}
-        {hint ? <p className="text-muted-foreground text-xs">{hint}</p> : null}
+        {hint ? <p className="text-muted-foreground text-sm">{hint}</p> : null}
         {children}
         <div className="flex flex-wrap items-end gap-2">
           <div className="space-y-1">
-            <label htmlFor={`${id}-password`} className="text-muted-foreground block text-xs">
+            <label htmlFor={`${id}-password`} className="text-muted-foreground block text-sm">
               {copy.actions.confirmPassword}
             </label>
             <Input

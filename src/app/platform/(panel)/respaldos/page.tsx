@@ -56,14 +56,14 @@ export default async function PlatformBackupsPage() {
           <TableRow data-testid="backup-row-control">
             <TableCell className="font-medium">
               {copy.control}
-              <span className="text-muted-foreground block text-xs font-normal">
+              <span className="text-muted-foreground block text-sm font-normal">
                 {copy.controlHint}
               </span>
             </TableCell>
             <TableCell>
               <StateTag state={overview.control.state} />
               {overview.control.open ? (
-                <span className="text-muted-foreground block text-xs">{copy.open}</span>
+                <span className="text-muted-foreground block text-sm">{copy.open}</span>
               ) : null}
             </TableCell>
             <TableCell className="whitespace-nowrap">
@@ -83,7 +83,7 @@ export default async function PlatformBackupsPage() {
               <TableCell>
                 <StateTag state={row.state} />
                 {row.open ? (
-                  <span className="text-muted-foreground block text-xs">{copy.open}</span>
+                  <span className="text-muted-foreground block text-sm">{copy.open}</span>
                 ) : null}
               </TableCell>
               <TableCell className="whitespace-nowrap">

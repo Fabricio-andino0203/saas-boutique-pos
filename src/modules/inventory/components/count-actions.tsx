@@ -76,7 +76,7 @@ export function CountActions({ countId, status, canApprove }: CountActionsProps)
       {status === "IN_REVIEW" && !canApprove ? (
         <p className="text-muted-foreground text-sm">{copy.needManager}</p>
       ) : null}
-      <p className="text-muted-foreground text-xs">{copy.cancelHint}</p>
+      <p className="text-muted-foreground text-sm">{copy.cancelHint}</p>
       {feedback?.error ? <Notice tone="error">{feedback.error}</Notice> : null}
       {feedback?.success ? <Notice tone="success">{feedback.success}</Notice> : null}
     </div>

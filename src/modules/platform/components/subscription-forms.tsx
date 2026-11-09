@@ -76,11 +76,11 @@ function SubscriptionForm({
       <summary className="cursor-pointer text-sm font-medium">{title}</summary>
       <form ref={formRef} onSubmit={handleSubmit} className="mt-3 space-y-3">
         <input type="hidden" name="slug" value={slug} />
-        {hint ? <p className="text-muted-foreground text-xs">{hint}</p> : null}
+        {hint ? <p className="text-muted-foreground text-sm">{hint}</p> : null}
         <div className="grid gap-3 sm:grid-cols-2">{children}</div>
         <div className="flex flex-wrap items-end gap-2">
           <div className="space-y-1">
-            <label htmlFor={passwordId} className="text-muted-foreground block text-xs">
+            <label htmlFor={passwordId} className="text-muted-foreground block text-sm">
               {copy.actorPassword}
             </label>
             <Input
@@ -141,7 +141,7 @@ export function AssignPlanForm({ slug, plans }: { slug: string; plans: readonly 
       </Field>
       <Field label={form.until} id="assign-until">
         <Input id="assign-until" name="until" type="date" />
-        <p className="text-muted-foreground text-xs">{form.untilHint}</p>
+        <p className="text-muted-foreground text-sm">{form.untilHint}</p>
       </Field>
       <Field label={form.reason} id="assign-reason">
         <Input id="assign-reason" name="reason" autoComplete="off" required minLength={3} />

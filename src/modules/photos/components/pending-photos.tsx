@@ -77,7 +77,7 @@ export function PendingPhotos({ items, onChange, disabled }: PendingPhotosProps)
         <label className="border-divider hover:bg-muted/50 focus-within:ring-ring/50 inline-flex cursor-pointer items-center gap-2 rounded-lg border border-dashed px-4 py-3 text-sm focus-within:ring-3">
           <ImagePlus className="text-muted-foreground size-5" aria-hidden="true" />
           <span className="font-medium">{copy.wizard.choose}</span>
-          <span className="text-muted-foreground text-xs">{copy.limits}</span>
+          <span className="text-muted-foreground text-sm">{copy.limits}</span>
           <input
             type="file"
             accept="image/jpeg,image/png,image/webp"

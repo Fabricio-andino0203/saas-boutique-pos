@@ -48,7 +48,7 @@ export default async function PrintLabelsPage({
         <span className="text-sm">
           {labels ? labels.length : 0} {copy.summary} · {template.widthMm}×{template.heightMm} mm
         </span>
-        <p className="text-muted-foreground w-full text-xs">{copy.hint}</p>
+        <p className="text-muted-foreground w-full text-sm">{copy.hint}</p>
       </div>
       {labels === null ? (
         <Notice tone="error">{copy.invalid}</Notice>

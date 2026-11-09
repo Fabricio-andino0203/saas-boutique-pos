@@ -155,7 +155,7 @@ export default async function LayawayPage({ params }: { params: Promise<{ id: st
               <TableRow key={item.id}>
                 <TableCell>
                   {item.productName}
-                  <span className="text-muted-foreground block text-xs">
+                  <span className="text-muted-foreground block text-sm">
                     {[item.sizeName, item.colorName].filter(Boolean).join(" · ")}
                     {item.sizeName || item.colorName ? " · " : ""}
                     {item.sku}

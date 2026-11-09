@@ -20,7 +20,7 @@ type Props = { params: Promise<{ slug: string }> };
 function Fact({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="space-y-0.5">
-      <dt className="text-muted-foreground text-xs">{label}</dt>
+      <dt className="text-muted-foreground text-sm">{label}</dt>
       <dd className="text-sm">{children}</dd>
     </div>
   );
@@ -160,7 +160,7 @@ export default async function PlatformTenantDetailPage({ params }: Props) {
                   </li>
                 ))}
               </ol>
-              <p className="text-muted-foreground text-xs">
+              <p className="text-muted-foreground text-sm">
                 {detail.runColumns.started}: {formatLocalDateTime(run.startedAt)}
                 {run.finishedAt
                   ? ` · ${detail.runColumns.finished}: ${formatLocalDateTime(run.finishedAt)}`

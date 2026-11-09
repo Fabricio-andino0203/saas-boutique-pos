@@ -184,7 +184,7 @@ export default async function FinanceEntriesPage({
                           ) : null}
                         </span>
                         {voided ? (
-                          <span className="text-muted-foreground block text-xs">
+                          <span className="text-muted-foreground block text-sm">
                             {copy.voidedBy} {row.voidedByName}: {row.voidReason}
                           </span>
                         ) : null}

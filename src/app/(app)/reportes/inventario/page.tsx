@@ -151,7 +151,7 @@ export default async function InventoryReportPage({
                   <TableRow key={row.variantId}>
                     <TableCell>
                       {row.productName}
-                      <span className="text-muted-foreground block text-xs">
+                      <span className="text-muted-foreground block text-sm">
                         {[row.sizeName, row.colorName].filter(Boolean).join(" · ")}
                       </span>
                     </TableCell>

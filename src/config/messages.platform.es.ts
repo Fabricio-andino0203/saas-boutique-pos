@@ -14,24 +14,24 @@ export const platformMessages = {
   unavailable: {
     suspended: {
       title: "Cuenta suspendida",
-      body: "El acceso a este negocio está suspendido. Comunícate con quien administra tu servicio para reactivarlo. Tus datos están a salvo.",
+      body: "Acceso suspendido. Comunícate con quien administra tu servicio. Tus datos están a salvo.",
     },
     expired: {
       title: "Suscripción vencida",
-      body: "La suscripción de este negocio terminó y el acceso está cerrado. Comunícate con quien administra tu servicio para renovarla. Tus datos están a salvo.",
+      body: "La suscripción terminó y el acceso está cerrado. Comunícate con quien administra tu servicio. Tus datos están a salvo.",
     },
     feature: {
       title: "No incluido en tu plan",
-      body: "Esta función no está incluida en el plan de tu negocio. Pídele a quien administra tu servicio que lo cambie.",
+      body: "Esta función no está en el plan de tu negocio. Pide el cambio a quien administra tu servicio.",
       back: "Volver al inicio",
     },
     maintenance: {
       title: "En mantenimiento",
-      body: "Estamos actualizando este negocio y vuelve en unos minutos. Tus datos están a salvo.",
+      body: "Estamos actualizando este negocio. Vuelve en unos minutos; tus datos están a salvo.",
     },
     directoryDown: {
       title: "Servicio no disponible por un momento",
-      body: "No pudimos atender tu solicitud en este momento. Espera un minuto y vuelve a intentarlo.",
+      body: "No pudimos atender tu solicitud. Espera un minuto y vuelve a intentarlo.",
     },
   },
   nav: {
@@ -65,7 +65,7 @@ export const platformMessages = {
   enroll: {
     title: "Activa la verificación en dos pasos",
     description:
-      "Para proteger la plataforma, cada superadministrador necesita una aplicación de autenticación (Google Authenticator, Microsoft Authenticator, Authy, 1Password…).",
+      "Cada superadministrador necesita una aplicación de autenticación (Google Authenticator, Authy, 1Password…).",
     step1: "1. Escanea este código QR con la aplicación.",
     qrLabel: "Código QR para la aplicación de autenticación",
     manual: "¿No puedes escanear? Escribe esta clave a mano:",
@@ -76,7 +76,6 @@ export const platformMessages = {
   },
   summary: {
     title: "Resumen de la plataforma",
-    description: "El estado general de los negocios y de los accesos de administración.",
     tenantsTotal: "Negocios",
     tenantsHint: "Registrados en la plataforma",
     adminsActive: "Administradores activos",
@@ -105,7 +104,6 @@ export const platformMessages = {
   },
   tenants: {
     title: "Negocios",
-    description: "Las tiendas que usan la plataforma, cada una con su propia base de datos.",
     columns: {
       name: "Negocio",
       slug: "Subdominio",
@@ -129,8 +127,7 @@ export const platformMessages = {
     },
     empty: {
       title: "Aún no hay negocios registrados",
-      description:
-        "Registra el primero con el formulario de arriba: se le crea su base de datos y su propietario. La tienda que ya usas se registra como el negocio #1 con «pnpm platform:adopt-store», sin tocar sus datos.",
+      description: "Registra el primero con el formulario de arriba.",
     },
     open: "Ver",
     viewReview: "Revisión del servidor",
@@ -138,9 +135,9 @@ export const platformMessages = {
     create: {
       title: "Registrar un negocio",
       description:
-        "Se le crea su propia base de datos (copiada de la plantilla), su rol de acceso y su propietario. Tarda unos segundos; si algo falla, el alta queda detenida y se puede retomar o deshacer.",
+        "Se crea su base de datos, su rol de acceso y su propietario. Si algo falla, el alta se retoma o se deshace.",
       unavailable:
-        "Este servidor no tiene configurada la cuenta que crea las bases de datos (TENANT_PROVISIONING_URL): el alta de negocios nuevos está desactivada.",
+        "Falta TENANT_PROVISIONING_URL en el servidor: el alta de negocios está desactivada.",
       name: "Nombre del negocio",
       slug: "Subdominio",
       slugHint: "Minúsculas, números y guiones. Será la dirección del negocio:",
@@ -150,10 +147,10 @@ export const platformMessages = {
       ownerEmail: "Correo del propietario (opcional)",
       ownerPassword: "Contraseña temporal del propietario",
       plan: "Plan",
-      planHint: "El negocio empieza en prueba con este plan. Puedes cambiarlo o asignarlo después.",
+      planHint: "Empieza en prueba con este plan. Puedes cambiarlo después.",
       noPlan: "Sin plan (sin restricciones)",
       ownerPasswordHint:
-        "Mínimo 8 caracteres. Entrégasela por un medio seguro: debe cambiarla al entrar (Mi cuenta). No se guarda en ningún registro.",
+        "Mínimo 8 caracteres. Entrégala por un medio seguro: se cambia al entrar. No se guarda en ningún registro.",
       actorPassword: "Tu contraseña (para confirmar)",
       submit: "Registrar negocio",
       submitting: "Creando su base de datos…",
@@ -171,13 +168,12 @@ export const platformMessages = {
       facts: "Datos del negocio",
       migrationFailed: "La última actualización de sus datos falló",
       migrationFailedHelp:
-        "Mientras tanto, quien entra ve «en mantenimiento». Los demás negocios no se ven afectados. Corrige la causa y reintenta.",
+        "Quien entra ve «en mantenimiento»; los demás negocios no se afectan. Corrige la causa y reintenta.",
       pendingDeletion: "Baja pendiente",
       pendingDeletionHelp: "Ya no atiende. Se puede cancelar hasta el",
       reason: "Motivo",
       archived: "Archivado",
-      archivedHelp:
-        "La base de datos se conserva en el servidor con este nombre; no se destruyó. Ya no atiende.",
+      archivedHelp: "Su base se conserva en el servidor con este nombre. Ya no atiende.",
       runs: "Intentos de alta",
       runColumns: {
         attempt: "Intento",
@@ -185,7 +181,7 @@ export const platformMessages = {
         started: "Empezó",
         finished: "Terminó",
       },
-      noRuns: "Este negocio se registró con la tienda existente: no pasó por el alta automática.",
+      noRuns: "Se registró con la tienda existente: no pasó por el alta automática.",
       steps: {
         validate: "Comprobar la cuenta y la plantilla",
         role: "Crear el rol de la base",
@@ -223,12 +219,11 @@ export const platformMessages = {
         suspend: "Deja de atender (cuenta suspendida). Sus datos no se tocan.",
         reactivate: "Vuelve a atender.",
         resume: "Continúa desde el paso que falló.",
-        undo: "Borra la base y el rol que creó este intento. Podrás registrar el subdominio de nuevo.",
+        undo: "Borra la base y el rol de este intento. Podrás registrar el subdominio de nuevo.",
         migrate: "Aplica a su base las migraciones que le falten.",
         requestDeletion:
-          "Deja de atender y empieza una retención de 30 días en la que se puede cancelar. No se borra nada.",
-        archive:
-          "Renombra su base de datos y elimina su rol de acceso. Los datos se conservan en el servidor.",
+          "Deja de atender y empieza una retención de 30 días, cancelable. No se borra nada.",
+        archive: "Renombra su base y elimina su rol de acceso. Los datos se conservan.",
       },
       done: {
         suspend: "El negocio quedó suspendido.",
@@ -247,9 +242,8 @@ export const platformMessages = {
     review: {
       title: "Revisión del servidor",
       description:
-        "Compara lo que dice la plataforma con lo que hay en el servidor de bases de datos. No arregla nada sola: solo muestra qué revisar.",
-      unavailable:
-        "Este servidor no tiene configurada la cuenta de aprovisionamiento (TENANT_PROVISIONING_URL): no se puede revisar.",
+        "Compara la plataforma con el servidor de bases de datos. Solo muestra qué revisar.",
+      unavailable: "Falta TENANT_PROVISIONING_URL en el servidor: no se puede revisar.",
       ok: "Todo cuadra: lo registrado es lo que hay en el servidor.",
       sections: {
         orphanDatabases: "Bases del servidor que ningún negocio reclama",
@@ -264,7 +258,7 @@ export const platformMessages = {
       migrateAll: {
         title: "Actualizar los datos de todos los negocios",
         description:
-          "Aplica las migraciones que falten, primero a los canarios; si uno falla, no se toca al resto. Un negocio que falle queda «en mantenimiento» con el motivo anotado y los demás siguen.",
+          "Aplica las migraciones pendientes, primero a los canarios; si uno falla, no se toca al resto. El que falle queda «en mantenimiento».",
         submit: "Actualizar todos",
         result: "Migrados {migrated}, al día {skipped}, con error {failed}, sin tocar {blocked}.",
       },
@@ -272,8 +266,7 @@ export const platformMessages = {
   },
   admins: {
     title: "Administradores",
-    description:
-      "Las personas con acceso a este panel. Todas entran con contraseña y verificación en dos pasos.",
+    description: "Quienes tienen acceso a este panel, con contraseña y verificación en dos pasos.",
     columns: {
       name: "Nombre",
       username: "Usuario",
@@ -289,7 +282,7 @@ export const platformMessages = {
     create: {
       title: "Agregar un administrador",
       description:
-        "Entregará la contraseña temporal a la persona; al entrar por primera vez configurará su aplicación de autenticación.",
+        "Entrégale la contraseña temporal; al entrar configurará su aplicación de autenticación.",
       name: "Nombre completo",
       username: "Usuario",
       usernameHint: "Minúsculas, números, punto, guion o guion bajo (3 a 40).",
@@ -298,7 +291,7 @@ export const platformMessages = {
       actorPassword: "Tu contraseña (para confirmar)",
       submit: "Agregar administrador",
       submitting: "Agregando…",
-      success: "El administrador se agregó. Entrégale la contraseña temporal por un medio seguro.",
+      success: "Administrador agregado. Entrégale la contraseña temporal por un medio seguro.",
     },
     actions: {
       confirmPassword: "Tu contraseña",
@@ -308,15 +301,13 @@ export const platformMessages = {
       unlock: "Desbloquear",
       deactivated: "El administrador se desactivó y sus sesiones se cerraron.",
       reactivated: "El administrador se reactivó.",
-      reset2faDone:
-        "Se restableció la verificación en dos pasos: configurará la aplicación en su próximo acceso.",
+      reset2faDone: "Verificación en dos pasos restablecida: la configurará en su próximo acceso.",
       unlocked: "La cuenta se desbloqueó.",
     },
   },
   audit: {
     title: "Auditoría de la plataforma",
-    description:
-      "Todo lo que se hace en el panel queda aquí, sin posibilidad de editarlo ni borrarlo.",
+    description: "Todo lo que se hace en el panel queda aquí; no se edita ni se borra.",
     columns: {
       date: "Fecha",
       actor: "Quién",
@@ -394,7 +385,7 @@ export const platformMessages = {
   },
   account: {
     title: "Mi cuenta",
-    description: "Cambia tu contraseña cuando quieras. Las demás sesiones se cerrarán.",
+    description: "Las demás sesiones se cerrarán.",
     currentPassword: "Contraseña actual",
     newPassword: "Contraseña nueva",
     confirmPassword: "Repite la contraseña nueva",
@@ -450,13 +441,13 @@ export const platformMessages = {
     plans: {
       title: "Planes",
       description:
-        "Lo que vendes: precio, cada cuánto se cobra, límites y módulos. Cambiar un plan lo cambia para todos los negocios que lo tienen; el precio que ya acordaron no cambia.",
+        "Precio, periodo, límites y módulos. Cambiar un plan lo cambia para todos sus negocios; el precio ya acordado no cambia.",
       new: "Nuevo plan",
       back: "Volver a planes",
       empty: {
         title: "Todavía no hay planes",
         description:
-          "Crea el primero con «Nuevo plan», o ejecuta «pnpm billing:seed-plans» en el servidor para empezar con tres planes de ejemplo.",
+          "Crea el primero con «Nuevo plan» o ejecuta «pnpm billing:seed-plans» para tener tres de ejemplo.",
       },
       columns: {
         name: "Plan",
@@ -474,22 +465,22 @@ export const platformMessages = {
       edit: "Editar",
       newTitle: "Nuevo plan",
       editTitle: "Editar plan",
-      coreIncluded: "Vender, cobrar, caja, inventario y catálogo van siempre en todos los planes.",
+      coreIncluded: "Vender, cobrar, caja, inventario y catálogo van en todos los planes.",
       form: {
         name: "Nombre",
         description: "Descripción (opcional)",
         price: "Precio (L)",
-        priceHint: "Lo que se cobra cada periodo, en lempiras. Por ejemplo 900.00",
+        priceHint: "Lo que se cobra cada periodo, en lempiras. Ej.: 900.00",
         interval: "Se cobra",
         trialDays: "Días de prueba",
         trialHint:
-          "Los negocios nuevos con este plan empiezan en prueba. Con 0 no hay prueba: quedan en gracia hasta que registres el primer pago.",
+          "Los negocios nuevos empiezan en prueba. Con 0 no hay prueba: quedan en gracia hasta el primer pago.",
         backupRetentionDays: "Días que se conservan los respaldos",
         backupRetentionHint:
-          "De 7 a 3650. Los respaldos diarios de los negocios con este plan se borran pasado este tiempo; un negocio sin plan usa el valor del servidor (30 días).",
+          "De 7 a 3650 días. Pasado ese tiempo se borran los respaldos diarios; sin plan, 30 días.",
         limits: "Límites",
         limitsHint:
-          "Déjalo vacío para «sin límite». Si un plan tiene menos tope que lo que ya usa un negocio, no se borra nada: solo se impide crear más. Cajas y sucursales se aplicarán cuando existan pantallas para crearlas.",
+          "Vacío = sin límite. Si un negocio ya usa más, no se borra nada: solo se impide crear más.",
         features: "Módulos incluidos",
         sortOrder: "Orden en las listas",
         isActive: "Activo (se puede asignar a negocios)",
@@ -502,7 +493,7 @@ export const platformMessages = {
     },
     subscription: {
       title: "Suscripción",
-      none: "Este negocio no tiene plan: se atiende sin restricciones. Asígnale uno para que empiecen a aplicarse los módulos, los límites y los vencimientos.",
+      none: "Este negocio no tiene plan: se atiende sin restricciones. Asígnale uno para aplicar módulos, límites y vencimientos.",
       facts: {
         plan: "Plan",
         state: "Estado",
@@ -545,14 +536,14 @@ export const platformMessages = {
         modeTrial: "Prueba gratuita",
         modePaid: "Ya vigente (sin cobro ahora)",
         until: "Vence el (opcional)",
-        untilHint: "Si lo dejas vacío: el fin de la prueba, o un periodo del plan.",
+        untilHint: "Vacío: el fin de la prueba o un periodo del plan.",
         reason: "Motivo",
         submit: "Asignar plan",
         done: "Plan asignado.",
       },
       pay: {
         title: "Registrar pago",
-        hint: "Extiende el vencimiento y pone al negocio al corriente. Si todavía no vence, se conservan los días ya pagados.",
+        hint: "Extiende el vencimiento y pone al negocio al corriente. Si aún no vence, se conservan los días pagados.",
         amount: "Monto pagado (L)",
         method: "Método",
         reference: "Referencia (opcional)",
@@ -565,7 +556,7 @@ export const platformMessages = {
       },
       change: {
         title: "Cambiar plan",
-        hint: "No se pierde ningún dato. Si el plan nuevo tiene menos tope que lo que el negocio ya usa, no se borra nada: solo se impide crear más.",
+        hint: "No se pierde ningún dato. Si el plan nuevo tiene menos tope que lo que usa el negocio, solo se impide crear más.",
         plan: "Plan nuevo",
         when: "Cuándo",
         whenNow: "Ahora (conserva las fechas pagadas)",
@@ -577,7 +568,7 @@ export const platformMessages = {
       },
       adjust: {
         title: "Ajustar vencimiento y plazos",
-        hint: "Para cortesías, correcciones o acuerdos especiales. Queda en la auditoría con el motivo.",
+        hint: "Para cortesías o acuerdos especiales. Queda en la auditoría con el motivo.",
         periodEnd: "Pagado hasta",
         graceDays: "Días de gracia",
         readOnlyDays: "Días de solo lectura",
@@ -627,12 +618,11 @@ export const platformMessages = {
   support: {
     title: "Soporte",
     description:
-      "Para ayudar a un negocio con un problema real puedes mirar sus datos durante un rato, con un motivo. Sin una sesión abierta no se ve nada. Cada vista y cada acción queda en la auditoría, y el negocio recibe un aviso en la suya.",
+      "Puedes mirar los datos de un negocio un rato, con un motivo. Sin sesión abierta no se ve nada; cada vista queda en la auditoría y el negocio recibe un aviso.",
     open: {
       title: "Abrir una sesión de soporte",
       reason: "Motivo (qué problema vas a atender)",
-      reasonHint:
-        "Entre 10 y 300 caracteres. Lo leerán después en la auditoría, tuyo y del negocio.",
+      reasonHint: "De 10 a 300 caracteres. Se leerá en la auditoría, tuya y del negocio.",
       minutes: "Duración",
       options: { "15": "15 minutos", "30": "30 minutos", "60": "1 hora", "120": "2 horas" },
       submit: "Abrir la sesión",
@@ -648,7 +638,7 @@ export const platformMessages = {
     },
     history: {
       title: "Últimas sesiones",
-      empty: "Todavía no se ha abierto ninguna sesión de soporte en este negocio.",
+      empty: "Aún no hay sesiones de soporte en este negocio.",
       columns: { who: "Quién", reason: "Motivo", start: "Desde", end: "Hasta", state: "Estado" },
       open: "Abierta",
       closed: "Cerrada",
@@ -707,7 +697,7 @@ export const platformMessages = {
       unlocked: "{user} quedó desbloqueado.",
       reset: "Contraseña temporal",
       resetHint:
-        "Le pone una contraseña nueva, la desbloquea y cierra sus sesiones. La contraseña se muestra una sola vez.",
+        "Pone una contraseña nueva, desbloquea y cierra sus sesiones. Se muestra una sola vez.",
       resetDone:
         "Contraseña temporal de {user}: {password} — entrégasela por un medio seguro. No se vuelve a mostrar; que la cambie al entrar.",
     },
@@ -744,8 +734,8 @@ export const platformMessages = {
   /** Uso por negocio (Etapa 5). */
   usage: {
     title: "Uso",
-    description: "Solo números: cuánto usa el negocio la plataforma, nunca qué vende ni a quién.",
-    none: "Todavía no hay una foto de su uso. Se toma a diario; también puedes actualizarla ahora.",
+    description: "Solo números: cuánto usa el negocio la plataforma, nunca qué vende.",
+    none: "Aún no hay una foto de su uso. Se toma a diario; puedes actualizarla ahora.",
     takenAt: "Foto del",
     refresh: "Actualizar el uso",
     refreshHint: "Lee de nuevo las cuentas del negocio (usuarios, productos, ventas, tamaño).",
@@ -766,7 +756,7 @@ export const platformMessages = {
   backups: {
     title: "Respaldos",
     description:
-      "Cada negocio se respalda por separado, con su propia llave y los días de conservación de su plan. El servicio de respaldos los hace a diario y a pedido.",
+      "Cada negocio se respalda por separado, con su propia llave y los días de su plan. A diario y a pedido.",
     states: {
       ok: "Al día",
       stale: "Atrasado",
@@ -792,7 +782,7 @@ export const platformMessages = {
     },
     control: "Base central de la plataforma",
     controlHint:
-      "Guarda los negocios, planes, administradores y la auditoría. Sin la llave maestra (PLATFORM_MASTER_KEY) no sirve: guárdala fuera del servidor.",
+      "Guarda negocios, planes, administradores y auditoría. Sin la llave maestra (PLATFORM_MASTER_KEY) no sirve: guárdala fuera del servidor.",
     never: "Nunca",
     days: "{n} días",
     daysServer: "{n} días (valor del servidor)",
@@ -812,12 +802,11 @@ export const platformMessages = {
       state: "Estado",
       retention: "Se conservan",
       requestNow: "Respaldar ahora",
-      requestHint:
-        "Pide un respaldo ahora. El servicio de respaldos lo hace en unos segundos; recarga la página para verlo.",
+      requestHint: "Pide un respaldo ahora; tarda unos segundos. Recarga la página para verlo.",
       requested: "Pedido. El servicio de respaldos lo hace en unos segundos.",
       relink: "Terminar la restauración",
       relinkHint:
-        "Después de restaurar su base desde un respaldo: deja al día el rol del negocio, sus permisos y la versión de los datos, y comprueba que puede entrar.",
+        "Tras restaurar su base: deja al día el rol, los permisos y la versión de los datos, y comprueba que puede entrar.",
       relinked:
         "Listo: el negocio puede entrar a su base. Versión de datos {from} → {to}; vio {users} usuario(s). Falta revisar los libros con db:verify.",
       restoreTitle: "Cómo restaurarlo",
@@ -839,10 +828,9 @@ export const platformMessages = {
     retired: {
       title: "Bases apartadas",
       description:
-        "Bases que el sistema nunca borra solo: las de negocios dados de baja (archivadas) y las que una restauración dejó apartadas al poner un respaldo en su lugar (con lo que se vendió después de ese respaldo). Para borrar una de verdad hace falta antes un volcado final comprobado.",
+        "Bases que el sistema nunca borra solo: de negocios dados de baja y las que dejó apartadas una restauración. Para borrar una hace falta antes un volcado final comprobado.",
       empty: "No hay bases apartadas.",
-      unavailable:
-        "Este servidor no tiene configurada la cuenta de aprovisionamiento (TENANT_PROVISIONING_URL): no se puede ver el servidor.",
+      unavailable: "Falta TENANT_PROVISIONING_URL en el servidor: no se puede ver.",
       columns: {
         database: "Base",
         kind: "Qué es",
@@ -863,12 +851,10 @@ export const platformMessages = {
       keepUntil: "se conserva hasta",
       requestDump: "Guardar el volcado final",
       requestDumpHint:
-        "Pide al servicio de respaldos un volcado cifrado y comprobado de esta base. Sin él no se puede borrar.",
-      dumpRequested:
-        "Pedido. El servicio de respaldos lo hace en unos segundos; recarga la página.",
+        "Pide un volcado cifrado y comprobado de esta base. Sin él no se puede borrar.",
+      dumpRequested: "Pedido; recarga la página en unos segundos.",
       drop: "Borrar definitivamente",
-      dropHint:
-        "Borra la base del servidor. No se puede deshacer: solo queda el volcado final, que se conserva por el tiempo del servidor.",
+      dropHint: "Borra la base del servidor. No se puede deshacer: solo queda el volcado final.",
       confirmName: "Escribe el nombre de la base para confirmar",
       dropped: "La base se borró. El volcado final se conserva.",
     },

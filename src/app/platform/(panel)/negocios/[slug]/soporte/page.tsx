@@ -119,7 +119,7 @@ export default async function PlatformSupportPage({ params }: Props) {
                           </span>
                         ) : null}
                         {person.failedLogins > 0 ? (
-                          <span className="text-muted-foreground block text-xs">
+                          <span className="text-muted-foreground block text-sm">
                             {view.failedLogins.replace("{n}", String(person.failedLogins))}
                           </span>
                         ) : null}

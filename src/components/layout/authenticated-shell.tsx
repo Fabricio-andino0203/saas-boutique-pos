@@ -334,7 +334,7 @@ export async function AuthenticatedShell({ children }: { children: ReactNode }) 
               <UserAvatar name={user.name} />
               <span className="hidden flex-col leading-tight sm:flex">
                 <span className="font-medium">{user.name}</span>
-                <span className="text-muted-foreground text-xs">
+                <span className="text-muted-foreground text-sm">
                   {messages.auth.roles[user.role]}
                 </span>
               </span>

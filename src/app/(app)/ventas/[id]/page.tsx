@@ -180,7 +180,7 @@ export default async function SaleDetailPage({ params }: { params: Promise<{ id:
                 <td className="py-1.5 pr-3 tabular-nums">{item.quantity}</td>
                 <td className="py-1.5 pr-3">
                   {item.productName}
-                  <span className="text-muted-foreground block text-xs">
+                  <span className="text-muted-foreground block text-sm">
                     {[item.sizeName, item.colorName].filter(Boolean).join(" · ")}
                     {item.sku ? ` · ${item.sku}` : ""}
                   </span>

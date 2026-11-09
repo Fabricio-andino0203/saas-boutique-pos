@@ -54,11 +54,11 @@ function ActionForm({
       <summary className="cursor-pointer text-sm font-medium">{label}</summary>
       <form action={formAction} className="mt-3 space-y-3">
         <input type="hidden" name="slug" value={slug} />
-        {hint ? <p className="text-muted-foreground text-xs">{hint}</p> : null}
+        {hint ? <p className="text-muted-foreground text-sm">{hint}</p> : null}
         {children}
         <div className="flex flex-wrap items-end gap-2">
           <div className="space-y-1">
-            <label htmlFor={passwordId} className="text-muted-foreground block text-xs">
+            <label htmlFor={passwordId} className="text-muted-foreground block text-sm">
               {copy.confirmPassword}
             </label>
             <Input
@@ -187,7 +187,7 @@ export function TenantActions({
             destructive
           >
             <div className="space-y-1">
-              <label htmlFor={`reason-${slug}`} className="text-muted-foreground block text-xs">
+              <label htmlFor={`reason-${slug}`} className="text-muted-foreground block text-sm">
                 {copy.reason}
               </label>
               <Input id={`reason-${slug}`} name="reason" autoComplete="off" required />
@@ -213,7 +213,7 @@ export function TenantActions({
               <div className="space-y-1">
                 <label
                   htmlFor={`confirm-slug-${slug}`}
-                  className="text-muted-foreground block text-xs"
+                  className="text-muted-foreground block text-sm"
                 >
                   {copy.confirmSlug}
                 </label>

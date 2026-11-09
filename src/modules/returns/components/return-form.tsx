@@ -262,7 +262,7 @@ export function ReturnForm({
                   <tr key={line.saleItemId} className="border-b align-top last:border-0">
                     <td className="py-2 pr-3">
                       {line.productName}
-                      <span className="text-muted-foreground block text-xs">
+                      <span className="text-muted-foreground block text-sm">
                         {label}
                         {label ? " · " : ""}
                         {line.sku}
@@ -277,7 +277,7 @@ export function ReturnForm({
                     <td className="py-2 pr-3 text-right tabular-nums">{line.returned}</td>
                     <td className="py-2 pr-3">
                       {line.returnable === 0 ? (
-                        <span className="text-muted-foreground text-xs">
+                        <span className="text-muted-foreground text-sm">
                           {copy.lines.allReturned}
                         </span>
                       ) : (
@@ -405,7 +405,7 @@ export function ReturnForm({
               />
               <span>
                 <span className="font-medium">{copy.methods[option]}</span>
-                <span className="text-muted-foreground block text-xs">{hint}</span>
+                <span className="text-muted-foreground block text-sm">{hint}</span>
               </span>
             </label>
           );
@@ -419,7 +419,7 @@ export function ReturnForm({
               {customer ? copy.refund.changeCustomer : copy.refund.chooseCustomer}
             </Button>
             {customer && sale.customer && customer.id === sale.customer.id ? (
-              <span className="text-muted-foreground text-xs tabular-nums">
+              <span className="text-muted-foreground text-sm tabular-nums">
                 {copy.refund.balance}: {formatMoney(sale.customer.storeCreditCents)}
               </span>
             ) : null}

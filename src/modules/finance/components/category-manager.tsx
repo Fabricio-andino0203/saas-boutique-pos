@@ -189,7 +189,7 @@ function CategoryItem({ row }: { row: CategoryRow }) {
             <span className={row.archived ? "text-muted-foreground" : "font-medium"}>
               {row.name}
             </span>
-            <span className="text-muted-foreground ml-2 text-xs tabular-nums">
+            <span className="text-muted-foreground ml-2 text-sm tabular-nums">
               {row.entryCount} {copy.used}
             </span>
             {row.archived ? (

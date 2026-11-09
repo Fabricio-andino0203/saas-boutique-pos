@@ -135,7 +135,7 @@ export function ProductLabelPicker({ onAdd }: ProductLabelPickerProps) {
                 <ProductThumb imageId={product.imageId} className="size-10 rounded-md" />
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-medium">{product.name}</p>
-                  <p className="text-muted-foreground text-xs tabular-nums">
+                  <p className="text-muted-foreground text-sm tabular-nums">
                     {product.code} · {product.variantCount} {copy.variants} · {product.onHand}{" "}
                     {copy.units}
                   </p>

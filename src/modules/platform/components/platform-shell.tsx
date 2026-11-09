@@ -86,7 +86,7 @@ export async function PlatformShell({ children }: { children: ReactNode }) {
               <UserAvatar name={user.name} />
               <span className="hidden flex-col leading-tight sm:flex">
                 <span className="font-medium">{user.name}</span>
-                <span className="text-muted-foreground text-xs">@{user.username}</span>
+                <span className="text-muted-foreground text-sm">@{user.username}</span>
               </span>
             </Link>
             <LogoutButton label={copy.logout} />

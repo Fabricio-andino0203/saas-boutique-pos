@@ -45,7 +45,7 @@ async function EnrollCard() {
         <div className="flex justify-center">
           <QrCode value={setup.uri} label={copy.qrLabel} />
         </div>
-        <p className="text-muted-foreground text-xs">{copy.manual}</p>
+        <p className="text-muted-foreground text-sm">{copy.manual}</p>
         <p
           className="bg-muted rounded-md px-3 py-2 text-center font-mono text-sm tracking-wider break-all select-all"
           aria-label={copy.secretLabel}

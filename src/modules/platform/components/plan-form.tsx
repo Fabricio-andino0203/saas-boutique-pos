@@ -148,7 +148,7 @@ export function PlanForm({ defaults = EMPTY_PLAN }: { defaults?: PlanFormDefault
 
       <fieldset className="space-y-2 sm:col-span-2">
         <legend className="text-sm font-medium">{form.limits}</legend>
-        <p className="text-muted-foreground text-xs">{form.limitsHint}</p>
+        <p className="text-muted-foreground text-sm">{form.limitsHint}</p>
         <div className="grid gap-3 sm:grid-cols-4">
           {PLAN_LIMIT_KINDS.map((kind) => {
             const name = LIMIT_FIELDS[kind];
@@ -171,7 +171,7 @@ export function PlanForm({ defaults = EMPTY_PLAN }: { defaults?: PlanFormDefault
 
       <fieldset className="space-y-2 sm:col-span-2">
         <legend className="text-sm font-medium">{form.features}</legend>
-        <p className="text-muted-foreground text-xs">{copy.plans.coreIncluded}</p>
+        <p className="text-muted-foreground text-sm">{copy.plans.coreIncluded}</p>
         <div className="grid gap-2 sm:grid-cols-2">
           {PLAN_FEATURES.map((feature) => (
             <label key={feature} className="flex items-center gap-2 text-sm">

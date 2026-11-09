@@ -129,9 +129,9 @@ export default async function FinanceBoxPage() {
           </div>
         )}
         {box.depositCount > BOX_LIST_LIMIT ? (
-          <p className="text-muted-foreground text-xs">{copy.truncated}</p>
+          <p className="text-muted-foreground text-sm">{copy.truncated}</p>
         ) : null}
-        <p className="text-muted-foreground text-xs">{copy.note}</p>
+        <p className="text-muted-foreground text-sm">{copy.note}</p>
       </section>
 
       <section aria-labelledby="box-withdrawals-title" className="space-y-3">
@@ -187,7 +187,7 @@ export default async function FinanceBoxPage() {
           </div>
         )}
         {box.withdrawalCount > BOX_LIST_LIMIT ? (
-          <p className="text-muted-foreground text-xs">{withdrawCopy.truncated}</p>
+          <p className="text-muted-foreground text-sm">{withdrawCopy.truncated}</p>
         ) : null}
       </section>
     </div>

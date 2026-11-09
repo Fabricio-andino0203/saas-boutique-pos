@@ -26,7 +26,7 @@ const sub = copy.subscription;
 function Fact({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="space-y-0.5">
-      <dt className="text-muted-foreground text-xs">{label}</dt>
+      <dt className="text-muted-foreground text-sm">{label}</dt>
       <dd className="text-sm">{children}</dd>
     </div>
   );

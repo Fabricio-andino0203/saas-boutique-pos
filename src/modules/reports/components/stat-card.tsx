@@ -21,7 +21,7 @@ export function StatCard({ label, value, hint, tone = "default" }: StatCardProps
       >
         {value}
       </p>
-      {hint ? <p className="text-muted-foreground text-xs">{hint}</p> : null}
+      {hint ? <p className="text-muted-foreground text-sm">{hint}</p> : null}
     </div>
   );
 }
@@ -53,7 +53,7 @@ export function StatFigure({
       >
         {value}
       </p>
-      {hint ? <p className="text-muted-foreground text-xs">{hint}</p> : null}
+      {hint ? <p className="text-muted-foreground text-sm">{hint}</p> : null}
     </div>
   );
 }

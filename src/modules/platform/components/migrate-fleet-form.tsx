@@ -18,7 +18,7 @@ export function MigrateFleetForm() {
   return (
     <form action={formAction} className="flex flex-wrap items-end gap-3">
       <div className="space-y-1">
-        <label htmlFor="fleet-password" className="text-muted-foreground block text-xs">
+        <label htmlFor="fleet-password" className="text-muted-foreground block text-sm">
           {platformMessages.tenants.actions.confirmPassword}
         </label>
         <Input

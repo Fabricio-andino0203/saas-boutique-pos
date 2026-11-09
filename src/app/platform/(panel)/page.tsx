@@ -27,7 +27,7 @@ export default async function PlatformSummaryPage() {
 
   return (
     <div className="space-y-8">
-      <PageHeader title={copy.title} description={copy.description} />
+      <PageHeader title={copy.title} />
 
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4" aria-label={copy.title}>
         <StatCard
@@ -195,7 +195,7 @@ function StatCard({
         {label}
       </div>
       <p className="text-2xl font-semibold tracking-tight">{value}</p>
-      {hint ? <p className="text-muted-foreground text-xs">{hint}</p> : null}
+      {hint ? <p className="text-muted-foreground text-sm">{hint}</p> : null}
     </div>
   );
 }

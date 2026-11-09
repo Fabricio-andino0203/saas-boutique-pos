@@ -32,7 +32,6 @@ export default async function PlatformTenantsPage() {
     <div className="space-y-10">
       <PageHeader
         title={copy.title}
-        description={copy.description}
         actions={
           <Link href="/negocios/revision" className="text-primary text-sm underline">
             {copy.viewReview}
@@ -88,7 +87,7 @@ export default async function PlatformTenantsPage() {
                 <TableCell className="font-medium">
                   {tenant.name}
                   {tenant.canary ? (
-                    <span className="text-muted-foreground ml-2 text-xs">({copy.canaryBadge})</span>
+                    <span className="text-muted-foreground ml-2 text-sm">({copy.canaryBadge})</span>
                   ) : null}
                 </TableCell>
                 <TableCell>{baseDomain ? `${tenant.slug}.${baseDomain}` : tenant.slug}</TableCell>

@@ -114,7 +114,7 @@ export function CatalogForm({ entity, id, values, options }: CatalogFormProps) {
               />
               {field.label}
             </label>
-            {field.hint ? <p className="text-muted-foreground text-xs">{field.hint}</p> : null}
+            {field.hint ? <p className="text-muted-foreground text-sm">{field.hint}</p> : null}
           </div>
         ) : (
           <FormField key={field.name} label={field.label} htmlFor={field.name} hint={field.hint}>

@@ -46,11 +46,11 @@ function ConfirmForm({
         {Object.entries(hidden).map(([name, value]) => (
           <input key={name} type="hidden" name={name} value={value} />
         ))}
-        {hint ? <p className="text-muted-foreground text-xs">{hint}</p> : null}
+        {hint ? <p className="text-muted-foreground text-sm">{hint}</p> : null}
         {children}
         <div className="flex flex-wrap items-end gap-2">
           <div className="space-y-1">
-            <label htmlFor={`${id}-password`} className="text-muted-foreground block text-xs">
+            <label htmlFor={`${id}-password`} className="text-muted-foreground block text-sm">
               {platformMessages.backups.actions.confirmPassword}
             </label>
             <Input
@@ -101,7 +101,7 @@ export function DropDatabaseForm({ database }: { database: string }) {
       destructive
     >
       <div className="space-y-1">
-        <label htmlFor={`drop-${database}-confirm`} className="text-muted-foreground block text-xs">
+        <label htmlFor={`drop-${database}-confirm`} className="text-muted-foreground block text-sm">
           {retired.confirmName}
         </label>
         <Input id={`drop-${database}-confirm`} name="confirm" autoComplete="off" required />

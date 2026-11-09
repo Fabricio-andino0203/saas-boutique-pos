@@ -41,7 +41,7 @@ function RowActionForm({
       <form action={formAction} className="mt-2 flex flex-wrap items-end gap-2">
         <input type="hidden" name="userId" value={userId} />
         <div className="space-y-1">
-          <label htmlFor={fieldId} className="text-muted-foreground block text-xs">
+          <label htmlFor={fieldId} className="text-muted-foreground block text-sm">
             {copy.confirmPassword}
           </label>
           <Input
