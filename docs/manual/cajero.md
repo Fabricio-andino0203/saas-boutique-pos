@@ -38,7 +38,9 @@ Todo lo que necesitas para vender. Si algo no sale como aquí, pídele ayuda al 
 
 ## 3. Cosas que pasan seguido
 
-- **El cliente se arrepiente antes de pagar:** pulsa **Cancelar venta** (también está en el botón **Caja**). Te pide el **motivo** y queda anotado; no se cancela sin él. Para quitar solo una prenda, usa la **X** de su línea.
+- **El cliente se arrepiente antes de pagar:** pulsa **Vaciar ticket** (la papelera del ticket). Te pide el **motivo** y queda anotado; no se vacía sin él. Para quitar solo una prenda, usa la **X** de su línea.
+- **El cliente ya pagó y se arrepiente:** eso no se cancela, es una **devolución** (siguiente punto).
+- **Se perdió el ticket del cliente:** pulsa **Reimprimir** (arriba, en Vender) y sale el último ticket cobrado en este equipo. Para uno más viejo, búscalo en **Ventas**.
 - **Un cliente espera mientras buscas algo:** pulsa **En espera** (**F6**) para guardar el ticket y atender a otro; lo recuperas en la misma ventana.
 - **Descuento:** **Descuento** (**F4**). Puedes dar **hasta el 10 %** sin pedir permiso. Más que eso necesita a un gerente: él escribe su usuario y su PIN y lo autoriza.
 - **El cliente quiere cambiar o devolver:** pulsa **Devoluciones** (**F8**) y busca la venta. Tiene **8 días** para hacerlo. Devolver en efectivo lo autoriza un gerente; lo normal es cambiar por otra prenda o dejar el valor como **crédito de tienda**.
@@ -47,9 +49,9 @@ Todo lo que necesitas para vender. Si algo no sale como aquí, pídele ayuda al 
 - **Me equivoqué en una venta ya cobrada:** no se borra. Avísale al gerente: la corrige con una anulación (mientras tu turno siga abierto) o con una devolución.
 - **Otro cajero va a tomar el mostrador:** **Cambiar cajero** (usuario y PIN); el ticket armado no se pierde.
 
-| Cancelar venta: pide el motivo |
+| Vaciar ticket: pide el motivo |
 | :---: |
-| ![Ventana que pide el motivo para cancelar la venta](img/11-cancelar-venta.jpg) |
+| ![Ventana que pide el motivo para vaciar el ticket](img/11-vaciar-ticket.jpg) |
 
 ## 4. Cerrar tu caja al terminar
 
@@ -73,4 +75,4 @@ Nada de esto se edita ni se borra: si te equivocas, haz el movimiento contrario 
 
 ## 5. Atajos útiles
 
-**F1** muestra todos los atajos dentro del sistema. Los más usados: **F2** buscar · **F12** cobrar · **F6** en espera · **Esc** cerrar la ventana · **Supr** quitar la línea seleccionada.
+Todo lo que se hace con una tecla también tiene su **botón** en pantalla: los atajos solo son la forma rápida. **F1** (o el botón del teclado) muestra todos los atajos dentro del sistema. Los más usados: **F2** buscar · **F12** cobrar · **F6** en espera · **Esc** cerrar la ventana · **Supr** quitar la línea seleccionada.

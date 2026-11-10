@@ -443,6 +443,15 @@ test("the cashier charges in cash, sees the change and prints the ticket", async
   // Nueva venta: el ticket queda vacío y el ticket cobrado se puede imprimir
   await page.getByRole("button", { name: charge.done.newSale }).click();
   await expect(page.getByText(pos.ticket.empty)).toBeVisible();
+
+  // El botón «Reimprimir» (la tecla F9) abre el último ticket cobrado
+  const [reprinted] = await Promise.all([
+    page.context().waitForEvent("page"),
+    page.getByRole("button", { name: pos.actions.reprint, exact: true }).click(),
+  ]);
+  await reprinted.waitForURL(/\/imprimir\/ticket\/[a-z0-9]+/);
+  await reprinted.close();
+
   await page.goto(printHref.replace("?auto=1", ""));
   const sheet = page.getByRole("article", { name: `${messages.salesDoc.ticket} ${ticketNumber}` });
   await expect(sheet).toContainText(name);
@@ -473,26 +482,28 @@ test("the cashier charges in cash, sees the change and prints the ticket", async
   await closeLeftoverCash(page);
 });
 
-test("the cashier cancels a sale with a reason, from the ticket and from the cash panel, and it stays on record", async ({
+test("the cashier empties the ticket with a reason, it stays on record, and the cash panel has no such button", async ({
   page,
   browser,
 }) => {
   test.slow();
-  const name = `E2E Cancelar ${Date.now()}`;
+  const name = `E2E Vaciar ${Date.now()}`;
   const baseURL = test.info().project.use.baseURL as string;
   await createStockedProduct(browser, baseURL, name, "90", "L 90.00", "5");
 
   await openCashAndSell(page);
 
-  // Sin prendas en el ticket no hay venta que cancelar
+  // Sin prendas no hay nada que vaciar; y el panel de Caja no lo ofrece (una venta ya cobrada se deshace con una devolución)
+  const clear = page.getByRole("button", { name: pos.ticket.clear });
+  await expect(clear).toBeDisabled();
   const idle = await openCashPanel(page);
-  await expect(idle.getByRole("button", { name: copy.panel.actions.cancelSale })).toBeDisabled();
+  await expect(idle.getByRole("button", { name: pos.ticket.clear })).toHaveCount(0);
   await page.keyboard.press("Escape");
   await expect(idle).toBeHidden();
 
-  // Desde el ticket: pide el motivo y no se cancela sin él
+  // Desde el ticket: pide el motivo y no se vacía sin él
   await addToTicket(page, name, "L 90.00");
-  await page.getByRole("button", { name: pos.ticket.clear }).click();
+  await clear.click();
   const dialog = page.getByRole("dialog", { name: pos.cancel.title });
   const confirm = dialog.getByRole("button", { name: pos.cancel.confirm });
   await expect(confirm).toBeDisabled();
@@ -502,10 +513,9 @@ test("the cashier cancels a sale with a reason, from the ticket and from the cas
   await confirm.click();
   await expect(page.getByText(pos.ticket.empty)).toBeVisible();
 
-  // Desde el panel de Caja: lo mismo
+  // Otra vez, con otro motivo
   await addToTicket(page, name, "L 90.00");
-  const panel = await openCashPanel(page);
-  await panel.getByRole("button", { name: copy.panel.actions.cancelSale }).click();
+  await clear.click();
   const again = page.getByRole("dialog", { name: pos.cancel.title });
   await again.getByLabel(pos.cancel.reason, { exact: true }).fill("E2E se fue sin comprar");
   await again.getByRole("button", { name: pos.cancel.confirm }).click();

@@ -1,6 +1,6 @@
 "use client";
 
-import { Bookmark, Keyboard, Pause, Search, Undo2, UserRoundCog } from "lucide-react";
+import { Bookmark, Keyboard, Pause, Printer, Search, Undo2, UserRoundCog } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 
@@ -445,7 +445,7 @@ export function PosScreen({
             {config.terminalName} · {config.openedByName}
           </p>
         </div>
-        {/* Los atajos (F6, F7, F8, F1) viven en el tooltip y en la ayuda «Atajos»: así los botones quedan limpios. */}
+        {/* Cada atajo tiene su botón; la tecla (F6, F7, F8, F9, F1) viene en el tooltip y en la ayuda «Atajos». */}
         <div className="flex flex-wrap gap-2">
           <Button type="button" variant="outline" title="F6" onClick={() => openDialog("parked")}>
             <Pause aria-hidden="true" />
@@ -472,13 +472,15 @@ export function PosScreen({
             <Undo2 aria-hidden="true" />
             {copy.actions.returns}
           </Button>
+          <Button type="button" variant="outline" title="F9" onClick={reprint}>
+            <Printer aria-hidden="true" />
+            {copy.actions.reprint}
+          </Button>
           {config.canUseCash ? (
             <CashPanel
               ownSession={config.ownsCash}
               openedByName={config.openedByName}
               onOpenChange={setCashOpen}
-              canCancelSale={items.length > 0}
-              onCancelSale={cancelCurrent}
               canLayaway={config.canLayaway}
             />
           ) : null}

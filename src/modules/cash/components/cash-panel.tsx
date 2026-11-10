@@ -3,7 +3,6 @@
 import {
   ArrowDownToLine,
   ArrowUpFromLine,
-  Ban,
   Banknote,
   Bookmark,
   ChevronLeft,
@@ -39,9 +38,6 @@ type CashPanelProps = {
   openedByName: string;
   /** El punto de venta pausa sus atajos mientras el panel está abierto. */
   onOpenChange?: (open: boolean) => void;
-  /** Hay prendas en el ticket: se puede cancelar la venta. */
-  canCancelSale: boolean;
-  onCancelSale: () => void;
   /** Solo si la persona puede manejar apartados. */
   canLayaway: boolean;
 };
@@ -50,18 +46,11 @@ const actionClass = "h-12 justify-start gap-2 px-3 text-sm font-medium";
 
 /**
  * La caja dentro de Vender, como los botones de una caja registradora: ingresar o retirar efectivo, agregar un gasto, los
- * apartados, cancelar la venta y el corte. Los datos se piden al abrir y otra vez tras cada cambio, así lo que ven coincide
- * con las ventas que se acaban de cobrar. (Cambiar de cajero sigue en el encabezado de Vender: también lo usa quien no
- * es dueño del turno.)
+ * apartados y el corte. Los datos se piden al abrir y otra vez tras cada cambio, así lo que ven coincide con las ventas
+ * que se acaban de cobrar. (Cambiar de cajero sigue en el encabezado de Vender: también lo usa quien no es dueño del
+ * turno. Vaciar el ticket está en el propio ticket, y deshacer una venta ya cobrada es una devolución.)
  */
-export function CashPanel({
-  ownSession,
-  openedByName,
-  onOpenChange,
-  canCancelSale,
-  onCancelSale,
-  canLayaway,
-}: CashPanelProps) {
+export function CashPanel({ ownSession, openedByName, onOpenChange, canLayaway }: CashPanelProps) {
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<View>("menu");
   const [state, setState] = useState<CashPanelState | null>(null);
@@ -83,12 +72,6 @@ export function CashPanel({
         load();
       }
     }
-  }
-
-  /** Cierra el panel y deja que el punto de venta siga con lo que pidió (cancelar la venta). */
-  function leaveTo(action: () => void) {
-    changeOpen(false);
-    action();
   }
 
   function saved() {
@@ -163,13 +146,7 @@ export function CashPanel({
               ) : null}
 
               <div hidden={view !== "menu"} className="space-y-4">
-                <ActionGrid
-                  data={state.data}
-                  canCancelSale={canCancelSale}
-                  canLayaway={canLayaway}
-                  onView={setView}
-                  onCancelSale={() => leaveTo(onCancelSale)}
-                />
+                <ActionGrid data={state.data} canLayaway={canLayaway} onView={setView} />
                 <ShiftDetail data={state.data} />
                 <Link
                   href="/caja/cierres"
@@ -215,16 +192,12 @@ function ActionButton({
 
 function ActionGrid({
   data,
-  canCancelSale,
   canLayaway,
   onView,
-  onCancelSale,
 }: {
   data: CashPanelData;
-  canCancelSale: boolean;
   canLayaway: boolean;
   onView: (view: View) => void;
-  onCancelSale: () => void;
 }) {
   const actions = panel.actions;
   // Sin el módulo Finanzas, «Retirar efectivo» cubre también los pagos: el gasto necesita una categoría a dónde ir.
@@ -248,13 +221,6 @@ function ActionGrid({
           {actions.layaways}
         </Link>
       ) : null}
-      <ActionButton
-        icon={<Ban aria-hidden="true" />}
-        disabled={!canCancelSale}
-        onClick={onCancelSale}
-      >
-        {actions.cancelSale}
-      </ActionButton>
       <Button
         type="button"
         className={cn(actionClass, "col-span-2")}

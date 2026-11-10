@@ -95,9 +95,9 @@ Railway → proyecto **boutique-pos** → servicio **app** → **Deployments** �
 - [ ] Panel → **Negocios**: ninguno quedó en mantenimiento.
 - [ ] **Planes:** si esta versión trae una función nueva por plan, los planes que ya existen **no la reciben solos**. Panel → **Planes** → abre cada plan → marca la función → guarda. *(Esta versión no agrega funciones por plan; la anterior sumó «Finanzas: gastos, ingresos y utilidad».)*
 - [ ] **Prueba lo nuevo en una tienda de verdad** (usa una de prueba, no la de un cliente). Lista de esta versión; cámbiala en cada actualización:
-  - [ ] **Vender** → botón **Caja**: el panel muestra el efectivo que debe haber y los botones *Ingresar efectivo*, *Retirar efectivo*, *Agregar gasto*, *Apartados*, *Cancelar venta* y *Realizar corte*.
+  - [ ] **Vender** → botón **Caja**: el panel muestra el efectivo que debe haber y los botones *Ingresar efectivo*, *Retirar efectivo*, *Agregar gasto*, *Apartados* y *Realizar corte*. El encabezado de Vender trae también el botón **Reimprimir** (el último ticket cobrado).
   - [ ] Abrir caja: si el último cierre dejó efectivo, se ve el **saldo anterior** y **no se puede cambiar**. Si no dejó, se escribe el fondo.
-  - [ ] **Cancelar venta** con prendas en el ticket pide un **motivo** y aparece en **Auditoría** como «Venta cancelada antes de cobrar».
+  - [ ] **Vaciar ticket** (papelera del ticket) con prendas pide un **motivo** y aparece en **Auditoría** como «Ticket vaciado antes de cobrar».
   - [ ] **Realizar corte:** se cuentan **billetes y monedas** (el total sale solo), se ve la diferencia, se retira una parte y la siguiente apertura muestra lo que quedó.
   - [ ] **Configuración → Logo del ticket:** subir un logo, verlo, y **cobrar una venta de prueba**: el recibo sale con logo, «Comprobante de venta», fecha, hora, columnas y total en banda negra.
   - [ ] Las pantallas se ven con menos texto: títulos sin subtítulo, ayudas cortas y letra de 14 px o más.
