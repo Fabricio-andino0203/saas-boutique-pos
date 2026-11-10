@@ -60,6 +60,7 @@ pnpm db:seed        # datos de demo
 pnpm db:reset       # reset + migrate + seed (solo local)
 pnpm admin:create-owner   # primer arranque de una instalación real: crea al propietario (sin usuarios de demo)
 pnpm job:expire-layaways  # tarea diaria: vence apartados con el plazo cumplido
+pnpm subir "qué cambió"   # guarda y sube a GitHub (main) con protecciones; también `subir.cmd` con doble clic (docs/PLANTILLA_ACTUALIZACION.md §1)
 pnpm db:verify         # revisa que los libros cuadran (después de restaurar un respaldo; VERIFY_DATABASE=<base>)
 pnpm control:setup     # SaaS: crea (si falta) y migra la base central de la plataforma (ver docs/SAAS_ETAPA_1.md)
 pnpm platform:create-admin | platform:reset-2fa | platform:unlock | platform:gen-key | platform:rotate-key   # SaaS: superadministradores y llave maestra

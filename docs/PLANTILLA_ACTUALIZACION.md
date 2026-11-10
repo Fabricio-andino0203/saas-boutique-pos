@@ -44,6 +44,21 @@ El repositorio está en `C:\Users\Fabricio Andino\Desktop\Andino Sotfware\Boutiq
 
 ## 1. Subir
 
+**Forma corta (un solo comando).** Solo escribes qué cambió; el comando revisa, guarda y sube:
+
+```bash
+pnpm --dir "C:\Users\Fabricio Andino\Desktop\Andino Sotfware\Boutique-ventas-saas" subir "qué cambió"
+```
+
+También sirve hacer **doble clic en `subir.cmd`** (en la carpeta del repositorio): te pregunta qué cambió, te enseña qué va a subir y te pide un Enter. Dentro de la carpeta basta `pnpm subir "qué cambió"`.
+
+- Antes de subir revisa GitHub y **se niega** si tiene algo que tu rama no tiene (nunca fuerza nada), si hay archivos `.env`, llaves, respaldos o archivos de más de 5 MB, o si falló la verificación.
+- Enseña los archivos, el mensaje y **avisa si hay migraciones** (se aplican solas en todos los negocios al desplegar).
+- Opciones: `--si` (no pregunta antes de subir) y `--verificar` (antes corre tipos, lint y formato; no sustituye las pruebas).
+- Si algo falla, el mensaje dice qué hacer y lo ya guardado no se pierde: al volver a correrlo sube lo que falta.
+
+**A mano** (lo mismo, paso a paso):
+
 ```bash
 git -C "C:\Users\Fabricio Andino\Desktop\Andino Sotfware\Boutique-ventas-saas" push origin saas/etapa-0:main
 ```

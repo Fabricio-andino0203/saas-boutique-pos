@@ -66,6 +66,7 @@
     "db:verify": "tsx scripts/verify-books.ts",
     "admin:create-owner": "tsx scripts/create-owner.ts",
     "job:expire-layaways": "tsx scripts/expire-layaways.ts",
+    "subir": "tsx scripts/subir.ts",
     "test": "vitest run",
     "test:unit": "vitest run --project unit",
     "test:integration": "vitest run --project integration",
